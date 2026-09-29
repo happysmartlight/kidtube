@@ -64,16 +64,31 @@ git clone <repo> kidtube && cd kidtube
 # Bí mật ký cookie — không có thì mỗi lần restart phải nhập PIN lại
 echo "SESSION_SECRET=$(openssl rand -hex 32)" > .env
 echo "DEFAULT_PIN=$(shuf -i 100000-999999 -n 1)" >> .env
+
+# Cổng trên Pi. Mặc định 8477 — đổi nếu trùng với thứ khác trong homelab.
+echo "KIDTUBE_PORT=8477" >> .env
+
 cat .env      # ghi lại PIN này
 
 docker compose up -d --build
 docker compose logs -f kidtube
 ```
 
-Lần build đầu mất **10–20 phút** trên Pi 5 (phải biên dịch `better-sqlite3`
-cho arm64). Các lần sau nhanh hơn nhiều nhờ cache.
+Nếu báo `port is already allocated`, xem cổng nào đang bị chiếm rồi chọn cổng khác:
 
-Mở `http://<ip-của-pi>:8080` → giữ icon ⚙ 3 giây → nhập PIN.
+```bash
+ss -tlnp | grep -E ':(80|8[0-9]{3})'   # xem đang có gì
+sed -i 's/^KIDTUBE_PORT=.*/KIDTUBE_PORT=8478/' .env
+docker compose up -d
+```
+
+Lần build đầu mất khoảng **2 phút** trên Pi 5 (đã đo thực tế: 123s — chủ yếu là
+biên dịch `better-sqlite3` cho arm64). Các lần sau nhanh hơn nhờ cache layer.
+
+Mở `http://<ip-của-pi>:8477` → giữ icon ⚙ 3 giây → nhập PIN.
+
+(Thay `8477` bằng giá trị `KIDTUBE_PORT` của bạn. Cổng *bên trong* container
+luôn là 8080 — không cần đổi.)
 
 ### Dùng SSD ngoài cho video tải về
 
@@ -100,7 +115,7 @@ docker compose start kidtube
 
 ## Mở trên tablet (Android / iPad)
 
-1. Mở `http://<ip-của-pi>:8080` bằng Chrome hoặc Safari
+1. Mở `http://<ip-của-pi>:8477` bằng Chrome hoặc Safari
 2. Menu → **Thêm vào Màn hình chính**
 3. Mở từ icon vừa tạo → chạy **toàn màn hình, không có thanh địa chỉ**
 
@@ -115,7 +130,7 @@ Muốn khoá chặt hơn nữa (Android): dùng **Fully Kiosk Browser** hoặc
 ## Mở trên TV LG (webOS)
 
 1. Mở app **Web Browser** trên TV
-2. Vào `http://<ip-của-pi>:8080`
+2. Vào `http://<ip-của-pi>:8477`
 3. Lưu vào Bookmark cho lần sau
 4. Bấm chọn avatar của bé — app sẽ **tự xin vào toàn màn hình**
 
@@ -208,10 +223,13 @@ docker compose up -d
 
 ```bash
 npm install
-npm run dev     # API cổng 8099 + Vite cổng 5173
+npm run dev     # API cổng 8080 + Vite cổng 5173
 ```
 
 Mở `http://localhost:5173`. Vite proxy `/api` và `/media` sang backend.
+
+Backend trùng cổng? `API_PORT=9000 PORT=9000 npm run dev` — Vite đọc `API_PORT`
+để biết proxy đi đâu.
 
 ```bash
 npm run typecheck    # kiểm tra kiểu cả hai workspace
@@ -243,6 +261,8 @@ docs/        Yêu cầu, kế hoạch, kiến trúc, thiết kế
 | Con bấm video thì thấy 🙈 | Kênh chặn nhúng. Tab *Hàng chờ duyệt* → bấm **⬇ Tải offline**. |
 | Chữ quá nhỏ trên TV | *Cài đặt → Giao diện → Ghi đè trên thiết bị này → TV* (mở ngay trên TV). |
 | Quota reset sai giờ | Kiểm tra `TZ` trong `docker-compose.yml` (phải là `Asia/Ho_Chi_Minh`). |
+| `port is already allocated` | Cổng đã bị dịch vụ khác chiếm. Đổi `KIDTUBE_PORT` trong `.env` rồi `docker compose up -d`. |
+| Tablet/TV không vào được nhưng Pi thì được | Kiểm tra firewall trên Pi: `sudo ufw allow 8477/tcp`. |
 | Quên PIN | `docker compose exec kidtube node -e "…"` — hoặc xoá 3 dòng `pin_*` trong bảng `settings` của `data/kid.db`, restart sẽ dùng lại `DEFAULT_PIN`. |
 | Restart là phải nhập PIN lại | Chưa đặt `SESSION_SECRET` trong `.env`. |
 

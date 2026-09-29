@@ -16,10 +16,13 @@ services:
     container_name: kidtube
     restart: unless-stopped
 
-    # Chi mo trong LAN. KHONG mo ra Internet — day la app cho tre,
-    # khong co ly do gi phai truy cap tu ngoai.
+    # Cong tren MAY CHU (Pi). Doi bang KIDTUBE_PORT trong .env neu bi trung.
+    # 8080 rat hay bi chiem san (Portainer, qBittorrent, Home Assistant...).
+    #
+    # Ghi ro 0.0.0.0 de chac chan mo ra LAN — tablet va TV phai vao duoc.
+    # KHONG mo ra Internet: day la app cho tre, khong co ly do gi truy cap tu ngoai.
     ports:
-      - '8080:8080'
+      - '0.0.0.0:${KIDTUBE_PORT:-8477}:8080'
 
     volumes:
       # kid.db — sao luu thu muc nay la sao luu toan bo cau hinh.
