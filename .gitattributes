@@ -1,0 +1,23 @@
+# Chuan hoa ket thuc dong.
+#
+# Project nay duoc SUA tren Windows nhung CHAY tren Linux (Raspberry Pi, Docker).
+# Khong chuan hoa thi moi lan checkout qua lai se sinh diff nhieu CRLF vo nghia,
+# va script/config co the hong khi vao container.
+#
+# eol=lf: luu LF trong repo VA checkout ra LF ca tren Windows.
+* text=auto eol=lf
+
+# Nhi phan — dung bao gio dung vao.
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.webp binary
+*.woff binary
+*.woff2 binary
+*.mp4  binary
+*.db   binary
+
+# Khong tinh vao thong ke ngon ngu cua GitHub.
+package-lock.json linguist-generated=true

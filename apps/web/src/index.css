@@ -1,0 +1,328 @@
+@import 'tailwindcss';
+
+/* ═══════════════════════════════════════════════════════════════════
+   DESIGN TOKEN — xem docs/DESIGN.md
+   Mot bo component, HAI bo token. `data-mode` dat tren <html>.
+
+   TUONG THICH TRINH DUYET TV (Tizen/webOS) la rang buoc chinh o day:
+     - KHONG dung color-mix()  -> moi bien the mau tinh truoc thanh rgba()
+     - KHONG chi dua vao :focus-visible -> co fallback :focus
+     - KHONG chi dua vao aspect-ratio  -> co fallback padding-bottom
+   ═══════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* Mau nen — app cam ket mot giao dien toi diu (khong den thuan, do choi
+     khi xem buoi toi). Khong co che do sang: day la app chay tren thiet bi
+     rieng trong nha, khong phai trang web cong khai. */
+  --bg: #16131f;
+  --bg-elev: #1e1a2b;
+  --card: #241f33;
+  --card-hi: #2f2942;
+  --text: #f6f3ff;
+  --text-dim: #a79cc4;
+
+  /* Mau nhan manh + cac bien the TINH TRUOC (thay cho color-mix) */
+  --focus: #ffd23f;
+  --focus-glow: rgba(255, 210, 63, 0.55);
+  --focus-bg: rgba(255, 210, 63, 0.16);
+  --focus-border: rgba(255, 210, 63, 0.42);
+  --focus-ink: #2a1f00;
+
+  --danger: #ff6b8a;
+  --danger-bg: rgba(255, 107, 138, 0.18);
+  --danger-border: rgba(255, 107, 138, 0.45);
+
+  --ok: #4ecb71;
+  --ok-bg: rgba(78, 203, 113, 0.18);
+  --ok-border: rgba(78, 203, 113, 0.45);
+
+  --warn: #ff9f43;
+  --warn-bg: rgba(255, 159, 67, 0.14);
+  --warn-border: rgba(255, 159, 67, 0.36);
+
+  --hairline: rgba(246, 243, 255, 0.16);
+  --scrim: rgba(8, 6, 14, 0.88);
+  --overlay-chip: rgba(0, 0, 0, 0.68);
+
+  /* Chung cho moi mode */
+  --radius-card: 24px;
+  --radius-btn: 999px;
+  --gap-card: 16px;
+  --focus-ring: 4px;
+  --ease-pop: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --dur: 180ms;
+
+  /* Mac dinh = touch (tablet) */
+  --card-w: 180px;
+  --font-title: 17px;
+  --font-shelf: 22px;
+  --nav-h: 88px;
+  --header-h: 72px;
+  --safe-pad: 16px;
+  --tap: 72px;
+  --ctrl-btn: 64px;
+}
+
+/* TV: xem tu ~3m, dieu khien bang remote (phim mui tien HOAC con tro) */
+:root[data-mode='tv'] {
+  --card-w: 300px;
+  --font-title: 24px;
+  --font-shelf: 34px;
+  --nav-h: 112px;
+  --header-h: 96px;
+  /* 5% chong overscan — nhieu TV van cat mep anh */
+  --safe-pad: 5%;
+  --tap: 88px;
+  --ctrl-btn: 88px;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Baloo 2', 'Nunito', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-weight: 600;
+  overflow: hidden; /* app-shell: chi vung noi dung cuon */
+  overscroll-behavior: none;
+  /* Tre hay vo tinh boi den chu — tat chon van ban cho giao dien tre */
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Cho phep chon van ban trong trang quan tri (bo me can copy link) */
+[data-admin] {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+/* ═══ FOCUS — quy tac quan trong nhat cho TV ═══════════════════════
+   Ring phai day va thay ro o khoang cach 3m.
+
+   Trinh duyet TV cu co the KHONG ho tro :focus-visible. Neu chi viet
+   :focus-visible thi tren nhung TV do se KHONG CO RING NAO — app thanh
+   khong dieu huong duoc. Nen:
+     1. dat ring cho :focus  (chay o moi noi)
+     2. neu trinh duyet HIEU :focus-visible thi go ring khi focus khong
+        phai do ban phim (de cham tay tren tablet khong hien ring)
+   ═════════════════════════════════════════════════════════════════ */
+
+.focusable {
+  outline: none;
+  transition:
+    transform var(--dur) var(--ease-pop),
+    box-shadow var(--dur) ease,
+    background-color var(--dur) ease;
+}
+
+.focusable:focus {
+  transform: scale(1.08);
+  box-shadow:
+    0 0 0 var(--focus-ring) var(--ring-color, var(--focus)),
+    0 0 32px -4px var(--ring-glow, var(--focus-glow));
+  z-index: 5;
+  position: relative;
+}
+
+@supports selector(:focus-visible) {
+  .focusable:focus:not(:focus-visible) {
+    transform: none;
+    box-shadow: none;
+    z-index: auto;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .focusable:hover {
+    transform: scale(1.04);
+  }
+}
+
+/* ═══ Component ═══════════════════════════════════════════════════ */
+
+.kcard {
+  width: var(--card-w);
+  flex: 0 0 auto;
+  border-radius: var(--radius-card);
+  background: var(--card);
+  overflow: hidden;
+  border: none;
+  padding: 0;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.kcard-thumb {
+  position: relative;
+  width: 100%;
+  background: var(--card-hi);
+  aspect-ratio: 16 / 9;
+}
+
+/* Fallback ti le khung cho trinh duyet TV khong co aspect-ratio */
+@supports not (aspect-ratio: 16 / 9) {
+  .kcard-thumb {
+    height: 0;
+    padding-bottom: 56.25%;
+  }
+}
+
+.kcard-thumb img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.kcard-title {
+  font-size: var(--font-title);
+  line-height: 1.25;
+  padding: 10px 12px 14px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  /* Chieu cao co dinh 2 dong -> luoi card khong nhay khi tieu de dai ngan khac nhau */
+  min-height: calc(var(--font-title) * 2.5 + 24px);
+}
+
+.kshelf-label {
+  font-size: var(--font-shelf);
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Cuon ngang muot, an scrollbar (remote TV khong keo scrollbar duoc) */
+.krow {
+  display: flex;
+  gap: var(--gap-card);
+  overflow-x: auto;
+  overflow-y: visible;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  /* Cho ring cua card khong bi cat o canh vung cuon */
+  padding: 10px var(--safe-pad);
+  margin: -10px 0;
+}
+
+.krow::-webkit-scrollbar {
+  display: none;
+}
+
+/* Fallback khoang cach cho TV cu khong ho tro `gap` trong flex:
+   khong co gap thi card dinh nhau, van dung duoc nhung xau. */
+@supports not (gap: 1px) {
+  .krow > * {
+    margin-right: var(--gap-card);
+  }
+}
+
+.kbtn {
+  min-width: var(--tap);
+  min-height: var(--tap);
+  border-radius: var(--radius-btn);
+  border: none;
+  background: var(--card);
+  color: var(--text);
+  font-family: inherit;
+  font-weight: 700;
+  font-size: calc(var(--font-title) * 1.05);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 0 24px;
+  cursor: pointer;
+}
+
+.kbtn-primary {
+  background: var(--focus);
+  color: var(--focus-ink);
+}
+
+.kbtn-ghost {
+  background: transparent;
+  border: 2px solid var(--hairline);
+}
+
+.scroll-y {
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: var(--card-hi) transparent;
+}
+
+/* ═══ Ton trong prefers-reduced-motion ════════════════════════════ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .focusable:focus {
+    transform: none;
+  }
+}
+
+/* ═══ Animation ═══════════════════════════════════════════════════ */
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes wave {
+  0%,
+  100% {
+    transform: rotate(-8deg);
+  }
+  50% {
+    transform: rotate(14deg);
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.anim-pop {
+  animation: pop-in 260ms var(--ease-pop) both;
+}
+
+.anim-wave {
+  animation: wave 1.1s ease-in-out infinite;
+  transform-origin: 70% 80%;
+  display: inline-block;
+}
+
+.anim-spin {
+  animation: spin 900ms linear infinite;
+}

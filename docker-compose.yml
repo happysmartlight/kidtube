@@ -1,0 +1,56 @@
+# KidTube Home — chay tren Raspberry Pi 5
+#
+#   docker compose up -d --build
+#   docker compose logs -f kidtube
+#
+# Lan dau khoi dong, log se in PIN quan tri mac dinh. DOI NGAY trong Cai dat.
+
+services:
+  kidtube:
+    build:
+      context: .
+      # Doi so nay khi yt-dlp hong do YouTube thay doi ky thuat.
+      args:
+        YTDLP_VERSION: 2025.09.26
+    image: kidtube-home:0.1.0
+    container_name: kidtube
+    restart: unless-stopped
+
+    # Chi mo trong LAN. KHONG mo ra Internet — day la app cho tre,
+    # khong co ly do gi phai truy cap tu ngoai.
+    ports:
+      - '8080:8080'
+
+    volumes:
+      # kid.db — sao luu thu muc nay la sao luu toan bo cau hinh.
+      - ./data:/data
+      # Video da tai ve. Tro sang SSD ngoai neu co: /mnt/ssd/kidtube-media:/media
+      - ./media:/media
+
+    environment:
+      TZ: Asia/Ho_Chi_Minh # QUAN TRONG: quota tinh theo ngay dia phuong
+      PORT: 8080
+      DATA_DIR: /data
+      MEDIA_DIR: /media
+      # Bo trong thi moi lan restart bo me phai nhap PIN lai.
+      # Sinh bang: openssl rand -hex 32
+      SESSION_SECRET: ${SESSION_SECRET:-}
+      # Tuy chon: co key thi lay duoc thoi luong, toan bo lich su kenh,
+      # va biet TRUOC video nao bi chan nhung.
+      YT_API_KEY: ${YT_API_KEY:-}
+      DEFAULT_PIN: ${DEFAULT_PIN:-246813}
+      DOWNLOAD_MAX_HEIGHT: ${DOWNLOAD_MAX_HEIGHT:-720}
+
+    # Pi 5 con phai chay viec khac trong homelab — gioi han de yt-dlp
+    # khong an het CPU khi dang tai video.
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 1G
+
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '3'

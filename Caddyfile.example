@@ -1,0 +1,33 @@
+# Caddy — TUY CHON. Chi can neu muon HTTPS va ten mien de nho trong LAN.
+# Khong co Caddy thi vao thang http://<ip-cua-pi>:8080 cung dung duoc.
+#
+# Dat file nay thanh /etc/caddy/Caddyfile roi: sudo systemctl reload caddy
+
+# Ten mien noi bo. Tro DNS ve IP cua Pi bang Pi-hole / router / /etc/hosts.
+kids.home.arpa {
+	# Caddy tu sinh chung chi noi bo. Trinh duyet se canh bao khong tin cay
+	# tru khi bo me cai root CA cua Caddy vao thiet bi.
+	tls internal
+
+	reverse_proxy kidtube:8080 {
+		# Video dai co the tai lau — dung cat ket noi giua chung.
+		transport http {
+			read_timeout 300s
+		}
+	}
+
+	# LUU Y ve TV LG: trinh duyet webOS KHO cai chung chi tu ky.
+	# Neu TV bao loi bao mat thi dung HTTP thuong cho TV:
+	#   http://kids.home.arpa  ->  bo khoi khai bao nay va dung :80
+	# App khong gui mat khau nao quan trong qua mang LAN ngoai PIN,
+	# nhung HTTP thi PIN di duoi dang ro — chap nhan hay khong la lua chon cua bo me.
+
+	encode gzip zstd
+
+	log {
+		output file /var/log/caddy/kidtube.log {
+			roll_size 10mb
+			roll_keep 3
+		}
+	}
+}

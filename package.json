@@ -1,0 +1,24 @@
+{
+  "name": "kidtube-home",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Self-hosted YouTube Kids-style app for Raspberry Pi homelab",
+  "workspaces": [
+    "apps/api",
+    "apps/web"
+  ],
+  "scripts": {
+    "dev": "concurrently -n api,web -c cyan,magenta \"npm:dev:api\" \"npm:dev:web\"",
+    "dev:api": "npm run dev -w @kidtube/api",
+    "dev:web": "npm run dev -w @kidtube/web",
+    "build": "npm run build -w @kidtube/web && npm run build -w @kidtube/api",
+    "start": "node apps/api/dist/index.js",
+    "typecheck": "npm run typecheck -w @kidtube/api && npm run typecheck -w @kidtube/web"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

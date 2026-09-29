@@ -1,0 +1,12 @@
+node_modules
+**/node_modules
+**/dist
+data
+media
+.git
+.env
+*.log
+docs
+_scratch.ts
+_browsertest.mjs
+_dbg*.mjs
