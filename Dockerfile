@@ -35,9 +35,13 @@ FROM node:22-bookworm-slim AS runtime
 
 # ffmpeg: yt-dlp can de ghep luong video + audio thanh mp4.
 # python3-pip: de cai yt-dlp (ban apt thuong qua cu so voi thay doi cua YouTube).
+# util-linux: cung cap `setpriv`, entrypoint dung de ha quyen tu root xuong
+# user thuong SAU KHI da sua quyen cua bind mount. Cai tuong minh thay vi
+# tin la base image co san — thieu thi build hong ngay, khong hong luc chay.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      ffmpeg python3 python3-pip ca-certificates tini \
-    && rm -rf /var/lib/apt/lists/*
+      ffmpeg python3 python3-pip ca-certificates tini util-linux \
+    && rm -rf /var/lib/apt/lists/* \
+    && setpriv --help >/dev/null
 
 # Pin phien ban yt-dlp de build tai lap duoc.
 # CAP NHAT KHI YT-DLP HONG (YouTube doi ky thuat vai thang mot lan):
@@ -65,10 +69,24 @@ ENV NODE_ENV=production \
     DATA_DIR=/data \
     MEDIA_DIR=/media \
     WEB_DIST=/app/apps/web/dist \
-    YTDLP_PATH=yt-dlp
+    YTDLP_PATH=yt-dlp \
+    PUID=1000 \
+    PGID=1000
 
-RUN mkdir -p /data /media && chown -R node:node /data /media /app
-USER node
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh \
+    && mkdir -p /data /media \
+    && chown -R node:node /data /media /app
+
+# CO Y khong dat `USER node` o day.
+#
+# Bind mount tu host (./data:/data) GHI DE quyen so huu da dat luc build.
+# Neu nguoi dung chay compose bang root — rat pho bien tren DietPi/Pi OS —
+# thu muc host thuoc root:root va uid 1000 khong ghi duoc (SQLITE_CANTOPEN).
+#
+# Nen: container vao bang root, entrypoint chown volume roi `setpriv` ha quyen
+# xuong PUID:PGID (mac dinh 1000:1000). Tien trinh node KHONG chay bang root.
+# Muon tu quyet dinh quyen thi dat `user:` trong compose — entrypoint se bo qua.
 
 VOLUME ["/data", "/media"]
 EXPOSE 8080
@@ -78,5 +96,5 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
 
 # tini lam PID 1 de SIGTERM den duoc node -> shutdown gon gang,
 # khong bo lai job tai dang chay o trang thai 'running'.
-ENTRYPOINT ["/usr/bin/tini", "--"]
+ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/docker-entrypoint.sh"]
 CMD ["node", "apps/api/dist/index.js"]

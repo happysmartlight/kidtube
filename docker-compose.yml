@@ -32,6 +32,11 @@ services:
 
     environment:
       TZ: Asia/Ho_Chi_Minh # QUAN TRONG: quota tinh theo ngay dia phuong
+      # Tien trinh trong container chay bang uid/gid nay. Entrypoint tu chinh
+      # quyen cua ./data va ./media cho khop — khong can chown thu cong.
+      # Doi neu muon file thuoc user khac:  id -u && id -g
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
       PORT: 8080
       DATA_DIR: /data
       MEDIA_DIR: /media
