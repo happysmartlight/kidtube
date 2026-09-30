@@ -43,6 +43,13 @@ export const env = {
 
   ytApiKey: str('YT_API_KEY', ''),
   ytdlpPath: str('YTDLP_PATH', 'yt-dlp'),
+  /**
+   * Truyen thang cho `--extractor-args` cua yt-dlp. De trong la dung mac dinh.
+   * Day la loi thoat hiem khi YouTube doi ky thuat: sua duoc bang .env, khong
+   * phai dung lai image. Vi du khi gap "The page needs to be reloaded":
+   *   YTDLP_EXTRACTOR_ARGS=youtube:player_client=default,-tv_downgraded
+   */
+  ytdlpExtractorArgs: str('YTDLP_EXTRACTOR_ARGS', ''),
 
   /** Cap chat luong khi tai offline. */
   downloadMaxHeight: int('DOWNLOAD_MAX_HEIGHT', 720),

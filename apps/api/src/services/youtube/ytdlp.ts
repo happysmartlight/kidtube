@@ -37,6 +37,22 @@ export async function ytdlpVersion(): Promise<string | null> {
   }
 }
 
+/**
+ * Doi so dung chung cho MOI lan goi yt-dlp co dung toi YouTube.
+ *
+ * `--js-runtimes node`: YouTube ra "n challenge" bang JavaScript, khong giai
+ * duoc thi yt-dlp chi thay dinh dang anh, roi bao "This video is not
+ * available" hoac "The page needs to be reloaded". Bo giai do (`yt-dlp-ejs`,
+ * di kem extras `[default]`) can mot JS runtime — ma yt-dlp mac dinh CHI bat
+ * deno. Image cua ta chay tren node:22 nen node san co, chi thieu moi dong
+ * nay de noi cho yt-dlp biet.
+ */
+function ytArgs(): string[] {
+  const args = ['--js-runtimes', 'node']
+  if (env.ytdlpExtractorArgs) args.push('--extractor-args', env.ytdlpExtractorArgs)
+  return args
+}
+
 interface RunResult {
   code: number | null
   stdout: string
@@ -148,7 +164,7 @@ export async function fetchVideoMeta(videoIds: string[]): Promise<IngestedVideo[
 
   const urls = videoIds.map((id) => `https://www.youtube.com/watch?v=${id}`)
   const { stdout } = await run(
-    ['--no-warnings', '--ignore-errors', '--no-playlist', '--skip-download', '--print', PRINT_FMT, ...urls],
+    [...ytArgs(), '--no-warnings', '--ignore-errors', '--no-playlist', '--skip-download', '--print', PRINT_FMT, ...urls],
     { timeoutMs: Math.min(30_000 + videoIds.length * 8_000, 600_000) },
   )
 
@@ -175,6 +191,7 @@ export async function listPlaylist(
 
   const { stdout } = await run(
     [
+      ...ytArgs(),
       '--no-warnings',
       '--ignore-errors',
       '--flat-playlist',
@@ -220,12 +237,23 @@ export async function downloadVideo(
   }
 
   const maxH = opts.maxHeight ?? env.downloadMaxHeight
-  // Uu tien video+audio roi merge; neu khong co thi lay ban gop san.
-  const format = `bv*[height<=${maxH}]+ba/b[height<=${maxH}]/b`
+
+  // Uu tien H.264 + AAC, KHONG phai ban nho nhat.
+  //
+  // De mac dinh thi yt-dlp chon AV1 + Opus (nhe hon gan mot nua), nhung TV
+  // LG va cac may cu phat bang trinh phat san cua he dieu hanh thi chiu chet
+  // — ma do lai chinh la ly do ton tai cua che do offline. File to hon, doi
+  // lai la bam vao phat duoc o moi cho. Het avc1 thi moi tut xuong bat ky
+  // dinh dang nao co.
+  const format =
+    `bv*[height<=${maxH}][vcodec^=avc1]+ba[acodec^=mp4a]/` +
+    `b[height<=${maxH}][vcodec^=avc1]/` +
+    `bv*[height<=${maxH}]+ba/b[height<=${maxH}]/b`
 
   try {
     const { code, stderr } = await run(
       [
+        ...ytArgs(),
         '--no-warnings',
         '--newline', // bat buoc: de parse tien do theo dong
         '--no-playlist',

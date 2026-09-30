@@ -176,4 +176,6 @@ và ảnh hưởng trải nghiệm xem đang diễn ra. Một job một lúc là
 | `SESSION_SECRET` | (tự sinh) | Ký cookie admin |
 | `DEFAULT_PIN` | `000000` | PIN lần đầu, **đổi ngay sau khi cài** |
 | `KIDTUBE_REPO_DIR` | — | Đường dẫn repo trên host. Bật nút *Cập nhật App*; phải đi kèm `COMPOSE_PROFILES=updater` |
+| `YTDLP_VERSION` | `2026.8.19` | Phiên bản yt-dlp image sẽ cài. Cài kèm extras `[default]` — bắt buộc, vì nó kéo theo `yt-dlp-ejs` |
+| `YTDLP_EXTRACTOR_ARGS` | — | Truyền thẳng cho `--extractor-args`. Lối thoát khi YouTube đổi kỹ thuật |
 | `NODE_ENV` | development | |

@@ -252,16 +252,39 @@ USB3, chạy song song sẽ nghẽn và ảnh hưởng video đang phát). Vư�
 lượng thì tự xoá video ít xem nhất — video trong danh sách yêu thích không bao
 giờ bị xoá.
 
+Định dạng tải về ưu tiên **H.264 + AAC**, không phải bản nhỏ nhất. Để mặc định
+thì yt-dlp chọn AV1 + Opus, nhẹ hơn gần một nửa, nhưng TV LG phát bằng trình
+phát sẵn của webOS thì chịu chết — mà đó lại chính là lý do tồn tại của chế độ
+offline. File to hơn, đổi lại là bấm vào phát được ở mọi chỗ.
+
 Về mặt điều khoản YouTube, tải xuống là vùng xám. Ở phạm vi dùng riêng trong
 nhà thì bạn tự cân nhắc — đó là lý do mặc định để tắt.
 
 ### Khi yt-dlp hỏng
 
-YouTube thay đổi kỹ thuật vài tháng một lần. Khi thấy lỗi tải:
+YouTube thay đổi kỹ thuật vài tháng một lần. Cách nhanh nhất, chữa tạm cho tới
+lần dựng lại image:
 
 ```bash
-docker compose exec kidtube pip3 install --break-system-packages -U yt-dlp
+docker compose exec kidtube pip3 install --break-system-packages -U "yt-dlp[default]"
 docker compose restart kidtube
+```
+
+Bền hơn: đặt `YTDLP_VERSION` trong `.env` rồi dựng lại (`docker compose up -d
+--build`, hoặc bấm **⬆ Cập nhật ngay**). Đừng sửa `Dockerfile` — thư mục cài
+đặt có thay đổi chưa commit sẽ chặn nút cập nhật.
+
+**Cài phải kèm extras `[default]`**, đừng cài `yt-dlp` trần: extras kéo theo
+`yt-dlp-ejs`, tức bộ giải đố thách "n challenge" của YouTube. Thiếu nó thì mọi
+video đều hỏng với `This video is not available` hoặc `The page needs to be
+reloaded`. Bộ giải đố còn cần một JS runtime — image dùng sẵn `node` trong
+image qua cờ `--js-runtimes node`.
+
+Nếu vẫn hỏng sau khi đã cập nhật, thử bỏ qua player client đang lỗi bằng cách
+thêm vào `.env` rồi `docker compose up -d`:
+
+```bash
+YTDLP_EXTRACTOR_ARGS=youtube:player_client=default,-tv_downgraded
 ```
 
 ---

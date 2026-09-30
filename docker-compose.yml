@@ -10,9 +10,11 @@ services:
   kidtube:
     build:
       context: .
-      # Doi so nay khi yt-dlp hong do YouTube thay doi ky thuat.
       args:
-        YTDLP_VERSION: 2025.09.26
+        # Doi bang YTDLP_VERSION trong .env khi yt-dlp hong do YouTube thay
+        # doi ky thuat — de file nay sach thi nut "Cap nhat App" moi chay
+        # duoc (no tu choi khi thu muc cai dat co thay doi chua commit).
+        YTDLP_VERSION: ${YTDLP_VERSION:-2026.8.19}
         # Updater tu dien hai bien nay khi build lai, de trang Cai dat
         # hien duoc "dang chay commit nao". Build tay thi de trong cung duoc.
         GIT_COMMIT: ${GIT_COMMIT:-}
@@ -53,6 +55,11 @@ services:
       YT_API_KEY: ${YT_API_KEY:-}
       DEFAULT_PIN: ${DEFAULT_PIN:-000000}
       DOWNLOAD_MAX_HEIGHT: ${DOWNLOAD_MAX_HEIGHT:-720}
+      # Loi thoat hiem khi YouTube doi ky thuat: truyen thang --extractor-args
+      # cho yt-dlp ma khong phai dung lai image. Vi du khi gap loi
+      # "The page needs to be reloaded":
+      #   YTDLP_EXTRACTOR_ARGS=youtube:player_client=default,-tv_downgraded
+      YTDLP_EXTRACTOR_ARGS: ${YTDLP_EXTRACTOR_ARGS:-}
 
     # Pi 5 con phai chay viec khac trong homelab — gioi han de yt-dlp
     # khong an het CPU khi dang tai video.

@@ -45,10 +45,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Pin phien ban yt-dlp de build tai lap duoc.
 # CAP NHAT KHI YT-DLP HONG (YouTube doi ky thuat vai thang mot lan):
-#   docker compose exec kidtube pip3 install --break-system-packages -U yt-dlp
-# hoac sua so nay roi build lai image.
-ARG YTDLP_VERSION=2025.09.26
-RUN pip3 install --no-cache-dir --break-system-packages "yt-dlp==${YTDLP_VERSION}" \
+# dat YTDLP_VERSION trong .env roi build lai — khong can sua file nay.
+#
+# CHU Y cai `[default]`, dung cai `yt-dlp` tran: extras nay keo theo
+# `yt-dlp-ejs`, tuc bo giai do thach "n challenge" cua YouTube. Thieu no thi
+# MOI video deu hong voi "This video is not available" hoac "The page needs
+# to be reloaded" — da kiem chung, khong phai phong doan. Bo giai do con can
+# mot JS runtime; image nay san co node va services/youtube/ytdlp.ts bat no
+# bang `--js-runtimes node`.
+ARG YTDLP_VERSION=2026.8.19
+RUN pip3 install --no-cache-dir --break-system-packages "yt-dlp[default]==${YTDLP_VERSION}" \
     && yt-dlp --version
 
 WORKDIR /app
