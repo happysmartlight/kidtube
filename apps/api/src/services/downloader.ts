@@ -290,9 +290,28 @@ export function recoverStuckJobs(): number {
   return info.changes
 }
 
-/** Tu xep hang video trong ke Yeu thich (khi bat offline_auto_favorites). */
-export function enqueueFavorites(): number {
-  if (!getSettingBool('offline_auto_favorites', false)) return 0
+export interface FavoritesEnqueueResult {
+  /** So video vua duoc xep vao hang. */
+  enqueued: number
+  /** So video yeu thich chua co ban offline — ke ca cai da nam san trong hang. */
+  candidates: number
+  /** True khi bo qua vi cai dat `offline_auto_favorites` dang tat. */
+  skippedByAutoSetting: boolean
+}
+
+/**
+ * Xep hang tai cac video nam trong ke Yeu thich cua bat ky be nao.
+ *
+ * `force = true` la bo me bam nut trong tab Tai offline: phai chay ngay ca khi
+ * cai dat "tu tai video yeu thich" dang tat, vi nguoi ta vua ra lenh bang tay.
+ * Cron goi voi `force = false` — do moi la cho cai dat kia co tieng noi.
+ */
+export function enqueueFavorites(force = false): FavoritesEnqueueResult {
+  const auto = getSettingBool('offline_auto_favorites', false)
+  if (!force && !auto) {
+    return { enqueued: 0, candidates: 0, skippedByAutoSetting: true }
+  }
+
   const rows = getDb()
     .prepare<[], { id: number }>(
       `SELECT DISTINCT v.id
@@ -303,9 +322,10 @@ export function enqueueFavorites(): number {
           AND v.download_status IN ('none','error')`,
     )
     .all()
+
   let n = 0
   for (const r of rows) {
     if (enqueue(r.id, 10).queued) n++
   }
-  return n
+  return { enqueued: n, candidates: rows.length, skippedByAutoSetting: false }
 }

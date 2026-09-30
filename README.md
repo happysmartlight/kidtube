@@ -63,12 +63,15 @@ git clone <repo> kidtube && cd kidtube
 
 # Bí mật ký cookie — không có thì mỗi lần restart phải nhập PIN lại
 echo "SESSION_SECRET=$(openssl rand -hex 32)" > .env
-echo "DEFAULT_PIN=$(shuf -i 100000-999999 -n 1)" >> .env
 
 # Cổng trên Pi. Mặc định 8477 — đổi nếu trùng với thứ khác trong homelab.
 echo "KIDTUBE_PORT=8477" >> .env
 
-cat .env      # ghi lại PIN này
+# Bật nút "Cập nhật App" trong trang Cài đặt, khỏi phải SSH vào Pi sau này.
+# Bỏ hai dòng này nếu bạn không muốn cấp quyền docker cho app — xem mục
+# "Cập nhật app" bên dưới để biết đánh đổi là gì.
+echo "KIDTUBE_REPO_DIR=$PWD" >> .env
+echo "COMPOSE_PROFILES=updater" >> .env
 
 docker compose up -d --build
 docker compose logs -f kidtube
@@ -85,7 +88,12 @@ docker compose up -d
 Lần build đầu mất khoảng **2 phút** trên Pi 5 (đã đo thực tế: 123s — chủ yếu là
 biên dịch `better-sqlite3` cho arm64). Các lần sau nhanh hơn nhờ cache layer.
 
-Mở `http://<ip-của-pi>:8477` → giữ icon ⚙ 3 giây → nhập PIN.
+Mở `http://<ip-của-pi>:8477` → giữ icon ⚙ 3 giây → nhập PIN **`000000`**.
+
+Đó là PIN mặc định lần đầu, cố tình để dễ nhớ. Vào được rồi thì *Cài đặt →
+Đổi PIN* — trang quản trị sẽ nhắc cho tới khi bạn đổi. Muốn đặt PIN khác
+ngay từ lần khởi tạo đầu tiên thì thêm `DEFAULT_PIN=…` vào `.env` **trước**
+lần chạy đầu (sau đó biến này không còn tác dụng — PIN đã nằm trong CSDL).
 
 (Thay `8477` bằng giá trị `KIDTUBE_PORT` của bạn. Cổng *bên trong* container
 luôn là 8080 — không cần đổi.)
@@ -170,9 +178,67 @@ Vì vậy với TV, nên bật **Cài đặt → Tải video về máy**.
 
 ---
 
+## Cập nhật app
+
+Trong *Cài đặt → Phiên bản & cập nhật* có nút **⬆ Cập nhật ngay**: nó chạy
+`git pull` rồi dựng lại container, hiện tiến độ và tự tải lại trang khi xong.
+Không phải mở terminal.
+
+Nút này cần service phụ `kidtube-updater` (đã có sẵn trong `docker-compose.yml`,
+mặc định TẮT). Bật bằng hai dòng trong `.env` — có trong phần cài đặt ở trên,
+hoặc thêm sau:
+
+```bash
+cd ~/kidtube                       # thư mục đã git clone
+echo "KIDTUBE_REPO_DIR=$PWD" >> .env
+echo "COMPOSE_PROFILES=updater" >> .env
+docker compose up -d
+```
+
+**Vì sao phải cần container phụ:** container KidTube không thể tự dựng lại
+chính nó — bên trong nó không có git, không có docker CLI, cũng không có mã
+nguồn. Và ngay cả khi có, nó sẽ tự giết mình ở giữa chừng. Container phụ đứng
+ngoài nên chạy trọn vẹn được.
+
+**Đánh đổi, đọc trước khi bật:** container phụ mount `/var/run/docker.sock`,
+tức là nó có quyền ngang root trên Pi. Nó chỉ chạy đúng một script cố định
+([scripts/updater.sh](scripts/updater.sh)) và không mở cổng mạng nào, nhưng đây
+vẫn là một sự nới lỏng thật sự. Không thoải mái thì đừng bật — trang Cài đặt sẽ
+hiện sẵn lệnh cần gõ, và bạn cập nhật bằng tay như thường:
+
+```bash
+cd ~/kidtube && git pull && docker compose up -d --build
+```
+
+Vài điều nên biết:
+
+- **Thư mục cài đặt có thay đổi chưa commit thì nút bị chặn** — để không xoá
+  mất thứ bạn sửa tay. Xử lý trên Pi rồi bấm lại.
+- Cập nhật sẽ **ngắt video con đang xem**. Hộp thoại xác nhận có cảnh báo nếu
+  đang có bé xem dở.
+- Job tải offline dở dang được đưa về hàng đợi và chạy lại sau khi khởi động
+  lại — không mất.
+- Repo riêng tư cần git có sẵn thông tin đăng nhập trên Pi (SSH key hoặc
+  credential helper); repo công khai thì không cần gì.
+- Dữ liệu (`data/`) và video (`media/`) không bị động tới.
+
+---
+
 ## Chế độ tải offline
 
 Mặc định **TẮT**. Bật ở *Cài đặt → Tải video về máy*.
+
+**Bật công tắc thôi chưa tải gì cả** — nó chỉ cho phép hàng đợi chạy. Bạn vẫn
+phải chỉ ra video nào cần tải, bằng một trong ba cách:
+
+- *Hàng chờ duyệt* → thẻ **Đã duyệt** → bấm **⬇** ngay dưới video.
+- Chọn nhiều video rồi bấm **⬇ Tải offline** ở thanh thao tác phía trên.
+- *Tải offline* → **❤️ Tải video yêu thích**: xếp hàng mọi video con đã đánh
+  dấu ❤️. Muốn việc này tự chạy mỗi lần con thích thêm video mới thì bật
+  *Cài đặt → Tự tải video con đánh dấu yêu thích*.
+
+Tiến độ xem ở tab *Tải offline*. Worker chạy mỗi 30 giây, nhưng khi bạn bấm nút
+thì nó chạy ngay.
 
 Lợi ích:
 - **Không quảng cáo** (nhúng iframe thì vẫn có)
@@ -265,8 +331,10 @@ docs/        Yêu cầu, kế hoạch, kiến trúc, thiết kế
 | File trong `data/`/`media/` thuộc user lạ | Container chạy bằng `PUID:PGID` (mặc định 1000:1000). Muốn khác: đặt `PUID`/`PGID` trong `.env` theo `id -u` và `id -g`. |
 | `port is already allocated` | Cổng đã bị dịch vụ khác chiếm. Đổi `KIDTUBE_PORT` trong `.env` rồi `docker compose up -d`. |
 | Tablet/TV không vào được nhưng Pi thì được | Kiểm tra firewall trên Pi: `sudo ufw allow 8477/tcp`. |
-| Quên PIN | `docker compose exec kidtube node -e "…"` — hoặc xoá 3 dòng `pin_*` trong bảng `settings` của `data/kid.db`, restart sẽ dùng lại `DEFAULT_PIN`. |
+| Quên PIN | Xoá hai dòng `pin_salt` và `pin_hash` trong bảng `settings` của `data/kid.db` rồi `docker compose restart kidtube` — PIN quay về `DEFAULT_PIN` (mặc định `000000`). |
 | Restart là phải nhập PIN lại | Chưa đặt `SESSION_SECRET` trong `.env`. |
+| Cài đặt báo "Chưa bật dịch vụ cập nhật" | Thiếu `KIDTUBE_REPO_DIR` + `COMPOSE_PROFILES=updater` trong `.env`. Trang đó hiện sẵn lệnh cần chạy. |
+| Cập nhật báo "không tìm thấy thư mục cài đặt" | `KIDTUBE_REPO_DIR` trỏ sai. Phải là đường dẫn tuyệt đối tới thư mục đã `git clone` — lấy bằng `pwd`, rồi `docker compose up -d`. |
 
 ---
 

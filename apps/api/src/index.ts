@@ -10,6 +10,7 @@ import { seedIfNeeded } from './db/seed.js'
 import { env } from './env.js'
 import { HttpError } from './lib/errors.js'
 import { recoverStuckJobs } from './services/downloader.js'
+import { ensureUpdateDir } from './services/updater.js'
 import { ytdlpAvailable, ytdlpVersion } from './services/youtube/ytdlp.js'
 import { hasApiKey } from './services/youtube/dataapi.js'
 import { authRoutes } from './routes/auth.js'
@@ -20,6 +21,7 @@ import { settingsRoutes } from './routes/settings.js'
 import { shelfRoutes } from './routes/shelves.js'
 import { sourceRoutes } from './routes/sources.js'
 import { statsRoutes } from './routes/stats.js'
+import { updateRoutes } from './routes/update.js'
 import { videoRoutes } from './routes/videos.js'
 
 const here = dirname(fileURLToPath(import.meta.url))
@@ -49,10 +51,15 @@ async function main(): Promise<void> {
   })
 
   openDb()
+  ensureUpdateDir()
   const seed = seedIfNeeded()
   if (seed.seeded) {
     app.log.warn(
-      `Lần đầu khởi động — PIN quản trị mặc định là "${seed.pin}". ĐỔI NGAY trong Cài đặt.`,
+      `Lần đầu khởi động — PIN quản trị mặc định là "${seed.pin}". Đổi trong Cài đặt của bố mẹ.`,
+    )
+  } else if (seed.pinReset) {
+    app.log.warn(
+      `Không tìm thấy PIN trong cơ sở dữ liệu — đặt lại về mặc định "${seed.pin}". Đổi trong Cài đặt của bố mẹ.`,
     )
   }
 
@@ -115,10 +122,11 @@ async function main(): Promise<void> {
   await app.register(settingsRoutes)
   await app.register(downloadRoutes)
   await app.register(statsRoutes)
+  await app.register(updateRoutes)
 
   app.get('/api/health', async () => ({
     ok: true,
-    version: '0.1.0',
+    version: env.appVersion,
     ytdlp: await ytdlpVersion(),
     ytdlpAvailable: await ytdlpAvailable(),
     hasApiKey: hasApiKey(),

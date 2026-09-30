@@ -1,0 +1,26 @@
+# ═══════════════════════════════════════════════════════════════════
+# KidTube Home — updater sidecar
+#
+# Nho, khong co runtime nao ca: chi git + docker CLI + jq va mot script sh.
+# Toan bo cong viec cua no la doc mot file yeu cau roi chay
+# `git pull` + `docker compose up -d --build kidtube`.
+#
+# Container nay cam docker socket, tuc la co quyen ngang root tren may chu.
+# Vi vay o day CO Y khong cai them gi, va cung khong mo cong mang nao.
+# ═══════════════════════════════════════════════════════════════════
+FROM alpine:3.20
+
+RUN apk add --no-cache \
+      git \
+      jq \
+      docker-cli \
+      docker-cli-compose \
+      ca-certificates \
+      tzdata
+
+COPY scripts/updater.sh /usr/local/bin/updater.sh
+RUN chmod +x /usr/local/bin/updater.sh
+
+# Chay bang root la BAT BUOC: phai ghi duoc vao docker socket va vao
+# thu muc repo cua host (thuong thuoc mot uid khac).
+ENTRYPOINT ["/bin/sh", "/usr/local/bin/updater.sh"]

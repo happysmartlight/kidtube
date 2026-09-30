@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from 'node:crypto'
 import { env } from '../env.js'
-import { getDb, setSetting } from './index.js'
+import { getDb, getSetting, setSetting } from './index.js'
 
 export function hashPin(pin: string, salt: string): string {
   return createHash('sha256').update(`${salt}:${pin}`).digest('hex')
@@ -40,7 +40,22 @@ const DEFAULT_FILTERS: Array<{ type: string; value: string; note: string }> = [
   { type: 'min_duration', value: '45', note: 'Chặn video ngắn hơn 45 giây (thường là Shorts)' },
 ]
 
-export function seedIfNeeded(): { seeded: boolean; pin?: string } {
+/**
+ * Dam bao luon co PIN quan tri. Chay ca khi DB da seed — nho vay bo me quen PIN
+ * co the xoa hai dong `pin_salt`/`pin_hash` trong bang `settings` roi restart de
+ * quay ve PIN mac dinh, thay vi bi khoa ngoai vinh vien.
+ */
+function ensurePin(): boolean {
+  if (getSetting('pin_salt') && getSetting('pin_hash')) return false
+  // Khong bao gio luu PIN tho — chi salt + hash.
+  const salt = randomBytes(16).toString('hex')
+  setSetting('pin_salt', salt)
+  setSetting('pin_hash', hashPin(env.defaultPin, salt))
+  setSetting('pin_is_default', '1') // de admin UI nhac doi PIN
+  return true
+}
+
+export function seedIfNeeded(): { seeded: boolean; pinReset: boolean; pin: string } {
   const db = getDb()
 
   const already = db
@@ -54,15 +69,11 @@ export function seedIfNeeded(): { seeded: boolean; pin?: string } {
   )
   for (const [k, v] of Object.entries(DEFAULT_SETTINGS)) insertSetting.run(k, v)
 
-  if (already) return { seeded: false }
+  const pinReset = ensurePin()
+
+  if (already) return { seeded: false, pinReset, pin: env.defaultPin }
 
   const tx = db.transaction(() => {
-    // PIN: luu salt + hash, khong bao gio luu PIN tho
-    const salt = randomBytes(16).toString('hex')
-    setSetting('pin_salt', salt)
-    setSetting('pin_hash', hashPin(env.defaultPin, salt))
-    setSetting('pin_is_default', '1') // de admin UI nhac doi PIN
-
     db.prepare(
       `INSERT INTO profiles (name, avatar, color, daily_limit_min, session_limit_min, position)
        VALUES (?, ?, ?, ?, ?, ?)`,
@@ -85,5 +96,5 @@ export function seedIfNeeded(): { seeded: boolean; pin?: string } {
   })
 
   tx()
-  return { seeded: true, pin: env.defaultPin }
+  return { seeded: true, pinReset, pin: env.defaultPin }
 }

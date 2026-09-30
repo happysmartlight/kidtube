@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react'
-import { adminApi, ApiError, type FilterRule } from '@/lib/api'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { adminApi, ApiError, type FilterRule, type UpdateSnapshot } from '@/lib/api'
 import { C } from '@/lib/color'
-import { filterTypeLabel, formatBytes } from '@/lib/format'
+import { filterTypeLabel, formatBytes, formatDate, formatRelative } from '@/lib/format'
 import { getLocalOverride, setLocalOverride, type ModeSetting } from '@/lib/mode'
 import { Spinner } from '@/ui/Spinner'
 import { Alert, Badge, Btn, Field, Input, Panel, Select, toast, Toggle, useLoad } from './ui'
@@ -67,6 +67,8 @@ export function Settings(): React.ReactElement {
           </Alert>
         ) : null}
       </Panel>
+
+      <UpdateSection />
 
       {/* ── Phat video ──────────────────────────────────────────── */}
       <Panel title="Phát video">
@@ -217,6 +219,349 @@ function Info({ label, children }: { label: string; children: React.ReactNode })
       </p>
       <p className="font-bold">{children}</p>
     </div>
+  )
+}
+
+// ═══ Cap nhat app ═══════════════════════════════════════════════════
+
+const SETUP_CMD = `cd ~/kidtube                       # thư mục đã git clone
+echo "KIDTUBE_REPO_DIR=$PWD" >> .env
+echo "COMPOSE_PROFILES=updater" >> .env
+docker compose up -d`
+
+/**
+ * App chay tren HTTP trong LAN, ma `navigator.clipboard` chi ton tai o
+ * secure context -> phai co duong lui bang textarea an.
+ */
+async function copyText(text: string): Promise<boolean> {
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text)
+      return true
+    }
+  } catch {
+    /* roi xuong duong lui */
+  }
+  try {
+    const ta = document.createElement('textarea')
+    ta.value = text
+    ta.style.position = 'fixed'
+    ta.style.opacity = '0'
+    document.body.appendChild(ta)
+    ta.select()
+    const ok = document.execCommand('copy')
+    document.body.removeChild(ta)
+    return ok
+  } catch {
+    return false
+  }
+}
+
+function CopyBox({ text }: { text: string }): React.ReactElement {
+  return (
+    <div>
+      <pre
+        className="overflow-x-auto rounded-xl p-3 text-xs"
+        style={{ background: 'var(--bg)', border: '1px solid var(--card-hi)', lineHeight: 1.7 }}
+      >
+        {text}
+      </pre>
+      <div className="mt-2">
+        <Btn
+          small
+          onClick={() => {
+            void copyText(text).then((ok) =>
+              toast(ok ? 'ok' : 'error', ok ? 'Đã copy lệnh' : 'Không copy được — chép tay vậy'),
+            )
+          }}
+        >
+          📋 Copy lệnh
+        </Btn>
+      </div>
+    </div>
+  )
+}
+
+/**
+ * Cap nhat app bang mot cu bam.
+ *
+ * Diem kho cua man hinh nay: giua chung thi CHINH server dang tra ve trang
+ * nay bi dung lai va thay bang ban moi. Nen loi mang o day khong phai loi —
+ * do la dau hieu viec cap nhat dang chay dung. Ta cu goi lai den khi no song
+ * lai, roi tai lai trang vi ma JavaScript trong trinh duyet da la ban cu.
+ */
+function UpdateSection(): React.ReactElement {
+  const [snap, setSnap] = useState<UpdateSnapshot | null>(null)
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const [serverDown, setServerDown] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [done, setDone] = useState(false)
+  const sawUpdating = useRef(false)
+
+  const load = useCallback(async (): Promise<void> => {
+    try {
+      const d = await adminApi.update()
+      setSnap(d)
+      setServerDown(false)
+      setLoadError(null)
+    } catch (err) {
+      if (err instanceof ApiError) setLoadError(err.message)
+      else setServerDown(true) // server dang khoi dong lai
+    }
+  }, [])
+
+  useEffect(() => {
+    void load()
+  }, [load])
+
+  const phase = snap?.updater.phase ?? 'idle'
+  const pending = snap?.updater.pendingRequest ?? false
+  const working = phase !== 'idle' || pending || serverDown
+
+  // Nho lai rang ta DA thay no chay — de biet khi nao can tai lai trang.
+  useEffect(() => {
+    if (phase === 'updating') sawUpdating.current = true
+  }, [phase])
+
+  useEffect(() => {
+    if (!working) return
+    const t = window.setInterval(() => void load(), 2000)
+    return () => window.clearInterval(t)
+  }, [working, load])
+
+  // Chay xong: ma JS trong trinh duyet la ban cu -> phai tai lai trang.
+  useEffect(() => {
+    if (done || !sawUpdating.current || working) return
+    if (!snap?.lastRun?.ok) return
+    setDone(true)
+    const t = window.setTimeout(() => window.location.reload(), 5000)
+    return () => window.clearTimeout(t)
+  }, [working, snap, done])
+
+  async function fire(kind: 'check' | 'run'): Promise<void> {
+    setBusy(true)
+    try {
+      if (kind === 'check') {
+        await adminApi.checkUpdate()
+        toast('ok', 'Đang kiểm tra…')
+      } else {
+        await adminApi.runUpdate()
+        toast('ok', 'Đã bắt đầu cập nhật. Đừng tắt nguồn Pi.')
+      }
+      await load()
+    } catch (err) {
+      toast('error', err instanceof ApiError ? err.message : 'Không gửi được yêu cầu')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const u = snap?.updater
+  const repo = snap?.repo
+  const behind = repo?.behind ?? 0
+  const w = snap?.warnings
+
+  function confirmAndRun(): void {
+    const lines = ['Cập nhật KidTube lên bản mới?', '']
+    if (w?.activeKidSessions) {
+      lines.push(`⚠ Có ${w.activeKidSessions} bé đang xem — video sẽ bị ngắt giữa chừng.`)
+    }
+    if (w?.downloadRunning) {
+      lines.push('⚠ Đang tải một video — job sẽ chạy lại từ đầu sau khi cập nhật.')
+    }
+    lines.push(
+      '',
+      'Quá trình mất khoảng 2–5 phút trên Pi 5. App sẽ tạm ngưng khi khởi động lại.',
+      'ĐỪNG tắt nguồn Pi trong lúc này.',
+    )
+    if (!window.confirm(lines.join('\n'))) return
+    void fire('run')
+  }
+
+  return (
+    <Panel
+      title="Phiên bản & cập nhật"
+      subtitle="Cập nhật app mà không cần mở terminal"
+      actions={
+        u?.online ? (
+          <>
+            <Btn small disabled={busy || working} onClick={() => void fire('check')}>
+              🔄 Kiểm tra
+            </Btn>
+            <Btn
+              small
+              variant={behind > 0 ? 'primary' : 'ghost'}
+              disabled={busy || working || !u.repoOk}
+              onClick={confirmAndRun}
+            >
+              ⬆ Cập nhật ngay
+            </Btn>
+          </>
+        ) : null
+      }
+    >
+      {/* ── Dang chay ban nao ─────────────────────────────────── */}
+      <div
+        className="mb-4 grid gap-3 text-sm"
+        style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))' }}
+      >
+        <Info label="Phiên bản">{snap?.running.version ?? '—'}</Info>
+        <Info label="Bản dựng đang chạy">
+          <code className="text-xs">
+            {snap?.running.commitShort ?? snap?.deployedCommit?.slice(0, 7) ?? 'không rõ'}
+          </code>
+        </Info>
+        <Info label="Build lúc">{formatDate(snap?.running.builtAt) || '—'}</Info>
+        {repo ? <Info label="Nhánh">{repo.branch}</Info> : null}
+      </div>
+
+      {/* ── Dang chay ─────────────────────────────────────────── */}
+      {done ? (
+        <Alert kind="ok">
+          <b>Cập nhật xong.</b> Đang tải lại trang…{' '}
+          <Btn small onClick={() => window.location.reload()}>
+            Tải lại ngay
+          </Btn>
+        </Alert>
+      ) : working ? (
+        <Alert kind="info">
+          <b>
+            {serverDown
+              ? 'App đang khởi động lại…'
+              : phase === 'updating'
+                ? 'Đang cập nhật…'
+                : 'Đang kiểm tra…'}
+          </b>{' '}
+          {phase === 'updating' || serverDown
+            ? 'Mất khoảng 2–5 phút trên Pi 5. Đừng tắt nguồn Pi, và cứ để trang này mở — nó tự theo dõi tiến trình.'
+            : null}
+        </Alert>
+      ) : null}
+
+      {/* ── Mat lien lac nhung van dang chay ──────────────────── */}
+      {u?.installed && !u.online && phase === 'updating' ? (
+        <Alert kind="warn">
+          Mất liên lạc với dịch vụ cập nhật trong lúc nó đang chạy. Thường là do bước dựng lại
+          chiếm hết CPU của Pi — cứ đợi thêm vài phút.
+        </Alert>
+      ) : null}
+
+      {/* ── Chua bat updater ──────────────────────────────────── */}
+      {!u?.installed ? (
+        <>
+          <Alert kind="warn">
+            <b>Chưa bật dịch vụ cập nhật.</b> Nút bấm cần một container phụ (
+            <code>kidtube-updater</code>) vì container chính không thể tự dựng lại chính nó. Chạy
+            mấy lệnh dưới đây trên Pi <b>một lần duy nhất</b>, sau đó cập nhật được bằng một cú bấm
+            mãi mãi.
+            <br />
+            <br />
+            Container phụ này mount docker socket, tức là nó có quyền ngang root trên Pi. Không
+            muốn vậy thì đừng bật — cập nhật bằng tay như cũ vẫn chạy tốt.
+          </Alert>
+          <CopyBox text={SETUP_CMD} />
+        </>
+      ) : !u.repoOk ? (
+        <Alert kind="error">
+          <b>Dịch vụ cập nhật không tìm thấy thư mục cài đặt.</b>
+          <br />
+          {u.repoError}
+        </Alert>
+      ) : !u.online && phase !== 'updating' ? (
+        <Alert kind="warn">
+          <b>Dịch vụ cập nhật đã cài nhưng không phản hồi.</b> Kiểm tra trên Pi:{' '}
+          <code>docker compose logs kidtube-updater</code>
+        </Alert>
+      ) : null}
+
+      {/* ── Co ban moi khong ──────────────────────────────────── */}
+      {u?.online && u.repoOk && repo && !working && !done ? (
+        behind > 0 ? (
+          <Alert kind="warn">
+            <b>Có {behind} bản cập nhật mới.</b> Bấm <b>⬆ Cập nhật ngay</b> ở trên.
+          </Alert>
+        ) : (
+          <Alert kind="ok">
+            Đang chạy bản mới nhất. Kiểm tra lần cuối {formatRelative(repo.checkedAt)}.
+          </Alert>
+        )
+      ) : null}
+
+      {repo?.dirty ? (
+        <Alert kind="warn">
+          Thư mục cài đặt trên Pi có thay đổi chưa commit, nên cập nhật tự động bị chặn (để không
+          xoá mất chúng). Xử lý trên Pi: <code>cd {u?.repoDir} && git status</code>
+        </Alert>
+      ) : null}
+
+      {repo?.fetchError ? (
+        <Alert kind="warn">
+          Không hỏi được máy chủ GitHub — số liệu bên dưới có thể cũ.
+          <br />
+          <code className="text-xs">{repo.fetchError}</code>
+        </Alert>
+      ) : null}
+
+      {/* ── Danh sach thay doi ────────────────────────────────── */}
+      {repo?.pending.length ? (
+        <div className="mb-4">
+          <p className="mb-2 text-xs" style={{ color: 'var(--text-dim)' }}>
+            Những thay đổi sẽ được cài
+          </p>
+          <div className="flex flex-col gap-1">
+            {repo.pending.map((c) => (
+              <div
+                key={c.short}
+                className="flex items-start gap-2.5 rounded-lg px-3 py-2 text-sm"
+                style={{ background: 'var(--card)' }}
+              >
+                <code className="shrink-0 text-xs" style={{ color: 'var(--text-dim)' }}>
+                  {c.short}
+                </code>
+                <span className="min-w-0 flex-1">{c.subject}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      {/* ── Ket qua lan chay truoc ────────────────────────────── */}
+      {snap?.lastRun ? (
+        <Alert kind={snap.lastRun.ok ? 'ok' : 'error'}>
+          Lần chạy gần nhất ({formatDate(snap.lastRun.finishedAt)}):{' '}
+          <b>{snap.lastRun.ok ? 'thành công' : `thất bại ở bước "${snap.lastRun.step}"`}</b>
+          {snap.lastRun.error ? (
+            <>
+              <br />
+              <span className="text-xs" style={{ wordBreak: 'break-word' }}>
+                {snap.lastRun.error}
+              </span>
+            </>
+          ) : null}
+        </Alert>
+      ) : null}
+
+      {snap?.log ? (
+        <details>
+          <summary className="cursor-pointer text-sm" style={{ color: 'var(--text-dim)' }}>
+            Nhật ký chi tiết
+          </summary>
+          <pre
+            className="mt-2 overflow-auto rounded-xl p-3 text-xs"
+            style={{
+              background: 'var(--bg)',
+              border: '1px solid var(--card-hi)',
+              maxHeight: 280,
+              lineHeight: 1.6,
+            }}
+          >
+            {snap.log}
+          </pre>
+        </details>
+      ) : null}
+
+      {loadError ? <Alert kind="error">{loadError}</Alert> : null}
+    </Panel>
   )
 }
 

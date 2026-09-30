@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto'
-import { resolve } from 'node:path'
+import { join, resolve } from 'node:path'
 
 function str(key: string, fallback: string): string {
   const v = process.env[key]
@@ -26,10 +26,15 @@ export const env = {
   dataDir: resolve(rootDir, str('DATA_DIR', './data')),
   mediaDir: resolve(rootDir, str('MEDIA_DIR', './media')),
 
+  /** Hop thu trao doi voi updater sidecar. Nam trong dataDir de dung chung bind mount. */
+  get updateDir(): string {
+    return join(this.dataDir, 'update')
+  },
+
   /** Thu muc chua build cua apps/web. Rong = khong serve SPA (che do dev dung Vite). */
   webDist: str('WEB_DIST', ''),
 
-  defaultPin: str('DEFAULT_PIN', '246813'),
+  defaultPin: str('DEFAULT_PIN', '000000'),
   /**
    * Bo trong thi tu sinh -> session admin mat khi restart.
    * Dat bien nay trong production de session ben vung.
@@ -41,6 +46,15 @@ export const env = {
 
   /** Cap chat luong khi tai offline. */
   downloadMaxHeight: int('DOWNLOAD_MAX_HEIGHT', 720),
+
+  appVersion: '0.1.0',
+  /**
+   * Commit va thoi diem build, do Dockerfile nhet vao (ARG GIT_COMMIT/BUILD_TIME).
+   * Rong khi chay o che do dev hoac khi ai do build tay ma khong truyen args —
+   * luc do trang Cai dat lay tam tu state cua updater.
+   */
+  commit: str('KIDTUBE_COMMIT', ''),
+  builtAt: str('KIDTUBE_BUILT_AT', ''),
 } as const
 
 export type Env = typeof env

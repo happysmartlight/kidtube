@@ -73,6 +73,14 @@ ENV NODE_ENV=production \
     PUID=1000 \
     PGID=1000
 
+# Dau van tay cua ban build. Updater dien hai gia tri nay khi build lai,
+# nho do trang Cai dat noi duoc "dang chay commit nao, build luc nao".
+# Dat o cuoi de doi commit khong lam hong cache cua cac layer ben tren.
+ARG GIT_COMMIT=""
+ARG BUILD_TIME=""
+ENV KIDTUBE_COMMIT=$GIT_COMMIT \
+    KIDTUBE_BUILT_AT=$BUILD_TIME
+
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh \
     && mkdir -p /data /media \

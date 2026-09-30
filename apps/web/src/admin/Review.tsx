@@ -83,6 +83,31 @@ export function Review(): React.ReactElement {
     }
   }
 
+  /**
+   * Xep hang tai offline. Dung chung cho nut tren tung the va nut hang loat —
+   * bo me khong can biet video co bi chan nhung hay khong moi tai duoc.
+   */
+  async function download(ids: number[], priority = 0): Promise<void> {
+    if (ids.length === 0) return
+    setBusy(true)
+    try {
+      const r = await adminApi.enqueueDownloads(ids, priority)
+      const queued = r.results.filter((x) => x.queued).length
+      if (queued > 0) {
+        toast('ok', `Đã xếp hàng tải ${queued} video — xem tiến độ ở tab Tải offline`)
+      } else {
+        // Ly do hay gap nhat: da co ban tai roi.
+        toast('error', r.results[0]?.reason ?? 'Không xếp hàng được video nào')
+      }
+      if (r.notice) toast('error', r.notice)
+      videos.reload()
+    } catch (err) {
+      toast('error', err instanceof ApiError ? err.message : 'Không xếp hàng được')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   return (
     <>
       <Panel>
@@ -166,6 +191,13 @@ export function Review(): React.ReactElement {
           </Btn>
           <Btn variant="danger" disabled={busy} onClick={() => void review('rejected', [...selected])}>
             ❌ Loại
+          </Btn>
+          <Btn
+            disabled={busy}
+            title="Tải sẵn file mp4 về máy. Cần bật Cài đặt → Tải video về máy."
+            onClick={() => void download([...selected])}
+          >
+            ⬇ Tải offline
           </Btn>
           <Btn small onClick={() => setSelected(new Set())}>
             Bỏ chọn
@@ -287,6 +319,15 @@ export function Review(): React.ReactElement {
                       <Badge color={C.warn}>chưa xếp kệ</Badge>
                     ) : null}
                     {v.local_path ? <Badge color={C.ok}>⬇ đã tải</Badge> : null}
+                    {!v.local_path && v.download_status === 'queued' ? (
+                      <Badge color={C.dim}>⏳ chờ tải</Badge>
+                    ) : null}
+                    {v.download_status === 'downloading' ? (
+                      <Badge color={C.focus}>⬇ đang tải</Badge>
+                    ) : null}
+                    {v.download_status === 'error' ? (
+                      <Badge color={C.danger}>⬇ tải lỗi</Badge>
+                    ) : null}
                     {v.embeddable === 0 && !v.local_path ? (
                       <Badge color={C.danger}>🙈 kênh chặn nhúng</Badge>
                     ) : null}
@@ -314,6 +355,20 @@ export function Review(): React.ReactElement {
                     {v.status !== 'rejected' ? (
                       <Btn small variant="danger" onClick={() => void review('rejected', [v.id])}>
                         ❌
+                      </Btn>
+                    ) : null}
+                    {!v.local_path && v.download_status !== 'downloading' ? (
+                      <Btn
+                        small
+                        disabled={busy}
+                        title={
+                          v.download_status === 'queued'
+                            ? 'Đã nằm trong hàng đợi tải'
+                            : 'Tải file mp4 về máy để xem offline'
+                        }
+                        onClick={() => void download([v.id])}
+                      >
+                        {v.download_status === 'error' ? '⬇ thử lại' : '⬇'}
                       </Btn>
                     ) : null}
                     <a

@@ -174,5 +174,6 @@ và ảnh hưởng trải nghiệm xem đang diễn ra. Một job một lúc là
 | `YT_API_KEY` | (rỗng) | YouTube Data API v3 — tuỳ chọn |
 | `YTDLP_PATH` | `yt-dlp` | Đường dẫn binary |
 | `SESSION_SECRET` | (tự sinh) | Ký cookie admin |
-| `DEFAULT_PIN` | `246813` | PIN lần đầu, **đổi ngay sau khi cài** |
+| `DEFAULT_PIN` | `000000` | PIN lần đầu, **đổi ngay sau khi cài** |
+| `KIDTUBE_REPO_DIR` | — | Đường dẫn repo trên host. Bật nút *Cập nhật App*; phải đi kèm `COMPOSE_PROFILES=updater` |
 | `NODE_ENV` | development | |

@@ -17,6 +17,13 @@ import {
 import { ytdlpAvailable } from '../services/youtube/ytdlp.js'
 import { requireParent } from './auth.js'
 
+/** Nhac bo me khi hang doi se nam im vi cong tac tong dang tat. */
+function offlineNotice(): string | null {
+  return getSettingBool('offline_enabled', false)
+    ? null
+    : 'Chế độ tải offline đang TẮT. Bật trong Cài đặt → Tải video về máy thì hàng đợi mới chạy.'
+}
+
 export async function downloadRoutes(app: FastifyInstance): Promise<void> {
   app.addHook('preHandler', requireParent)
 
@@ -69,11 +76,7 @@ export async function downloadRoutes(app: FastifyInstance): Promise<void> {
       // Chay ngay thay vi doi cron — bo me vua bam thi muon thay tien do lien.
       void tick().catch(() => {})
 
-      const notice = getSettingBool('offline_enabled', false)
-        ? null
-        : 'Chế độ tải offline đang TẮT. Bật trong Cài đặt thì hàng đợi mới chạy.'
-
-      return { results, notice }
+      return { results, notice: offlineNotice() }
     },
   )
 
@@ -88,10 +91,16 @@ export async function downloadRoutes(app: FastifyInstance): Promise<void> {
     return { ok: removed }
   })
 
+  // `force` = true: bam tay thi chay ngay, khong phu thuoc cai dat tu dong.
   app.post('/api/admin/downloads/enqueue-favorites', async () => {
-    const n = enqueueFavorites()
+    const r = enqueueFavorites(true)
     void tick().catch(() => {})
-    return { ok: true, enqueued: n }
+    return {
+      ok: true,
+      enqueued: r.enqueued,
+      candidates: r.candidates,
+      notice: offlineNotice(),
+    }
   })
 
   app.post('/api/admin/downloads/cleanup', async () => {

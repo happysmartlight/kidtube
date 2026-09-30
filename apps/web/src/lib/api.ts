@@ -3,6 +3,56 @@
  * de doi duong dan la sua mot noi.
  */
 
+// ─── Cap nhat app ──────────────────────────────────────────────────
+
+export interface UpdateSnapshot {
+  running: {
+    version: string
+    commit: string | null
+    commitShort: string | null
+    builtAt: string | null
+  }
+  updater: {
+    installed: boolean
+    online: boolean
+    phase: 'idle' | 'checking' | 'updating'
+    pendingRequest: boolean
+    heartbeatAt: string | null
+    repoOk: boolean
+    repoDir: string | null
+    repoError: string | null
+  }
+  repo: {
+    branch: string
+    upstream: string | null
+    head: string
+    headShort: string
+    headSubject: string
+    headDate: string
+    dirty: boolean
+    behind: number
+    pending: Array<{ short: string; subject: string }>
+    checkedAt: string
+    fetchError: string | null
+  } | null
+  deployedCommit: string | null
+  lastRun: {
+    action: string
+    startedAt: string
+    finishedAt: string
+    ok: boolean
+    step: string
+    error: string | null
+    fromCommit: string | null
+    toCommit: string | null
+  } | null
+  log: string | null
+  warnings: {
+    activeKidSessions: number
+    downloadRunning: boolean
+  }
+}
+
 export class ApiError extends Error {
   constructor(
     readonly status: number,
@@ -540,9 +590,10 @@ export const adminApi = {
     request<{ ok: boolean }>(`/api/admin/downloads/${videoId}/file`, { method: 'DELETE' }),
 
   enqueueFavorites: () =>
-    request<{ ok: boolean; enqueued: number }>('/api/admin/downloads/enqueue-favorites', {
-      method: 'POST',
-    }),
+    request<{ ok: boolean; enqueued: number; candidates: number; notice: string | null }>(
+      '/api/admin/downloads/enqueue-favorites',
+      { method: 'POST' },
+    ),
 
   cleanupDownloads: () =>
     request<{ ok: boolean; orphansRemoved: number; evictedForSpace: number }>(
@@ -583,4 +634,11 @@ export const adminApi = {
         completed: number
       }>
     }>(`/api/admin/stats/history?limit=${limit}${profileId ? `&profileId=${profileId}` : ''}`),
+
+  // Cap nhat app. `signal` de huy khi server dang khoi dong lai giua chung.
+  update: (signal?: AbortSignal) => request<UpdateSnapshot>('/api/admin/update', { signal }),
+
+  checkUpdate: () => request<{ ok: boolean }>('/api/admin/update/check', { method: 'POST' }),
+
+  runUpdate: () => request<{ ok: boolean }>('/api/admin/update/run', { method: 'POST' }),
 }

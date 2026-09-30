@@ -115,9 +115,18 @@ async function housekeeping(log: FastifyBaseLogger): Promise<void> {
     const orphans = await cleanupOrphanFiles()
     const evicted = await enforceStorageLimit()
 
-    if (closed.changes > 0 || orphans > 0 || evicted > 0) {
+    // Con vua danh dau ❤️ thi khong nen doi het chu ky keo nguon (mac dinh 6
+    // gio) moi xep hang tai. Chi chay khi bo me bat cai dat tu dong.
+    const favorites = enqueueFavorites().enqueued
+
+    if (closed.changes > 0 || orphans > 0 || evicted > 0 || favorites > 0) {
       log.info(
-        { sessionsClosed: closed.changes, orphanFilesRemoved: orphans, evictedForSpace: evicted },
+        {
+          sessionsClosed: closed.changes,
+          orphanFilesRemoved: orphans,
+          evictedForSpace: evicted,
+          favoritesQueued: favorites,
+        },
         'Dọn dẹp xong',
       )
     }

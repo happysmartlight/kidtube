@@ -3,7 +3,8 @@
 #   docker compose up -d --build
 #   docker compose logs -f kidtube
 #
-# Lan dau khoi dong, log se in PIN quan tri mac dinh. DOI NGAY trong Cai dat.
+# PIN quan tri mac dinh la 000000 (log lan dau khoi dong cung in ra).
+# Doi trong Cai dat cua bo me sau khi vao duoc lan dau.
 
 services:
   kidtube:
@@ -12,6 +13,10 @@ services:
       # Doi so nay khi yt-dlp hong do YouTube thay doi ky thuat.
       args:
         YTDLP_VERSION: 2025.09.26
+        # Updater tu dien hai bien nay khi build lai, de trang Cai dat
+        # hien duoc "dang chay commit nao". Build tay thi de trong cung duoc.
+        GIT_COMMIT: ${GIT_COMMIT:-}
+        BUILD_TIME: ${BUILD_TIME:-}
     image: kidtube-home:0.1.0
     container_name: kidtube
     restart: unless-stopped
@@ -46,7 +51,7 @@ services:
       # Tuy chon: co key thi lay duoc thoi luong, toan bo lich su kenh,
       # va biet TRUOC video nao bi chan nhung.
       YT_API_KEY: ${YT_API_KEY:-}
-      DEFAULT_PIN: ${DEFAULT_PIN:-246813}
+      DEFAULT_PIN: ${DEFAULT_PIN:-000000}
       DOWNLOAD_MAX_HEIGHT: ${DOWNLOAD_MAX_HEIGHT:-720}
 
     # Pi 5 con phai chay viec khac trong homelab — gioi han de yt-dlp
@@ -62,3 +67,49 @@ services:
       options:
         max-size: '10m'
         max-file: '3'
+
+  # ── Nut "Cap nhat App" trong trang Cai dat ────────────────────────
+  #
+  # KHONG chay mac dinh. Bat bang cach them hai dong nay vao .env:
+  #
+  #   KIDTUBE_REPO_DIR=/duong/dan/toi/thu/muc/da/git/clone   # chinh la `pwd`
+  #   COMPOSE_PROFILES=updater
+  #
+  # Doc ky truoc khi bat: container nay mount docker socket, tuc la no co
+  # quyen ngang root tren may chu. Doi lai, bo me cap nhat duoc app bang
+  # mot cu bam thay vi phai SSH vao Pi. Khong bat thi app van chay binh
+  # thuong, chi la trang Cai dat se chi ra lenh can go bang tay.
+  kidtube-updater:
+    profiles: ['updater']
+    build:
+      context: .
+      dockerfile: Dockerfile.updater
+    image: kidtube-updater:0.1.0
+    container_name: kidtube-updater
+    restart: unless-stopped
+    # Tien trinh trong day chi ngoi doi file — gan nhu khong ton gi.
+    init: true
+
+    volumes:
+      # Quyen dieu khien Docker cua may chu. Day la phan dang gom nhat.
+      - /var/run/docker.sock:/var/run/docker.sock
+      # Repo phai nam o DUNG duong dan nhu tren host: `docker compose build`
+      # gui duong dan bind mount thang cho Docker daemon, ma daemon thi hieu
+      # chung theo he thong file cua host.
+      - ${KIDTUBE_REPO_DIR:-/kidtube-repo-chua-cau-hinh}:${KIDTUBE_REPO_DIR:-/kidtube-repo-chua-cau-hinh}
+      # Hop thu trao doi voi API (thu muc data/update).
+      - ./data:/data
+
+    environment:
+      TZ: Asia/Ho_Chi_Minh
+      KIDTUBE_REPO_DIR: ${KIDTUBE_REPO_DIR:-/kidtube-repo-chua-cau-hinh}
+      KIDTUBE_SERVICE: kidtube
+      # De chown thu muc data/update cho khop uid cua kidtube.
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
+
+    logging:
+      driver: json-file
+      options:
+        max-size: '2m'
+        max-file: '2'
