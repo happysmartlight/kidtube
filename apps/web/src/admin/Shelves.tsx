@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react'
-import { adminApi, type AdminShelf, type AdminVideo, ApiError } from '@/lib/api'
+import { useState } from 'react'
+import { adminApi, type AdminShelf, ApiError } from '@/lib/api'
 import { C } from '@/lib/color'
 import { formatDuration } from '@/lib/format'
 import { useDebounced } from '@/lib/useDebounced'
 import { Spinner } from '@/ui/Spinner'
+import { appendPage, type MorePages, NO_MORE } from './morePages'
 import { Alert, Badge, Btn, Field, Input, Panel, Select, toast, useLoad } from './ui'
 
 const PALETTE = ['#ffd23f', '#ff6b8a', '#4ecdc4', '#a78bfa', '#ff9f43', '#4ecb71', '#5b9cff', '#f472b6']
@@ -404,8 +405,8 @@ function AddVideos({
   const [sourceId, setSourceId] = useState<number | ''>('')
   const [addingSource, setAddingSource] = useState(false)
 
-  // Cac trang da tai, noi lai. Reset ve rong moi khi doi tu khoa/kenh.
-  const [extra, setExtra] = useState<AdminVideo[]>([])
+  // Cac trang "Tai them", gan voi trang 1 ma chung noi tiep — xem morePages.ts.
+  const [more, setMore] = useState<MorePages>(NO_MORE)
   const [loadingMore, setLoadingMore] = useState(false)
 
   const sources = useLoad(() => adminApi.sources())
@@ -420,10 +421,6 @@ function AddVideos({
       }),
     [search, sourceId],
   )
-
-  useEffect(() => {
-    setExtra([])
-  }, [search, sourceId])
 
   const pickedSource =
     sourceId === '' ? null : (sources.data?.sources.find((s) => s.id === sourceId) ?? null)
@@ -446,20 +443,28 @@ function AddVideos({
     }
   }
 
+  // Chi dung cac trang tai them neu chung noi tiep DUNG trang 1 dang hien.
+  const extra = more.base === page1.data ? more.items : []
   const videos = [...(page1.data?.videos ?? []), ...extra]
   const total = page1.data?.total ?? 0
   const hasMore = videos.length < total
 
   async function loadMore(): Promise<void> {
+    // Trang 1 dang tai lai thi `videos` van la du lieu CU — offset se sai.
+    if (loadingMore || page1.loading || !page1.data) return
+    const base = page1.data
     setLoadingMore(true)
     try {
+      // PHAI gui dung bo loc nhu trang 1, ke ca kenh: thieu `sourceId` thi
+      // dang loc mot kenh ma "Tai them" lai keo ve video cua kenh khac.
       const r = await adminApi.videos({
         status: 'approved',
         q: search,
         limit: PAGE,
         offset: videos.length,
+        ...(sourceId === '' ? {} : { sourceId }),
       })
-      setExtra((prev) => [...prev, ...r.videos])
+      setMore((prev) => appendPage(prev, base, r.videos))
     } catch {
       toast('error', 'Không tải thêm được')
     } finally {
@@ -625,7 +630,7 @@ function AddVideos({
 
       {hasMore ? (
         <div className="mt-3 flex justify-center">
-          <Btn small onClick={() => void loadMore()} disabled={loadingMore}>
+          <Btn small onClick={() => void loadMore()} disabled={loadingMore || page1.loading}>
             {loadingMore ? 'Đang tải…' : `⬇ Tải thêm ${Math.min(PAGE, total - videos.length)} video`}
           </Btn>
         </div>

@@ -163,10 +163,22 @@ function TopicBrowser({
     [kind, profileId],
   )
 
+  /**
+   * "The he" cua danh sach — tang moi khi doi chu de (ke hoac kenh).
+   *
+   * "Xem them" dang cho ma tre cham sang chu de khac thi ket qua ve muon la
+   * cua chu de CU. Khong kiem tra the he thi no bi noi vao luoi cua chu de
+   * moi: video sai cho, va lan "Xem them" sau tinh offset sai. Tre hay bam
+   * lien tuc nen chuyen nay de xay ra hon ta tuong.
+   */
+  const genRef = useRef(0)
+
   useEffect(() => {
     if (selectedId === null) return
     let cancelled = false
+    genRef.current++
     setLoadingVideos(true)
+    setLoadingMore(false)
     setVideos([])
     setTotal(0)
 
@@ -191,17 +203,21 @@ function TopicBrowser({
   }, [selectedId, fetchPage])
 
   async function loadMore(): Promise<void> {
-    if (selectedId === null) return
+    if (selectedId === null || loadingMore) return
+    const gen = genRef.current
     setLoadingMore(true)
     try {
       const r = await fetchPage(selectedId, videos.length)
+      // Da doi chu de trong luc cho -> day la ket qua cua chu de cu, bo di.
+      if (gen !== genRef.current) return
       setVideos((prev) => [...prev, ...r.videos])
       setTotal(r.total)
       onQuotaRef.current(r.quota)
     } catch {
       /* Giu nguyen nhung gi da co — tre khong can thay thong bao loi o day. */
     } finally {
-      setLoadingMore(false)
+      // The he moi da tu dat lai loadingMore — dung de lenh cu ghi de len.
+      if (gen === genRef.current) setLoadingMore(false)
     }
   }
 

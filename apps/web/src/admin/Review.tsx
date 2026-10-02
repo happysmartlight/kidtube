@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { adminApi, type AdminVideo, ApiError } from '@/lib/api'
 import { formatDateShort, formatDuration, statusLabel } from '@/lib/format'
 import { useDebounced } from '@/lib/useDebounced'
+import { appendPage, type MorePages, NO_MORE } from './morePages'
 import { Alert, Badge, Btn, Input, Panel, Select, toast, useLoad } from './ui'
 import { Spinner } from '@/ui/Spinner'
 import { C } from '@/lib/color'
@@ -57,15 +58,14 @@ export function Review(): React.ReactElement {
   // ban mot request moi ky tu.
   const search = useDebounced(q, 250)
   // Mac dinh gom theo kenh: hang cho duyet tron lan nhieu kenh thi khong
-  // phan loai duoc bang mat. Xem GroupedGrid ben duoi.
+  // phan loai duoc bang mat. Xem groupBySource o tren.
   const [sort, setSort] = useState('channel')
   const [sourceId, setSourceId] = useState<number | ''>('')
   const [selected, setSelected] = useState<Set<number>>(new Set())
   const [busy, setBusy] = useState(false)
   const [targetShelf, setTargetShelf] = useState<number | ''>('')
 
-  // Cac trang tai them, noi vao sau trang dau.
-  const [extra, setExtra] = useState<AdminVideo[]>([])
+  const [more, setMore] = useState<MorePages>(NO_MORE)
   const [loadingMore, setLoadingMore] = useState(false)
 
   const videos = useLoad(
@@ -82,12 +82,15 @@ export function Review(): React.ReactElement {
   const shelves = useLoad(() => adminApi.shelves())
   const sources = useLoad(() => adminApi.sources())
 
-  // Doi tab/tu khoa/thu tu/kenh thi bo chon va bo cac trang da tai —
-  // tranh duyet nham video o tab truoc.
+  // Doi tab/tu khoa/thu tu/kenh thi bo chon — tranh duyet nham video o tab
+  // truoc.
   useEffect(() => {
     setSelected(new Set())
-    setExtra([])
   }, [tab, search, sort, sourceId])
+
+  // Chi dung cac trang tai them neu chung noi tiep DUNG trang 1 dang hien.
+  // Xem morePages.ts.
+  const extra = more.base === videos.data ? more.items : []
 
   const toggle = useCallback((id: number) => {
     setSelected((prev) => {
@@ -108,16 +111,25 @@ export function Review(): React.ReactElement {
   const hasMore = list.length < total
 
   async function loadMore(): Promise<void> {
+    // Trang 1 dang tai lai thi `list` van la du lieu CU — offset se sai.
+    if (loadingMore || videos.loading || !videos.data) return
+    const base = videos.data
     setLoadingMore(true)
     try {
+      // PHAI gui dung bo loc nhu trang 1, ke ca kenh: thieu `sourceId` thi
+      // dang loc mot kenh ma "Tai them" lai keo ve video cua kenh khac — roi
+      // "Chon tat ca" + "Duyet" se duyet ca nhung video khong dinh duyet.
       const r = await adminApi.videos({
         status: tab,
         q: search,
         sort,
         limit: PAGE,
         offset: list.length,
+        ...(sourceId === '' ? {} : { sourceId }),
       })
-      setExtra((prev) => [...prev, ...r.videos])
+      // Gan ket qua voi trang 1 da dung lam goc. Neu trong luc cho trang 1
+      // da doi thi `base` cu khong con khop -> phan nay tu bi bo qua khi render.
+      setMore((prev) => appendPage(prev, base, r.videos))
     } catch {
       toast('error', 'Không tải thêm được')
     } finally {
@@ -517,7 +529,7 @@ export function Review(): React.ReactElement {
 
         {hasMore ? (
           <div className="mt-4 flex items-center justify-center gap-3">
-            <Btn onClick={() => void loadMore()} disabled={loadingMore}>
+            <Btn onClick={() => void loadMore()} disabled={loadingMore || videos.loading}>
               {loadingMore ? 'Đang tải…' : `⬇ Tải thêm ${Math.min(PAGE, total - list.length)} video`}
             </Btn>
             <span className="text-xs" style={{ color: 'var(--text-dim)' }}>
