@@ -9,9 +9,17 @@ interface HomeProps {
   config: KidConfig
   onSelect: (video: KidVideo) => void
   onQuota: (quota: Quota) => void
+  /** Mo trang "Xem tat ca" cua mot ke. */
+  onSeeAllShelf: (shelfId: number) => void
 }
 
-export function Home({ profileId, config, onSelect, onQuota }: HomeProps): React.ReactElement {
+export function Home({
+  profileId,
+  config,
+  onSelect,
+  onQuota,
+  onSeeAllShelf,
+}: HomeProps): React.ReactElement {
   const [shelves, setShelves] = useState<KidShelf[] | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -55,17 +63,26 @@ export function Home({ profileId, config, onSelect, onQuota }: HomeProps): React
   if (error) return <EmptyState emoji="🔌" title="Có lỗi" hint={error} />
   if (!shelves) return <Spinner label="Đang tải…" />
 
-  return <ShelfList shelves={shelves} config={config} onSelect={onSelect} />
+  return (
+    <ShelfList
+      shelves={shelves}
+      config={config}
+      onSelect={onSelect}
+      onSeeAllShelf={onSeeAllShelf}
+    />
+  )
 }
 
 function ShelfList({
   shelves,
   config,
   onSelect,
+  onSeeAllShelf,
 }: {
   shelves: KidShelf[]
   config: KidConfig
   onSelect: (v: KidVideo) => void
+  onSeeAllShelf: (shelfId: number) => void
 }): React.ReactElement {
   useAutoFocus(shelves.length > 0, [shelves.length])
 
@@ -91,6 +108,8 @@ function ShelfList({
           emoji={s.emoji}
           color={s.color}
           videos={s.videos}
+          total={s.total}
+          onSeeAll={() => onSeeAllShelf(s.id)}
           showDuration={config.showDuration}
           showDownloadBadge={config.showDownloadBadge}
           onSelect={onSelect}
@@ -164,10 +183,12 @@ export function Channels({
   profileId,
   config,
   onSelect,
+  onSeeAllChannel,
 }: {
   profileId: number
   config: KidConfig
   onSelect: (v: KidVideo) => void
+  onSeeAllChannel: (sourceId: number) => void
 }): React.ReactElement {
   const [channels, setChannels] = useState<Awaited<
     ReturnType<typeof kidApi.channels>
@@ -210,6 +231,8 @@ export function Channels({
           emoji="📺"
           color={CHANNEL_COLORS[i % CHANNEL_COLORS.length] ?? '#4ecdc4'}
           videos={c.videos}
+          total={c.total}
+          onSeeAll={() => onSeeAllChannel(c.id)}
           showDuration={config.showDuration}
           showDownloadBadge={config.showDownloadBadge}
           onSelect={onSelect}

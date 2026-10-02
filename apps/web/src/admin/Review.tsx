@@ -1,11 +1,15 @@
 import { useCallback, useEffect, useState } from 'react'
-import { adminApi, ApiError } from '@/lib/api'
+import { adminApi, type AdminVideo, ApiError } from '@/lib/api'
 import { formatDateShort, formatDuration, statusLabel } from '@/lib/format'
+import { useDebounced } from '@/lib/useDebounced'
 import { Alert, Badge, Btn, Input, Panel, Select, toast, useLoad } from './ui'
 import { Spinner } from '@/ui/Spinner'
 import { C } from '@/lib/color'
 
 type Tab = 'pending' | 'approved' | 'rejected' | 'later'
+
+/** Moi trang lay bao nhieu video. Bam "Tai them" de lay trang tiep. */
+const PAGE = 120
 
 const TABS: Array<{ id: Tab; label: string; emoji: string }> = [
   { id: 'pending', label: 'Chờ duyệt', emoji: '⏳' },
@@ -24,21 +28,29 @@ const TABS: Array<{ id: Tab; label: string; emoji: string }> = [
 export function Review(): React.ReactElement {
   const [tab, setTab] = useState<Tab>('pending')
   const [q, setQ] = useState('')
-  const [search, setSearch] = useState('')
+  // Tim kiem realtime: go la tim, khong phai bam Enter. Debounce de khong
+  // ban mot request moi ky tu.
+  const search = useDebounced(q, 250)
   const [sort, setSort] = useState('newest')
   const [selected, setSelected] = useState<Set<number>>(new Set())
   const [busy, setBusy] = useState(false)
   const [targetShelf, setTargetShelf] = useState<number | ''>('')
 
+  // Cac trang tai them, noi vao sau trang dau.
+  const [extra, setExtra] = useState<AdminVideo[]>([])
+  const [loadingMore, setLoadingMore] = useState(false)
+
   const videos = useLoad(
-    () => adminApi.videos({ status: tab, q: search, sort, limit: 120 }),
+    () => adminApi.videos({ status: tab, q: search, sort, limit: PAGE }),
     [tab, search, sort],
   )
   const shelves = useLoad(() => adminApi.shelves())
 
-  // Doi tab thi bo chon — tranh duyet nham video o tab truoc.
+  // Doi tab/tu khoa/thu tu thi bo chon va bo cac trang da tai —
+  // tranh duyet nham video o tab truoc.
   useEffect(() => {
     setSelected(new Set())
+    setExtra([])
   }, [tab, search, sort])
 
   const toggle = useCallback((id: number) => {
@@ -50,8 +62,28 @@ export function Review(): React.ReactElement {
     })
   }, [])
 
-  const list = videos.data?.videos ?? []
+  const list = [...(videos.data?.videos ?? []), ...extra]
   const counts = videos.data?.counts ?? {}
+  const total = videos.data?.total ?? 0
+  const hasMore = list.length < total
+
+  async function loadMore(): Promise<void> {
+    setLoadingMore(true)
+    try {
+      const r = await adminApi.videos({
+        status: tab,
+        q: search,
+        sort,
+        limit: PAGE,
+        offset: list.length,
+      })
+      setExtra((prev) => [...prev, ...r.videos])
+    } catch {
+      toast('error', 'Không tải thêm được')
+    } finally {
+      setLoadingMore(false)
+    }
+  }
 
   // Video da duyet nhung kenh chan nhung VA chua co ban offline ->
   // tre khong thay duoc, phai tai ve moi xem duoc.
@@ -128,20 +160,12 @@ export function Review(): React.ReactElement {
           <Input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') setSearch(q)
-            }}
-            placeholder="Tìm theo tiêu đề hoặc tên kênh…"
+            placeholder="Tìm theo tiêu đề hoặc tên kênh — gõ không dấu cũng được…"
+            aria-label="Tìm video"
             style={{ flex: '1 1 220px' }}
           />
-          <Btn onClick={() => setSearch(q)}>🔍 Tìm</Btn>
-          {search ? (
-            <Btn
-              onClick={() => {
-                setQ('')
-                setSearch('')
-              }}
-            >
+          {q ? (
+            <Btn onClick={() => setQ('')} aria-label="Bỏ tìm">
               ✕ Bỏ tìm
             </Btn>
           ) : null}
@@ -206,7 +230,11 @@ export function Review(): React.ReactElement {
       ) : null}
 
       <Panel
-        title={`${statusLabel(tab)} — ${videos.data?.total ?? 0} video`}
+        title={
+          search
+            ? `${statusLabel(tab)} — khớp ${total} video, đang xem ${list.length}`
+            : `${statusLabel(tab)} — ${total} video, đang xem ${list.length}`
+        }
         actions={
           list.length > 0 ? (
             <>
@@ -390,6 +418,17 @@ export function Review(): React.ReactElement {
             )
           })}
         </div>
+
+        {hasMore ? (
+          <div className="mt-4 flex items-center justify-center gap-3">
+            <Btn onClick={() => void loadMore()} disabled={loadingMore}>
+              {loadingMore ? 'Đang tải…' : `⬇ Tải thêm ${Math.min(PAGE, total - list.length)} video`}
+            </Btn>
+            <span className="text-xs" style={{ color: 'var(--text-dim)' }}>
+              còn {total - list.length} video nữa
+            </span>
+          </div>
+        ) : null}
       </Panel>
 
       {/* Thong tin ve hai tang cua — bo me hay quen buoc thu hai */}

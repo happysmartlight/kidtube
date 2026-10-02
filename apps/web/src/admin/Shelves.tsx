@@ -1,7 +1,8 @@
-import { useState } from 'react'
-import { adminApi, type AdminShelf, ApiError } from '@/lib/api'
+import { useEffect, useState } from 'react'
+import { adminApi, type AdminShelf, type AdminVideo, ApiError } from '@/lib/api'
 import { C } from '@/lib/color'
 import { formatDuration } from '@/lib/format'
+import { useDebounced } from '@/lib/useDebounced'
 import { Spinner } from '@/ui/Spinner'
 import { Alert, Badge, Btn, Field, Input, Panel, Select, toast, useLoad } from './ui'
 
@@ -377,7 +378,19 @@ function ShelfDetail({
   )
 }
 
-/** Chon video DA DUYET de them vao ke. */
+/** Moi lan bam "Tai them" lay bao nhieu video nua. */
+const PAGE = 60
+
+/**
+ * Chon video DA DUYET de them vao ke.
+ *
+ * Hai thu de y:
+ *   - Tim kiem REALTIME (debounce 250ms) + bo dau: go "be heo" ra "Bé Heo".
+ *     Khong con phai bam Enter hay nut kinh lup.
+ *   - PHAN TRANG. Truoc day chi lay 60 video dau roi im lang bo qua phan con
+ *     lai — co 1000+ video da duyet thi coi nhu khong thay. Gio co "Tai them"
+ *     va hien ro "dang xem X / Y".
+ */
 function AddVideos({
   shelfId,
   onDone,
@@ -386,29 +399,58 @@ function AddVideos({
   onDone: () => void
 }): React.ReactElement {
   const [q, setQ] = useState('')
-  const [search, setSearch] = useState('')
+  const search = useDebounced(q, 250)
   const [sel, setSel] = useState<Set<number>>(new Set())
 
-  const videos = useLoad(
-    () => adminApi.videos({ status: 'approved', q: search, limit: 60 }),
+  // Cac trang da tai, noi lai. Reset ve rong moi khi doi tu khoa.
+  const [extra, setExtra] = useState<AdminVideo[]>([])
+  const [loadingMore, setLoadingMore] = useState(false)
+
+  const page1 = useLoad(
+    () => adminApi.videos({ status: 'approved', q: search, limit: PAGE }),
     [search],
   )
 
+  useEffect(() => {
+    setExtra([])
+  }, [search])
+
+  const videos = [...(page1.data?.videos ?? []), ...extra]
+  const total = page1.data?.total ?? 0
+  const hasMore = videos.length < total
+
+  async function loadMore(): Promise<void> {
+    setLoadingMore(true)
+    try {
+      const r = await adminApi.videos({
+        status: 'approved',
+        q: search,
+        limit: PAGE,
+        offset: videos.length,
+      })
+      setExtra((prev) => [...prev, ...r.videos])
+    } catch {
+      toast('error', 'Không tải thêm được')
+    } finally {
+      setLoadingMore(false)
+    }
+  }
+
   return (
     <div className="rounded-xl p-3" style={{ background: 'var(--bg-elev)' }}>
-      <div className="mb-3 flex flex-wrap gap-2">
+      <div className="mb-2 flex flex-wrap items-center gap-2">
         <Input
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') setSearch(q)
-          }}
-          placeholder="Tìm trong video đã duyệt…"
-          style={{ flex: '1 1 200px' }}
+          placeholder="Tìm trong video đã duyệt — gõ không dấu cũng được…"
+          aria-label="Tìm video đã duyệt"
+          style={{ flex: '1 1 240px' }}
         />
-        <Btn small onClick={() => setSearch(q)}>
-          🔍
-        </Btn>
+        {q ? (
+          <Btn small onClick={() => setQ('')} aria-label="Xoá từ khoá">
+            ✕
+          </Btn>
+        ) : null}
         <Btn
           small
           variant="primary"
@@ -428,18 +470,47 @@ function AddVideos({
         </Btn>
       </div>
 
-      {videos.loading ? <Spinner /> : null}
-      {videos.data && videos.data.videos.length === 0 ? (
+      {/* Dem ro rang: bo me luon biet con bao nhieu chua hien. */}
+      <div className="mb-3 flex flex-wrap items-center gap-2 text-xs" style={{ color: 'var(--text-dim)' }}>
+        <span>
+          {search ? `Khớp ${total} video` : `${total} video đã duyệt`}
+          {total > 0 ? ` — đang xem ${videos.length}` : ''}
+        </span>
+        {page1.loading ? <span>đang tìm…</span> : null}
+        {sel.size > 0 ? (
+          <>
+            <Badge color={C.focus}>đã chọn {sel.size}</Badge>
+            <Btn small onClick={() => setSel(new Set())}>
+              Bỏ chọn hết
+            </Btn>
+          </>
+        ) : null}
+      </div>
+
+      {page1.loading && videos.length === 0 ? <Spinner /> : null}
+
+      {!page1.loading && videos.length === 0 ? (
         <p className="text-sm" style={{ color: 'var(--text-dim)' }}>
-          Không có video đã duyệt nào. Sang tab <b>Hàng chờ duyệt</b> để duyệt trước.
+          {search ? (
+            <>
+              Không có video đã duyệt nào khớp "<b>{search}</b>".
+            </>
+          ) : (
+            <>
+              Không có video đã duyệt nào. Sang tab <b>Hàng chờ duyệt</b> để duyệt trước.
+            </>
+          )}
         </p>
       ) : null}
 
       <div
-        className="grid max-h-80 gap-2 overflow-y-auto"
-        style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))' }}
+        className="grid gap-2 overflow-y-auto"
+        style={{
+          gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+          maxHeight: '26rem',
+        }}
       >
-        {videos.data?.videos.map((v) => {
+        {videos.map((v) => {
           const on = sel.has(v.id)
           return (
             <button
@@ -480,6 +551,14 @@ function AddVideos({
           )
         })}
       </div>
+
+      {hasMore ? (
+        <div className="mt-3 flex justify-center">
+          <Btn small onClick={() => void loadMore()} disabled={loadingMore}>
+            {loadingMore ? 'Đang tải…' : `⬇ Tải thêm ${Math.min(PAGE, total - videos.length)} video`}
+          </Btn>
+        </div>
+      ) : null}
     </div>
   )
 }

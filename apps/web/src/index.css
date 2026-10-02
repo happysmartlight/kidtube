@@ -208,6 +208,52 @@ body {
   gap: 12px;
 }
 
+/* Luoi doc cho trang "Xem tat ca".
+   Mot ke co the co hang nghin video — hang cuon ngang thi tre phai bam phai
+   hang nghin lan moi tham duoc cai cuoi, nen o day doi sang luoi cuon doc. */
+.kgrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(var(--card-w), 1fr));
+  gap: var(--gap-card);
+  padding: 10px var(--safe-pad);
+}
+
+/* Trong luoi, card phai gian theo o luoi thay vi giu --card-w co dinh */
+.kgrid > .kcard,
+.kgrid > * > .kcard {
+  width: 100%;
+}
+
+/* O "Xem tat ca" o cuoi hang ngang: cung khung voi card nhung la mot loi moi,
+   khong phai mot video. Dung chu + mui tien to de tre nhan ra ngay. */
+.kcard-more {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: calc(var(--card-w) * 0.5625 + var(--font-title) * 2.5 + 24px);
+  background: var(--card-hi);
+  text-align: center;
+  padding: 12px;
+}
+
+.kcard-more-arrow {
+  font-size: calc(var(--font-shelf) * 1.3);
+  line-height: 1;
+}
+
+.kcard-more-label {
+  font-size: var(--font-title);
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.kcard-more-count {
+  font-size: calc(var(--font-title) * 0.8);
+  color: var(--text-dim);
+}
+
 /* Cuon ngang muot, an scrollbar (remote TV khong keo scrollbar duoc) */
 .krow {
   display: flex;

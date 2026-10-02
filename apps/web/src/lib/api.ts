@@ -122,7 +122,19 @@ export interface KidShelf {
   title: string
   emoji: string
   color: string
+  /** Tong so video xem duoc trong ke. Lon hon videos.length => con nua. */
+  total: number
   videos: KidVideo[]
+}
+
+/** Mot trang cua "Xem tat ca" — dung cho ca ke va kenh. */
+export interface KidShelfPage {
+  shelf: { id: number; title: string; emoji: string; color: string }
+  videos: KidVideo[]
+  total: number
+  offset: number
+  hasMore: boolean
+  quota: Quota
 }
 
 export interface Quota {
@@ -196,9 +208,22 @@ export const kidApi = {
         title: string
         thumbnail: string | null
         count: number
+        total: number
         videos: KidVideo[]
       }>
     }>(`/api/kid/channels?profileId=${profileId}`),
+
+  /** Mot trang cua "Xem tat ca" trong mot ke. */
+  shelf: (shelfId: number, profileId: number, offset = 0, limit = 60) =>
+    request<KidShelfPage>(
+      `/api/kid/shelf/${shelfId}?profileId=${profileId}&offset=${offset}&limit=${limit}`,
+    ),
+
+  /** Mot trang cua "Xem tat ca" trong mot kenh. */
+  channel: (sourceId: number, profileId: number, offset = 0, limit = 60) =>
+    request<KidShelfPage>(
+      `/api/kid/channel/${sourceId}?profileId=${profileId}&offset=${offset}&limit=${limit}`,
+    ),
 
   video: (id: number, profileId: number) =>
     request<PlaybackInfo>(`/api/kid/video/${id}?profileId=${profileId}`),
@@ -443,6 +468,9 @@ export const adminApi = {
     return request<{
       videos: AdminVideo[]
       total: number
+      offset: number
+      limit: number
+      hasMore: boolean
       counts: Record<string, number>
     }>(`/api/admin/videos?${qs}`)
   },
