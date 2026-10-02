@@ -67,6 +67,8 @@ export interface VideoRow {
   last_watched_at: string | null
   added_at: string
   reviewed_at: string | null
+  /** title + channel_title da bo dau, viet thuong — xem lib/search.ts. */
+  search_text: string | null
 }
 
 export interface ShelfRow {

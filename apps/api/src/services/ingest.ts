@@ -1,6 +1,7 @@
 import { getDb } from '../db/index.js'
 import type { IngestedVideo, SourceRow } from '../db/types.js'
 import { notFound } from '../lib/errors.js'
+import { buildSearchText } from '../lib/search.js'
 import { sqlNow } from '../lib/time.js'
 import { activeRules, evaluate } from './autofilter.js'
 import { hasApiKey, listPlaylistItems, listVideoDetails } from './youtube/dataapi.js'
@@ -264,14 +265,17 @@ function upsertVideos(items: IngestedVideo[], source: SourceRow): UpsertResult {
   const db = getDb()
   const rules = activeRules()
 
-  const findExisting = db.prepare<[string], { id: number; status: string }>(
-    'SELECT id, status FROM videos WHERE youtube_id = ?',
+  // channel_title can lay ve de tinh lai search_text: cau UPDATE duoi dung
+  // COALESCE nen ten kenh CU van duoc giu khi lan nay khong lay duoc ten moi.
+  const findExisting = db.prepare<[string], { id: number; status: string; channel_title: string | null }>(
+    'SELECT id, status, channel_title FROM videos WHERE youtube_id = ?',
   )
   const insert = db.prepare(
     `INSERT INTO videos
        (youtube_id, title, thumbnail, duration_sec, channel_id, channel_title,
-        published_at, source_id, status, reject_reason, is_live, embeddable)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        published_at, source_id, status, reject_reason, is_live, embeddable,
+        search_text)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   )
   // Cap nhat metadata cho video da co, nhung KHONG dung den status.
   const update = db.prepare(
@@ -285,7 +289,8 @@ function upsertVideos(items: IngestedVideo[], source: SourceRow): UpsertResult {
        source_id     = COALESCE(source_id, ?),
        is_live       = ?,
        -- Giu gia tri da biet; chi ghi khi lan nay lay duoc thong tin moi.
-       embeddable    = COALESCE(?, embeddable)
+       embeddable    = COALESCE(?, embeddable),
+       search_text   = ?
      WHERE id = ?`,
   )
 
@@ -308,6 +313,7 @@ function upsertVideos(items: IngestedVideo[], source: SourceRow): UpsertResult {
           source.id,
           v.isLive ? 1 : 0,
           v.embeddable === undefined || v.embeddable === null ? null : v.embeddable ? 1 : 0,
+          buildSearchText(v.title, v.channelTitle ?? existing.channel_title),
           existing.id,
         )
         updated++
@@ -341,6 +347,7 @@ function upsertVideos(items: IngestedVideo[], source: SourceRow): UpsertResult {
         reason,
         v.isLive ? 1 : 0,
         v.embeddable === undefined || v.embeddable === null ? null : v.embeddable ? 1 : 0,
+        buildSearchText(v.title, v.channelTitle),
       )
       added++
     }

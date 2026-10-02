@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify'
 import { getDb } from '../db/index.js'
 import type { VideoRow, VideoStatus } from '../db/types.js'
 import { badRequest, notFound } from '../lib/errors.js'
+import { searchClause } from '../lib/search.js'
 import { sqlNow } from '../lib/time.js'
 import { activeRules, evaluate } from '../services/autofilter.js'
 import { enqueue } from '../services/downloader.js'
@@ -40,15 +41,16 @@ export async function videoRoutes(app: FastifyInstance): Promise<void> {
       where.push('v.source_id = ?')
       params.push(Number(req.query.sourceId))
     }
-    if (req.query.q) {
-      where.push('(v.title LIKE ? OR v.channel_title LIKE ?)')
-      const like = `%${req.query.q}%`
-      params.push(like, like)
+    // Tim kiem bo dau + nhieu tu khoa (AND). Xem lib/search.ts.
+    const search = searchClause(req.query.q, 'v.search_text')
+    if (search) {
+      where.push(`(${search.sql})`)
+      params.push(...search.params)
     }
 
     const whereSql = where.length > 0 ? `WHERE ${where.join(' AND ')}` : ''
-    const limit = Math.min(Number(req.query.limit ?? 60) || 60, 300)
-    const offset = Number(req.query.offset ?? 0) || 0
+    const limit = Math.min(Math.max(Number(req.query.limit ?? 60) || 60, 1), 500)
+    const offset = Math.max(Number(req.query.offset ?? 0) || 0, 0)
 
     const sort =
       req.query.sort === 'oldest'
@@ -86,6 +88,10 @@ export async function videoRoutes(app: FastifyInstance): Promise<void> {
     return {
       videos: rows,
       total,
+      offset,
+      limit,
+      // Client dung cai nay cho nut "Tai them" — khoi phai tu tinh.
+      hasMore: offset + rows.length < total,
       counts: Object.fromEntries(counts.map((c) => [c.status, c.n])),
     }
   })

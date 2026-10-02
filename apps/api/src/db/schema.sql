@@ -62,6 +62,9 @@ CREATE TABLE IF NOT EXISTS videos (
   download_error    TEXT,
   watch_count       INTEGER NOT NULL DEFAULT 0,
   last_watched_at   TEXT,
+  -- title + channel_title da bo dau & viet thuong, de tim kiem tieng Viet
+  -- khong phu thuoc dau/hoa-thuong (xem lib/search.ts)
+  search_text       TEXT,
   added_at          TEXT    NOT NULL DEFAULT (datetime('now')),
   reviewed_at       TEXT
 );

@@ -3,6 +3,7 @@ import { mkdirSync, readFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { env } from '../env.js'
+import { buildSearchText } from '../lib/search.js'
 
 const here = dirname(fileURLToPath(import.meta.url))
 
@@ -69,6 +70,8 @@ const COLUMN_MIGRATIONS: Array<{ table: string; column: string; ddl: string }> =
   // Nhieu kenh tre em lon (Cocomelon...) chan nhung -> phai biet de khong
   // de tre bam vao roi gap man hinh loi.
   { table: 'videos', column: 'embeddable', ddl: 'INTEGER' },
+  // title + channel_title da bo dau, viet thuong — dung cho o tim kiem.
+  { table: 'videos', column: 'search_text', ddl: 'TEXT' },
 ]
 
 function migrate(db: DB): void {
@@ -81,6 +84,30 @@ function migrate(db: DB): void {
       db.exec(`ALTER TABLE ${m.table} ADD COLUMN ${m.column} ${m.ddl}`)
     }
   }
+
+  backfillSearchText(db)
+}
+
+/**
+ * Tinh `search_text` cho cac video chua co.
+ *
+ * Chay moi lan mo DB nhung chi cham vao dong NULL, nen sau lan dau la
+ * mot cau COUNT rong. Khong the lam bang SQL thuan: SQLite khong co ham
+ * bo dau tieng Viet — phai tinh trong JS.
+ */
+function backfillSearchText(db: DB): void {
+  const rows = db
+    .prepare<[], { id: number; title: string; channel_title: string | null }>(
+      'SELECT id, title, channel_title FROM videos WHERE search_text IS NULL',
+    )
+    .all()
+  if (rows.length === 0) return
+
+  const stmt = db.prepare('UPDATE videos SET search_text = ? WHERE id = ?')
+  const tx = db.transaction(() => {
+    for (const r of rows) stmt.run(buildSearchText(r.title, r.channel_title), r.id)
+  })
+  tx()
 }
 
 export function getDb(): DB {
