@@ -11,6 +11,31 @@ type Tab = 'pending' | 'approved' | 'rejected' | 'later'
 /** Moi trang lay bao nhieu video. Bam "Tai them" de lay trang tiep. */
 const PAGE = 120
 
+interface Group {
+  key: string
+  /** `null` = khong gom nhom, hien thang mot luoi khong co tieu de. */
+  title: string | null
+  videos: AdminVideo[]
+}
+
+/**
+ * Gom video theo kenh, GIU NGUYEN thu tu server tra ve.
+ *
+ * Dua duoc vao thu tu la vi server sap xep `sort=channel` — video cung kenh
+ * nam lien nhau. Nho vay bam "Tai them" khong lam vo nhom da hien: trang sau
+ * noi tiep dung cho trang truoc dung lai.
+ */
+function groupBySource(list: AdminVideo[]): Group[] {
+  const out: Group[] = []
+  for (const v of list) {
+    const title = v.source_title ?? 'Không thuộc kênh nào'
+    const last = out[out.length - 1]
+    if (last && last.title === title) last.videos.push(v)
+    else out.push({ key: title, title, videos: [v] })
+  }
+  return out
+}
+
 const TABS: Array<{ id: Tab; label: string; emoji: string }> = [
   { id: 'pending', label: 'Chờ duyệt', emoji: '⏳' },
   { id: 'approved', label: 'Đã duyệt', emoji: '✅' },
@@ -31,7 +56,10 @@ export function Review(): React.ReactElement {
   // Tim kiem realtime: go la tim, khong phai bam Enter. Debounce de khong
   // ban mot request moi ky tu.
   const search = useDebounced(q, 250)
-  const [sort, setSort] = useState('newest')
+  // Mac dinh gom theo kenh: hang cho duyet tron lan nhieu kenh thi khong
+  // phan loai duoc bang mat. Xem GroupedGrid ben duoi.
+  const [sort, setSort] = useState('channel')
+  const [sourceId, setSourceId] = useState<number | ''>('')
   const [selected, setSelected] = useState<Set<number>>(new Set())
   const [busy, setBusy] = useState(false)
   const [targetShelf, setTargetShelf] = useState<number | ''>('')
@@ -41,17 +69,25 @@ export function Review(): React.ReactElement {
   const [loadingMore, setLoadingMore] = useState(false)
 
   const videos = useLoad(
-    () => adminApi.videos({ status: tab, q: search, sort, limit: PAGE }),
-    [tab, search, sort],
+    () =>
+      adminApi.videos({
+        status: tab,
+        q: search,
+        sort,
+        limit: PAGE,
+        ...(sourceId === '' ? {} : { sourceId }),
+      }),
+    [tab, search, sort, sourceId],
   )
   const shelves = useLoad(() => adminApi.shelves())
+  const sources = useLoad(() => adminApi.sources())
 
-  // Doi tab/tu khoa/thu tu thi bo chon va bo cac trang da tai —
+  // Doi tab/tu khoa/thu tu/kenh thi bo chon va bo cac trang da tai —
   // tranh duyet nham video o tab truoc.
   useEffect(() => {
     setSelected(new Set())
     setExtra([])
-  }, [tab, search, sort])
+  }, [tab, search, sort, sourceId])
 
   const toggle = useCallback((id: number) => {
     setSelected((prev) => {
@@ -63,6 +99,10 @@ export function Review(): React.ReactElement {
   }, [])
 
   const list = [...(videos.data?.videos ?? []), ...extra]
+  // Chi gom nhom khi dang sap xep theo kenh — cac kieu sap xep khac thi video
+  // cung kenh nam rai rac, gom lai se ra hang chuc nhom moi nhom mot video.
+  const groups: Group[] =
+    sort === 'channel' ? groupBySource(list) : [{ key: 'all', title: null, videos: list }]
   const counts = videos.data?.counts ?? {}
   const total = videos.data?.total ?? 0
   const hasMore = list.length < total
@@ -170,7 +210,28 @@ export function Review(): React.ReactElement {
             </Btn>
           ) : null}
 
-          <Select value={sort} onChange={(e) => setSort(e.target.value)} style={{ width: 'auto' }}>
+          {/* Loc theo kenh — khi chi muon xu ly dut diem mot kenh */}
+          <Select
+            value={sourceId}
+            onChange={(e) => setSourceId(e.target.value === '' ? '' : Number(e.target.value))}
+            style={{ width: 'auto', maxWidth: 260 }}
+            aria-label="Lọc theo kênh"
+          >
+            <option value="">📺 Tất cả kênh</option>
+            {sources.data?.sources.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.title}
+              </option>
+            ))}
+          </Select>
+
+          <Select
+            value={sort}
+            onChange={(e) => setSort(e.target.value)}
+            style={{ width: 'auto' }}
+            aria-label="Sắp xếp"
+          >
+            <option value="channel">Gom theo kênh</option>
             <option value="newest">Mới nhất</option>
             <option value="oldest">Cũ nhất</option>
             <option value="longest">Dài nhất</option>
@@ -259,11 +320,44 @@ export function Review(): React.ReactElement {
           </p>
         ) : null}
 
-        <div
-          className="grid gap-3"
-          style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))' }}
-        >
-          {list.map((v) => {
+        {groups.map((g) => (
+          <section key={g.key} className="mb-5">
+            {/* Tieu de kenh — chi hien khi dang gom theo kenh */}
+            {g.title !== null ? (
+              <div
+                className="mb-2 flex flex-wrap items-center gap-2 rounded-xl px-3 py-2"
+                style={{ background: 'var(--card)' }}
+              >
+                <span aria-hidden="true">📺</span>
+                <span className="font-extrabold">{g.title}</span>
+                <Badge color={C.dim}>{g.videos.length} video</Badge>
+                <div className="flex-1" />
+                <Btn
+                  small
+                  onClick={() =>
+                    setSelected((prev) => {
+                      const next = new Set(prev)
+                      // Da chon het ca nhom thi bam lan nua la bo chon —
+                      // mot nut lam duoc ca hai chieu.
+                      const all = g.videos.every((v) => next.has(v.id))
+                      for (const v of g.videos) {
+                        if (all) next.delete(v.id)
+                        else next.add(v.id)
+                      }
+                      return next
+                    })
+                  }
+                >
+                  {g.videos.every((v) => selected.has(v.id)) ? 'Bỏ chọn kênh này' : 'Chọn cả kênh này'}
+                </Btn>
+              </div>
+            ) : null}
+
+            <div
+              className="grid gap-3"
+              style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))' }}
+            >
+              {g.videos.map((v) => {
             const isSel = selected.has(v.id)
             return (
               <div
@@ -414,10 +508,12 @@ export function Review(): React.ReactElement {
                     </a>
                   </div>
                 </div>
-              </div>
-            )
-          })}
-        </div>
+                  </div>
+                )
+              })}
+            </div>
+          </section>
+        ))}
 
         {hasMore ? (
           <div className="mt-4 flex items-center justify-center gap-3">

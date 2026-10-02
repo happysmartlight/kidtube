@@ -132,8 +132,18 @@ export async function shelfRoutes(app: FastifyInstance): Promise<void> {
     return { ok: true }
   })
 
-  /** Them video vao ke. Bo qua video da co san (khong bao loi). */
-  app.post<{ Params: { id: string }; Body: { videoIds?: number[] } }>(
+  /**
+   * Them video vao ke. Bo qua video da co san (khong bao loi).
+   *
+   * Hai cach goi:
+   *   - `videoIds`: danh sach cu the, bo me tu tich tung cai
+   *   - `sourceId`: TAT CA video DA DUYET cua mot kenh — xep ca kenh vao ke
+   *     bang mot thao tac thay vi tich hang tram o
+   *
+   * Chi lay video `approved`: video dang cho duyet ma vao ke thi tre van
+   * khong thay (tang cua thu nhat chan lai), chi lam ke trong admin ro ram.
+   */
+  app.post<{ Params: { id: string }; Body: { videoIds?: number[]; sourceId?: number } }>(
     '/api/admin/shelves/:id/items',
     async (req) => {
       const shelfId = Number(req.params.id)
@@ -141,9 +151,38 @@ export async function shelfRoutes(app: FastifyInstance): Promise<void> {
       const shelf = db.prepare<[number], ShelfRow>('SELECT * FROM shelves WHERE id = ?').get(shelfId)
       if (!shelf) throw notFound('Không có kệ này')
 
-      const ids = Array.isArray(req.body?.videoIds)
+      let ids = Array.isArray(req.body?.videoIds)
         ? req.body.videoIds.map(Number).filter(Number.isFinite)
         : []
+
+      const sourceId = Number(req.body?.sourceId)
+      if (Number.isFinite(sourceId) && sourceId > 0) {
+        const source = db
+          .prepare<[number], { id: number }>('SELECT id FROM sources WHERE id = ?')
+          .get(sourceId)
+        if (!source) throw notFound('Không có kênh này')
+
+        const fromSource = db
+          .prepare<[number], { id: number }>(
+            `SELECT v.id
+               FROM videos v
+              WHERE v.source_id = ?
+                AND v.status = 'approved'
+              ORDER BY COALESCE(v.published_at, v.added_at) DESC`,
+          )
+          .all(sourceId)
+          .map((r) => r.id)
+
+        if (fromSource.length === 0) {
+          throw badRequest('Kênh này chưa có video nào đã duyệt')
+        }
+        ids = [...ids, ...fromSource]
+      }
+
+      // Bo trung: bo me co the vua tich vai video vua them ca kenh chua
+      // chinh nhung video do. Khong bo thi `skipped` dem sai.
+      ids = [...new Set(ids)]
+
       if (ids.length === 0) throw badRequest('Chưa chọn video nào')
 
       let maxPos =

@@ -401,19 +401,50 @@ function AddVideos({
   const [q, setQ] = useState('')
   const search = useDebounced(q, 250)
   const [sel, setSel] = useState<Set<number>>(new Set())
+  const [sourceId, setSourceId] = useState<number | ''>('')
+  const [addingSource, setAddingSource] = useState(false)
 
-  // Cac trang da tai, noi lai. Reset ve rong moi khi doi tu khoa.
+  // Cac trang da tai, noi lai. Reset ve rong moi khi doi tu khoa/kenh.
   const [extra, setExtra] = useState<AdminVideo[]>([])
   const [loadingMore, setLoadingMore] = useState(false)
 
+  const sources = useLoad(() => adminApi.sources())
+
   const page1 = useLoad(
-    () => adminApi.videos({ status: 'approved', q: search, limit: PAGE }),
-    [search],
+    () =>
+      adminApi.videos({
+        status: 'approved',
+        q: search,
+        limit: PAGE,
+        ...(sourceId === '' ? {} : { sourceId }),
+      }),
+    [search, sourceId],
   )
 
   useEffect(() => {
     setExtra([])
-  }, [search])
+  }, [search, sourceId])
+
+  const pickedSource =
+    sourceId === '' ? null : (sources.data?.sources.find((s) => s.id === sourceId) ?? null)
+
+  /** Xep ca kenh vao ke — khoi phai tich tung o khi kenh co hang tram video. */
+  async function addWholeSource(): Promise<void> {
+    if (sourceId === '') return
+    setAddingSource(true)
+    try {
+      const r = await adminApi.addSourceToShelf(shelfId, sourceId)
+      toast(
+        'ok',
+        `Đã thêm ${r.added} video${r.skipped > 0 ? `, bỏ qua ${r.skipped} đã có trong kệ` : ''}`,
+      )
+      onDone()
+    } catch (err) {
+      toast('error', err instanceof ApiError ? err.message : 'Không thêm được cả kênh')
+    } finally {
+      setAddingSource(false)
+    }
+  }
 
   const videos = [...(page1.data?.videos ?? []), ...extra]
   const total = page1.data?.total ?? 0
@@ -438,6 +469,45 @@ function AddVideos({
 
   return (
     <div className="rounded-xl p-3" style={{ background: 'var(--bg-elev)' }}>
+      {/* ── Them CA KENH: nhanh hon tich tung o rat nhieu ───────── */}
+      <div
+        className="mb-3 flex flex-wrap items-center gap-2 rounded-xl p-2.5"
+        style={{ background: 'var(--card)' }}
+      >
+        <span className="text-sm font-bold">📺 Cả kênh:</span>
+
+        <Select
+          value={sourceId}
+          onChange={(e) => setSourceId(e.target.value === '' ? '' : Number(e.target.value))}
+          style={{ width: 'auto', maxWidth: 280 }}
+          aria-label="Chọn kênh để thêm vào kệ"
+        >
+          <option value="">— Chọn kênh —</option>
+          {sources.data?.sources.map((s) => (
+            <option key={s.id} value={s.id} disabled={s.approved_count === 0}>
+              {s.title} ({s.approved_count} đã duyệt)
+            </option>
+          ))}
+        </Select>
+
+        <Btn
+          small
+          variant="primary"
+          disabled={sourceId === '' || addingSource || pickedSource?.approved_count === 0}
+          onClick={() => void addWholeSource()}
+        >
+          {addingSource
+            ? 'Đang thêm…'
+            : `➕ Thêm cả kênh${pickedSource ? ` (${pickedSource.approved_count} video)` : ''}`}
+        </Btn>
+
+        <span className="text-xs" style={{ color: 'var(--text-dim)' }}>
+          {pickedSource
+            ? 'Lưới bên dưới đang lọc theo kênh này.'
+            : 'Chỉ thêm video ĐÃ DUYỆT của kênh.'}
+        </span>
+      </div>
+
       <div className="mb-2 flex flex-wrap items-center gap-2">
         <Input
           value={q}
@@ -474,6 +544,7 @@ function AddVideos({
       <div className="mb-3 flex flex-wrap items-center gap-2 text-xs" style={{ color: 'var(--text-dim)' }}>
         <span>
           {search ? `Khớp ${total} video` : `${total} video đã duyệt`}
+          {pickedSource ? ` trong kênh ${pickedSource.title}` : ''}
           {total > 0 ? ` — đang xem ${videos.length}` : ''}
         </span>
         {page1.loading ? <span>đang tìm…</span> : null}

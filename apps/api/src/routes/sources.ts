@@ -14,10 +14,11 @@ export async function sourceRoutes(app: FastifyInstance): Promise<void> {
 
   app.get('/api/admin/sources', async () => {
     const rows = getDb()
-      .prepare<[], SourceRow & { video_count: number; pending_count: number }>(
+      .prepare<[], SourceRow & { video_count: number; pending_count: number; approved_count: number }>(
         `SELECT s.*,
                 (SELECT COUNT(*) FROM videos v WHERE v.source_id = s.id) AS video_count,
-                (SELECT COUNT(*) FROM videos v WHERE v.source_id = s.id AND v.status = 'pending') AS pending_count
+                (SELECT COUNT(*) FROM videos v WHERE v.source_id = s.id AND v.status = 'pending') AS pending_count,
+                (SELECT COUNT(*) FROM videos v WHERE v.source_id = s.id AND v.status = 'approved') AS approved_count
            FROM sources s
           ORDER BY s.created_at DESC`,
       )

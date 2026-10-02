@@ -59,7 +59,12 @@ export async function videoRoutes(app: FastifyInstance): Promise<void> {
           ? 'v.duration_sec DESC'
           : req.query.sort === 'shortest'
             ? 'v.duration_sec ASC'
-            : 'COALESCE(v.published_at, v.added_at) DESC'
+            : // Gom theo kenh: video cung kenh nam lien nhau NEN client nhom lai
+              // duoc, va nhom khong bi vo khi bam "Tai them" (phan trang di
+              // theo dung thu tu nay). Video khong thuoc nguon nao xuong cuoi.
+              req.query.sort === 'channel'
+              ? '(s.title IS NULL), s.title COLLATE NOCASE, COALESCE(v.published_at, v.added_at) DESC'
+              : 'COALESCE(v.published_at, v.added_at) DESC'
 
     const rows = db
       .prepare<unknown[], VideoRow & { source_title: string | null; shelf_count: number }>(

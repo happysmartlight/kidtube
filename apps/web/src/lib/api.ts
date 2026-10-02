@@ -269,6 +269,8 @@ export interface AdminSource {
   created_at: string
   video_count: number
   pending_count: number
+  /** So video DA DUYET — dung cho "thêm cả kênh vào kệ". */
+  approved_count: number
 }
 
 export interface AdminVideo {
@@ -515,6 +517,13 @@ export const adminApi = {
     request<{ ok: boolean; added: number; skipped: number }>(
       `/api/admin/shelves/${shelfId}/items`,
       { method: 'POST', body: { videoIds } },
+    ),
+
+  /** Xep TAT CA video da duyet cua mot kenh vao ke, trong mot thao tac. */
+  addSourceToShelf: (shelfId: number, sourceId: number) =>
+    request<{ ok: boolean; added: number; skipped: number }>(
+      `/api/admin/shelves/${shelfId}/items`,
+      { method: 'POST', body: { sourceId } },
     ),
 
   removeFromShelf: (shelfId: number, videoId: number) =>
