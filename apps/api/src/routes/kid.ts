@@ -373,22 +373,46 @@ export async function kidRoutes(app: FastifyInstance): Promise<void> {
         .get(id)
       const profile = getProfile(pid)
 
-      // Video tiep theo trong cung ke — dung cho autoplay va nut "tiep".
+      /**
+       * Video tiep theo trong cung ke — dung cho autoplay va nut "tiep".
+       *
+       * `cur` = MOT dong shelf_items cua video dang xem, chi lay trong ke ma
+       * BE NAY duoc xem (dang bat + khong gan rieng hoac gan cho be nay).
+       *
+       * Ban cu chon ke bang `LIMIT 1` khong kiem tra gan cho be nao, nen khi
+       * mot video nam ca trong ke chung lan ke rieng cua be khac, "tiep theo"
+       * co the la video trong ke rieng do — lo tieu de + thumbnail ra ngoai
+       * whitelist, va bam vao thi be gap man hinh loi. Ban cu con lay `position`
+       * tu mot dong khac voi dong da chon ke, nen co the nhay coc video.
+       *
+       * Video tiep theo nam trong cung ke `cur` (ke be duoc xem) nen tu dong
+       * thoa tang cua thu hai; tang thu nhat (approved + nhung duoc) kiem lai
+       * ngay ben duoi. Thu tu (position, id) khop voi luoi o trang chu.
+       */
       const next = db
         .prepare<{ pid: number; id: number }, RawKidVideo>(
-          `SELECT ${KID_VIDEO_COLUMNS}
-             FROM shelf_items si
+          `WITH cur AS (
+             SELECT si.shelf_id AS shelf_id, si.position AS position, si.id AS item_id
+               FROM shelf_items si
+               JOIN shelves sh ON sh.id = si.shelf_id AND sh.is_active = 1
+              WHERE si.video_id = @id
+                AND (
+                  NOT EXISTS (SELECT 1 FROM profile_shelves ps WHERE ps.shelf_id = sh.id)
+                  OR EXISTS (SELECT 1 FROM profile_shelves ps
+                              WHERE ps.shelf_id = sh.id AND ps.profile_id = @pid)
+                )
+              ORDER BY sh.position, sh.id
+              LIMIT 1
+           )
+           SELECT ${KID_VIDEO_COLUMNS}
+             FROM cur
+             JOIN shelf_items si ON si.shelf_id = cur.shelf_id
              JOIN videos v ON v.id = si.video_id
-            WHERE si.shelf_id = (
-                    SELECT si2.shelf_id FROM shelf_items si2
-                     JOIN shelves sh ON sh.id = si2.shelf_id AND sh.is_active = 1
-                    WHERE si2.video_id = @id LIMIT 1)
-              AND si.position > (
-                    SELECT si3.position FROM shelf_items si3
-                    WHERE si3.video_id = @id LIMIT 1)
+            WHERE (si.position > cur.position
+                   OR (si.position = cur.position AND si.id > cur.item_id))
               AND v.status = 'approved'
               AND (v.embeddable IS NULL OR v.embeddable = 1 OR v.local_path IS NOT NULL)
-            ORDER BY si.position
+            ORDER BY si.position, si.id
             LIMIT 1`,
         )
         .get({ pid, id })
