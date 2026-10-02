@@ -250,6 +250,22 @@ body {
   background: var(--bg);
   /* Vien mo duoi de card cuon qua van thay ranh gioi */
   box-shadow: 0 6px 16px -10px rgba(0, 0, 0, 0.9);
+  display: flex;
+  align-items: center;
+}
+
+/* Nut ghim ben trai (vi du "Làm mới"): khong cuon theo cac nut chu de, va
+   nam CUNG hang nen khong ton them chieu cao nao cua luoi video. */
+.ktabs-leading {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  padding: 8px 0 8px var(--safe-pad);
+}
+
+/* Da co nut ghim thi hang nut chu de khong can padding trai nua */
+.ktabs-leading + .ktabs {
+  padding-left: 12px;
 }
 
 .ktabs {
@@ -293,6 +309,13 @@ body {
 .ktab-emoji {
   font-size: calc(var(--font-title) * 1.5);
   line-height: 1;
+}
+
+/* Nut hanh dong trong hang nut chu de ("Làm mới") — cung khuon voi .ktab
+   nhung mau khac de tre khong nham la mot chu de. */
+.ktab-action {
+  background: var(--card-hi);
+  color: var(--focus);
 }
 
 .ktab-count {

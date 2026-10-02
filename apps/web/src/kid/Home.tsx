@@ -37,16 +37,26 @@ export function Home({ profileId, config, onSelect, onQuota }: HomeProps): React
       config={config}
       onSelect={onSelect}
       onQuota={onQuota}
-      kind="shelf"
     />
   )
 }
 
-// ═══ Kenh ═══════════════════════════════════════════════════════════
+// ═══ Kham pha (tab "Kênh") ══════════════════════════════════════════
+
+function newSeed(): number {
+  return Math.floor(Math.random() * 0x7fffffff)
+}
 
 /**
- * Tab "Kênh" dung y het bo cuc cua trang chu — chi khac nguon du lieu.
- * Hai bo cuc khac nhau trong cung mot app la thu tre phai hoc hai lan.
+ * Tab "Kênh": video da duyet, TRON NGAU NHIEN.
+ *
+ * Vi sao doi tu "duyet theo kenh" sang the nay: trang chu da sap theo ke
+ * (thu tu bo me xep), nen video cu bi day xuong duoi va gan nhu khong bao gio
+ * duoc xem lai. Cho nay lam nhiem vu nguoc lai — moi lan mo la mot bo khac.
+ *
+ * Nut "Làm mới" doi `seed`. Cung seed thi thu tu co dinh, nen "Xem thêm" lay
+ * dung phan tiep theo chu khong lap lai video da hien (xem seeded_rand trong
+ * api/src/db/index.ts). Loc kenh thi chi tron trong kenh do.
  */
 export function Channels({
   profileId,
@@ -59,15 +69,242 @@ export function Channels({
   onSelect: (v: KidVideo) => void
   onQuota: (quota: Quota) => void
 }): React.ReactElement {
+  /**
+   * Danh sach kenh + tong so video, lay MOT lan khi vao tab.
+   *
+   * So lieu tren cac nut (ke ca "Tất cả") va viec hien nut "Làm mới" deu lay
+   * tu day, KHONG tu ket qua dang tai: ket qua do bi xoa ve 0 moi lan tai lai,
+   * nen truoc day nut "Làm mới" bien mat ngay khi bam roi hien lai (ca hang
+   * nut giat qua lai), con nut "Tất cả" thi hien so cua kenh dang chon.
+   */
+  const [catalog, setCatalog] = useState<{ channels: Topic[]; total: number } | null>(null)
+  // 0 = tron toan bo, khong loc kenh.
+  const [sourceId, setSourceId] = useState(0)
+  const [seed, setSeed] = useState(newSeed)
+
+  const [videos, setVideos] = useState<KidVideo[]>([])
+  const [total, setTotal] = useState(0)
+  const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const onQuotaRef = useRef(onQuota)
+  useEffect(() => {
+    onQuotaRef.current = onQuota
+  }, [onQuota])
+
+  // ─── Danh sach kenh cho hang nut ─────────────────────────────────
+  useEffect(() => {
+    let cancelled = false
+    kidApi
+      .channels(profileId)
+      .then((r) => {
+        if (cancelled) return
+        setCatalog({
+          channels: r.channels.map((c, i) => ({
+            id: c.id,
+            title: c.title,
+            emoji: '📺',
+            // Kenh khong co mau rieng trong DB — gan mau theo thu tu de tre
+            // phan biet duoc cac nut bang mau, khong chi bang chu.
+            color: CHANNEL_COLORS[i % CHANNEL_COLORS.length] ?? '#4ecdc4',
+            total: c.total,
+          })),
+          total: r.total,
+        })
+      })
+      .catch((err: unknown) => {
+        // Bao loi that, dung gia vo "chua co video" — loi mang khac han viec
+        // bo me chua duyet gi.
+        if (!cancelled) setError(err instanceof ApiError ? err.message : 'Không tải được danh sách')
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [profileId])
+
+  /**
+   * "The he" cua danh sach — tang moi khi doi kenh hoac bam "Làm mới".
+   * Ket qua "Xem thêm" ve muon cua the he cu se bi bo, khong noi vao danh
+   * sach moi (neu khong: video sai kenh, hoac video TRUNG sau khi xao lai).
+   */
+  const genRef = useRef(0)
+
+  // ─── Video (doi khi doi kenh hoac bam Lam moi) ───────────────────
+  useEffect(() => {
+    let cancelled = false
+    genRef.current++
+    setLoading(true)
+    setLoadingMore(false)
+    setVideos([])
+    setTotal(0)
+    setError(null)
+
+    kidApi
+      .discover(profileId, { seed, sourceId, limit: PAGE })
+      .then((r) => {
+        if (cancelled) return
+        setVideos(r.videos)
+        setTotal(r.total)
+        onQuotaRef.current(r.quota)
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return
+        setError(err instanceof ApiError ? err.message : 'Không tải được video')
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [profileId, sourceId, seed])
+
+  async function loadMore(): Promise<void> {
+    if (loadingMore) return
+    const gen = genRef.current
+    setLoadingMore(true)
+    try {
+      const r = await kidApi.discover(profileId, {
+        seed,
+        sourceId,
+        offset: videos.length,
+        limit: PAGE,
+      })
+      // Da doi kenh / bam "Làm mới" trong luc cho -> ket qua cu, bo di.
+      if (gen !== genRef.current) return
+      setVideos((prev) => [...prev, ...r.videos])
+      setTotal(r.total)
+      onQuotaRef.current(r.quota)
+    } catch {
+      /* Giu nguyen nhung gi da co — tre khong can thay thong bao loi o day. */
+    } finally {
+      // The he moi da tu dat lai loadingMore — dung de lenh cu ghi de len.
+      if (gen === genRef.current) setLoadingMore(false)
+    }
+  }
+
+  if (error) return <EmptyState emoji="🔌" title="Có lỗi" hint={error} />
+  if (catalog === null) return <Spinner label="Đang tải…" />
+
+  // Dung tong chu khong dung so kenh: van co the co video ma khong thuoc kenh
+  // nao trong danh sach (nguon da tat / da xoa) — van xem duoc o "Tất cả".
+  if (catalog.total === 0) {
+    return (
+      <EmptyState
+        emoji="🎲"
+        title="Chưa có video nào"
+        hint="Bố mẹ cần duyệt video trong trang quản lý thì ở đây mới có gì để xem."
+      />
+    )
+  }
+
+  const topics: Topic[] = [
+    { id: 0, title: 'Tất cả', emoji: '🎲', color: '#ffd23f', total: catalog.total },
+    ...catalog.channels,
+  ]
+
+  // Khi tat ca video vua trong MOT trang thi xao tron chi doi thu tu cua dung
+  // bay nhieu video — khong co gi moi de xem, nen an nut di cho do roi mat.
+  // Lay so tu nut dang chon (on dinh), khong tu ket qua dang tai (ve 0 khi tai).
+  const selectedTotal = topics.find((t) => t.id === sourceId)?.total ?? 0
+  const canShuffle = selectedTotal > PAGE
+
   return (
-    <TopicBrowser
-      key={`channels-${profileId}`}
-      profileId={profileId}
-      config={config}
-      onSelect={onSelect}
-      onQuota={onQuota}
-      kind="channel"
-    />
+    <>
+      <TopicTabs
+        topics={topics}
+        selectedId={sourceId}
+        onSelect={setSourceId}
+        label="Chọn kênh"
+        leading={
+          canShuffle ? (
+            <FocusButton
+              className="ktab ktab-action"
+              onClick={() => setSeed(newSeed())}
+              aria-label="Làm mới — xem bộ video khác"
+            >
+              <span className="ktab-emoji" aria-hidden="true">
+                🔀
+              </span>
+              <span className="ktab-title">Làm mới</span>
+            </FocusButton>
+          ) : null
+        }
+      />
+
+      <DiscoverVideos
+        videos={videos}
+        total={total}
+        sourceId={sourceId}
+        loading={loading}
+        loadingMore={loadingMore}
+        config={config}
+        onSelect={onSelect}
+        onLoadMore={() => void loadMore()}
+      />
+    </>
+  )
+}
+
+function DiscoverVideos({
+  videos,
+  total,
+  sourceId,
+  loading,
+  loadingMore,
+  config,
+  onSelect,
+  onLoadMore,
+}: {
+  videos: KidVideo[]
+  total: number
+  sourceId: number
+  loading: boolean
+  loadingMore: boolean
+  config: KidConfig
+  onSelect: (v: KidVideo) => void
+  onLoadMore: () => void
+}): React.ReactElement {
+  useAutoFocus(videos.length > 0, [sourceId])
+
+  if (loading) return <Spinner label="Đang tải…" />
+
+  if (videos.length === 0) {
+    return (
+      <EmptyState
+        emoji="📺"
+        title="Kênh này chưa có video"
+        hint="Chọn kênh khác, hoặc bấm 🎲 Tất cả để xem mọi video."
+      />
+    )
+  }
+
+  return (
+    <div className="pb-6">
+      <Shelf
+        color="#4ecdc4"
+        videos={videos}
+        showDuration={config.showDuration}
+        showDownloadBadge={config.showDownloadBadge}
+        onSelect={onSelect}
+      />
+
+      {videos.length < total ? (
+        <div className="flex justify-center">
+          <FocusButton
+            className="kbtn"
+            onClick={onLoadMore}
+            disabled={loadingMore}
+            aria-label={`Xem thêm video. Còn ${total - videos.length} video nữa.`}
+            style={{ background: 'var(--card-hi)', fontWeight: 800 }}
+          >
+            {loadingMore ? 'Đang tải…' : `⬇️ Xem thêm (còn ${total - videos.length})`}
+          </FocusButton>
+        </div>
+      ) : null}
+    </div>
   )
 }
 
@@ -80,13 +317,11 @@ function TopicBrowser({
   config,
   onSelect,
   onQuota,
-  kind,
 }: {
   profileId: number
   config: KidConfig
   onSelect: (v: KidVideo) => void
   onQuota: (quota: Quota) => void
-  kind: 'shelf' | 'channel'
 }): React.ReactElement {
   const [topics, setTopics] = useState<Topic[] | null>(null)
   const [selectedId, setSelectedId] = useState<number | null>(null)
@@ -118,31 +353,13 @@ function TopicBrowser({
     setSelectedId(null)
     setError(null)
 
-    const load =
-      kind === 'shelf'
-        ? kidApi.shelves(profileId).then((r) => ({
-            topics: r.shelves as Topic[],
-            quota: r.quota as Quota | null,
-          }))
-        : kidApi.channels(profileId).then((r) => ({
-            topics: r.channels.map((c, i) => ({
-              id: c.id,
-              title: c.title,
-              emoji: '📺',
-              // Kenh khong co mau rieng trong DB — gan mau theo thu tu de
-              // tre phan biet duoc cac nut bang mau, khong chi bang chu.
-              color: CHANNEL_COLORS[i % CHANNEL_COLORS.length] ?? '#4ecdc4',
-              total: c.total,
-            })),
-            quota: r.quota as Quota | null,
-          }))
-
-    load
-      .then(({ topics: list, quota }) => {
+    kidApi
+      .shelves(profileId)
+      .then((r) => {
         if (cancelled) return
-        setTopics(list)
-        setSelectedId(list[0]?.id ?? null)
-        if (quota) onQuotaRef.current(quota)
+        setTopics(r.shelves)
+        setSelectedId(r.shelves[0]?.id ?? null)
+        onQuotaRef.current(r.quota)
       })
       .catch((err: unknown) => {
         if (cancelled) return
@@ -152,24 +369,21 @@ function TopicBrowser({
     return () => {
       cancelled = true
     }
-  }, [profileId, kind])
+  }, [profileId])
 
   // ─── Lay video cua chu de dang chon ──────────────────────────────
   const fetchPage = useCallback(
-    (id: number, offset: number) =>
-      kind === 'shelf'
-        ? kidApi.shelf(id, profileId, offset, PAGE)
-        : kidApi.channel(id, profileId, offset, PAGE),
-    [kind, profileId],
+    (id: number, offset: number) => kidApi.shelf(id, profileId, offset, PAGE),
+    [profileId],
   )
 
   /**
-   * "The he" cua danh sach — tang moi khi doi chu de (ke hoac kenh).
+   * "The he" cua danh sach — tang moi khi doi ke.
    *
-   * "Xem them" dang cho ma tre cham sang chu de khac thi ket qua ve muon la
-   * cua chu de CU. Khong kiem tra the he thi no bi noi vao luoi cua chu de
-   * moi: video sai cho, va lan "Xem them" sau tinh offset sai. Tre hay bam
-   * lien tuc nen chuyen nay de xay ra hon ta tuong.
+   * "Xem them" dang cho ma tre cham sang ke khac thi ket qua ve muon la cua
+   * ke CU. Khong kiem tra the he thi no bi noi vao luoi cua ke moi: video sai
+   * ke, va lan "Xem them" sau tinh offset sai. Tre hay bam lien tuc nen chuyen
+   * nay de xay ra hon ta tuong.
    */
   const genRef = useRef(0)
 
@@ -208,7 +422,7 @@ function TopicBrowser({
     setLoadingMore(true)
     try {
       const r = await fetchPage(selectedId, videos.length)
-      // Da doi chu de trong luc cho -> day la ket qua cua chu de cu, bo di.
+      // Da doi ke trong luc cho -> day la ket qua cua ke cu, bo di.
       if (gen !== genRef.current) return
       setVideos((prev) => [...prev, ...r.videos])
       setTotal(r.total)
@@ -225,7 +439,7 @@ function TopicBrowser({
   if (!topics) return <Spinner label="Đang tải…" />
 
   if (topics.length === 0) {
-    return kind === 'shelf' ? (
+    return (
       <EmptyState
         emoji="🧺"
         title="Chưa có video nào"
@@ -233,12 +447,6 @@ function TopicBrowser({
           'Bố mẹ cần duyệt video rồi xếp vào kệ thì con mới xem được. ' +
           'Giữ icon ⚙ ở góc dưới bên phải 3 giây để vào trang bố mẹ.'
         }
-      />
-    ) : (
-      <EmptyState
-        emoji="📺"
-        title="Chưa có kênh nào"
-        hint="Bố mẹ thêm kênh trong trang quản lý thì các kênh sẽ hiện ở đây."
       />
     )
   }
@@ -251,7 +459,7 @@ function TopicBrowser({
         topics={topics}
         selectedId={selectedId}
         onSelect={setSelectedId}
-        label={kind === 'shelf' ? 'Chọn kệ video' : 'Chọn kênh'}
+        label="Chọn kệ video"
       />
 
       <TopicVideos

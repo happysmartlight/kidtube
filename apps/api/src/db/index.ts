@@ -50,6 +50,7 @@ export function openDb(): DB {
 
   db.exec(readFileSync(schemaPath(), 'utf8'))
   migrate(db)
+  registerFunctions(db)
 
   _db = db
   return db
@@ -108,6 +109,33 @@ function backfillSearchText(db: DB): void {
     for (const r of rows) stmt.run(buildSearchText(r.title, r.channel_title), r.id)
   })
   tx()
+}
+
+/**
+ * Ham SQL tu dinh nghia.
+ *
+ * `seeded_rand(id, seed)` — xao tron co the LAP LAI DUOC.
+ *
+ * Vi sao khong dung `ORDER BY random()` cua SQLite: no doi ket qua moi lan
+ * chay, nen trang 2 cua cung mot danh sach se lap lai video cua trang 1 va
+ * bo sot nhung cai khac. Tre bam "Xem them" se thay video trung — hong.
+ *
+ * Voi ham nay, cung mot `seed` cho ra cung mot thu tu, nen phan trang chinh
+ * xac. Bam "Lam moi" = doi seed = mot thu tu hoan toan khac.
+ *
+ * Bam ham la bien the cua MurmurHash3 finalizer: tron deu, re, va khong phu
+ * thuoc thu tu id (id lien tiep van cho ket qua rai rac).
+ */
+function registerFunctions(db: DB): void {
+  db.function('seeded_rand', { deterministic: true, varargs: false }, (id, seed) => {
+    let x = (Math.imul(Number(id) | 0, 2654435761) + (Number(seed) | 0)) >>> 0
+    x ^= x >>> 16
+    x = Math.imul(x, 2246822519) >>> 0
+    x ^= x >>> 13
+    x = Math.imul(x, 3266489917) >>> 0
+    x ^= x >>> 16
+    return x
+  })
 }
 
 export function getDb(): DB {

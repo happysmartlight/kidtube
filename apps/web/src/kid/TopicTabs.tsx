@@ -15,6 +15,14 @@ interface TopicTabsProps {
   onSelect: (id: number) => void
   /** Doc cho trinh doc man hinh, vi du "Chọn kệ" / "Chọn kênh". */
   label: string
+  /**
+   * Nut ghim o ben TRAI, khong cuon theo cac nut chu de.
+   *
+   * Dung cho nut "Làm mới" cua tab Khám phá: dat o day thi no luon nhin thay
+   * duoc va KHONG ton them mot hang ngang nao — chieu cao man hinh vua moi
+   * phai danh cho luoi video.
+   */
+  leading?: React.ReactNode
 }
 
 /**
@@ -28,7 +36,13 @@ interface TopicTabsProps {
  * Nut phai TO: tre bam khong chinh xac bang nguoi lon. Chieu cao toi thieu
  * dung --tap (72px tablet / 88px TV) giong moi vung bam khac trong app.
  */
-export function TopicTabs({ topics, selectedId, onSelect, label }: TopicTabsProps): React.ReactElement {
+export function TopicTabs({
+  topics,
+  selectedId,
+  onSelect,
+  label,
+  leading,
+}: TopicTabsProps): React.ReactElement {
   const barRef = useRef<HTMLDivElement>(null)
 
   // Keo nut dang chon vao tam nhin — khi co nhieu chu de, nut dang chon
@@ -45,6 +59,8 @@ export function TopicTabs({ topics, selectedId, onSelect, label }: TopicTabsProp
 
   return (
     <div className="ktabs-wrap">
+      {leading ? <div className="ktabs-leading">{leading}</div> : null}
+
       <div className="ktabs" ref={barRef} role="tablist" aria-label={label}>
         {topics.map((t) => {
           const on = t.id === selectedId

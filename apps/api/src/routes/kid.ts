@@ -182,8 +182,8 @@ export async function kidRoutes(app: FastifyInstance): Promise<void> {
    *
    * Doi xung voi /api/kid/shelves — client chi can ten + so luong de dung
    * hang nut chon kenh, video cua kenh dang chon lay rieng qua
-   * /api/kid/channel/:id. Keo san video cua MOI kenh la lang phi lon khi
-   * co nhieu kenh.
+   * /api/kid/discover?sourceId=. Keo san video cua MOI kenh la lang phi lon
+   * khi co nhieu kenh.
    */
   app.get<{ Querystring: { profileId?: string } }>('/api/kid/channels', async (req) => {
     const pid = requireProfileId(req.query.profileId)
@@ -206,6 +206,17 @@ export async function kidRoutes(app: FastifyInstance): Promise<void> {
       )
       .all({ pid })
 
+    // Tong cho nut "Tất cả" cua tab Kham pha. Dem RIENG, khong cong cac kenh
+    // lai: /api/kid/discover khong loc theo nguon nen con tinh ca video cua
+    // nguon da tat hoac da bi xoa (source_id = NULL) — cong cac kenh se thieu.
+    // Cung dieu kien VISIBLE nen luon bang `total` cua discover khi khong loc.
+    const total =
+      db
+        .prepare<{ pid: number }, { n: number }>(
+          `SELECT COUNT(*) AS n FROM videos v WHERE ${VISIBLE}`,
+        )
+        .get({ pid })?.n ?? 0
+
     return {
       channels: groups.map((g) => ({
         id: g.id,
@@ -213,6 +224,7 @@ export async function kidRoutes(app: FastifyInstance): Promise<void> {
         thumbnail: g.thumbnail,
         total: g.n,
       })),
+      total,
       quota: computeQuota(pid),
     }
   })
@@ -291,54 +303,77 @@ export async function kidRoutes(app: FastifyInstance): Promise<void> {
     },
   )
 
-  /** "Xem tat ca" cua mot kenh — giong /api/kid/shelf/:id nhung theo nguon. */
-  app.get<{ Params: { id: string }; Querystring: { profileId?: string; offset?: string; limit?: string } }>(
-    '/api/kid/channel/:id',
-    async (req) => {
-      const pid = requireProfileId(req.query.profileId)
-      const sid = Number(req.params.id)
-      const limit = Math.min(Math.max(Number(req.query.limit ?? 60) || 60, 1), 200)
-      const offset = Math.max(Number(req.query.offset ?? 0) || 0, 0)
-      const db = getDb()
+  /**
+   * Kham pha: video DA DUYET, tron ngau nhien.
+   *
+   * Khac voi trang chu (theo ke, thu tu bo me xep), cho nay de tre gap lai
+   * nhung video cu da bi day xuong duoi trong ke. Loc theo `sourceId` thi
+   * chi tron trong mot kenh.
+   *
+   * `seed` quyet dinh thu tu. Cung seed -> cung thu tu, nen "Xem them" lay
+   * dung phan tiep theo chu khong lap lai video da hien. Doi seed = "Lam moi".
+   * Xem ghi chu cua seeded_rand trong db/index.ts.
+   */
+  app.get<{
+    Querystring: {
+      profileId?: string
+      sourceId?: string
+      seed?: string
+      offset?: string
+      limit?: string
+    }
+  }>('/api/kid/discover', async (req) => {
+    const pid = requireProfileId(req.query.profileId)
+    const limit = Math.min(Math.max(Number(req.query.limit ?? 60) || 60, 1), 200)
+    const offset = Math.max(Number(req.query.offset ?? 0) || 0, 0)
+    // Kep seed trong 32 bit de phep nhan trong seeded_rand khong tran.
+    const seed = (Number(req.query.seed) || 0) >>> 0
+    const db = getDb()
 
+    touchSession(pid)
+
+    // sourceId = 0 hoac thieu -> tron toan bo, khong loc kenh.
+    const sid = Number(req.query.sourceId)
+    const bySource = Number.isFinite(sid) && sid > 0
+    if (bySource) {
       const source = db
-        .prepare<[number], { id: number; title: string }>(
-          'SELECT id, title FROM sources WHERE id = ? AND is_active = 1',
-        )
+        .prepare<[number], { id: number }>('SELECT id FROM sources WHERE id = ? AND is_active = 1')
         .get(sid)
       if (!source) throw notFound('Kênh này không xem được')
+    }
+    const sourceFilter = bySource ? 'AND v.source_id = @sid' : ''
 
-      touchSession(pid)
+    const videos = db
+      .prepare<
+        { pid: number; sid: number; seed: number; lim: number; off: number },
+        RawKidVideo
+      >(
+        `SELECT ${KID_VIDEO_COLUMNS}
+           FROM videos v
+          WHERE ${VISIBLE}
+            ${sourceFilter}
+          ORDER BY seeded_rand(v.id, @seed), v.id
+          LIMIT @lim OFFSET @off`,
+      )
+      .all({ pid, sid: bySource ? sid : 0, seed, lim: limit, off: offset })
+      .map(toKidVideo)
 
-      const videos = db
-        .prepare<{ pid: number; sid: number; lim: number; off: number }, RawKidVideo>(
-          `SELECT ${KID_VIDEO_COLUMNS}
-             FROM videos v
-            WHERE v.source_id = @sid
-              AND ${VISIBLE}
-            ORDER BY COALESCE(v.published_at, v.added_at) DESC
-            LIMIT @lim OFFSET @off`,
+    const total =
+      db
+        .prepare<{ pid: number; sid: number }, { n: number }>(
+          `SELECT COUNT(*) AS n FROM videos v WHERE ${VISIBLE} ${sourceFilter}`,
         )
-        .all({ pid, sid, lim: limit, off: offset })
-        .map(toKidVideo)
+        .get({ pid, sid: bySource ? sid : 0 })?.n ?? 0
 
-      const total =
-        db
-          .prepare<{ pid: number; sid: number }, { n: number }>(
-            `SELECT COUNT(*) AS n FROM videos v WHERE v.source_id = @sid AND ${VISIBLE}`,
-          )
-          .get({ pid, sid })?.n ?? 0
+    return {
+      videos,
+      total,
+      offset,
+      hasMore: offset + videos.length < total,
+      quota: computeQuota(pid),
+    }
+  })
 
-      return {
-        shelf: { id: source.id, title: source.title, emoji: '📺', color: '#4ecdc4' },
-        videos,
-        total,
-        offset,
-        hasMore: offset + videos.length < total,
-        quota: computeQuota(pid),
-      }
-    },
-  )
 
   /**
    * Thong tin de phat mot video.

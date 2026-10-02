@@ -192,6 +192,11 @@ export const kidApi = {
   channels: (profileId: number) =>
     request<{
       channels: Array<{ id: number; title: string; thumbnail: string | null; total: number }>
+      /**
+       * Tong video be xem duoc — cho nut "Tất cả". KHONG bang tong cac kenh:
+       * con video cua nguon da tat / da xoa, khong thuoc kenh nao trong danh sach.
+       */
+      total: number
       quota: Quota
     }>(`/api/kid/channels?profileId=${profileId}`),
 
@@ -202,17 +207,37 @@ export const kidApi = {
       quota: Quota
     }>(`/api/kid/shelves?profileId=${profileId}`),
 
+  /**
+   * Video da duyet, tron ngau nhien. `seed` quyet dinh thu tu — giu nguyen
+   * seed khi "Xem thêm" (khong lap video), doi seed khi "Làm mới".
+   * `sourceId = 0` = tron toan bo, khong loc kenh.
+   */
+  discover: (
+    profileId: number,
+    opts: { seed: number; sourceId?: number; offset?: number; limit?: number } ,
+  ) => {
+    const qs = new URLSearchParams({
+      profileId: String(profileId),
+      seed: String(opts.seed),
+      offset: String(opts.offset ?? 0),
+      limit: String(opts.limit ?? 60),
+    })
+    if (opts.sourceId) qs.set('sourceId', String(opts.sourceId))
+    return request<{
+      videos: KidVideo[]
+      total: number
+      offset: number
+      hasMore: boolean
+      quota: Quota
+    }>(`/api/kid/discover?${qs}`)
+  },
+
   /** Mot trang video cua mot ke. */
   shelf: (shelfId: number, profileId: number, offset = 0, limit = 60) =>
     request<KidShelfPage>(
       `/api/kid/shelf/${shelfId}?profileId=${profileId}&offset=${offset}&limit=${limit}`,
     ),
 
-  /** Mot trang cua "Xem tat ca" trong mot kenh. */
-  channel: (sourceId: number, profileId: number, offset = 0, limit = 60) =>
-    request<KidShelfPage>(
-      `/api/kid/channel/${sourceId}?profileId=${profileId}&offset=${offset}&limit=${limit}`,
-    ),
 
   video: (id: number, profileId: number) =>
     request<PlaybackInfo>(`/api/kid/video/${id}?profileId=${profileId}`),
