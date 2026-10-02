@@ -18,12 +18,17 @@
 
 /* mode = touch (tablet) */
 --card-w: 180px;  --font-title: 17px;  --font-shelf: 22px;
---nav-h: 88px;    --safe-pad: 16px;    --scale: 1;
+--nav-h: 72px;    --tab-h: 48px;
+--safe-pad: 16px; --tap: 72px;         --scale: 1;
 
 /* mode = tv (xa 3m, remote D-pad) */
 --card-w: 300px;  --font-title: 24px;  --font-shelf: 34px;
---nav-h: 112px;   --safe-pad: 5%;      --scale: 1.4;
+--nav-h: 92px;    --tab-h: 62px;
+--safe-pad: 5%;   --tap: 88px;         --scale: 1.4;
 ```
+
+Không còn `--header-h`: avatar bé, đồng hồ và nút ⚙ đã gộp xuống thanh dưới
+(`--nav-h`), nên đỉnh màn hình chỉ còn hàng nút chọn chủ đề.
 
 `data-mode="touch"|"tv"` đặt trên `<html>`. Mọi component đọc token, không hardcode px.
 
@@ -56,19 +61,35 @@ Focus ring vàng trên nền tối: ~11:1.
 ### Trang chủ (trẻ)
 ```
 ┌──────────────────────────────────────────────────────┐
-│ 🐻 Bảo            ⏱ Còn 23 phút                 ⚙  │  header 72px (touch)
+│ (⭐HÔM NAY 700)(🎤BÀI HÁT 100)(🔢HỌC CHỮ 60)  →      │  nút chọn chủ đề,
+├──────────────────────────────────────────────────────┤  DÍNH, --tab-h 48px
+│  ┌──────┐┌──────┐┌──────┐┌──────┐┌──────┐            │  lưới của kệ đang
+│  └──────┘└──────┘└──────┘└──────┘└──────┘            │  chọn, auto-fill,
+│  ┌──────┐┌──────┐┌──────┐┌──────┐┌──────┐            │  CUỘN DỌC
+│  └──────┘└──────┘└──────┘└──────┘└──────┘            │
+│  ┌──────┐┌──────┐┌──────┐┌──────┐┌──────┐            │
+│  └──────┘└──────┘└──────┘└──────┘└──────┘            │
+│              ⬇️ Xem thêm (còn 640)                   │
 ├──────────────────────────────────────────────────────┤
-│  🌟 HÔM NAY XEM GÌ                                   │  nhãn kệ, màu riêng
-│  ┌──────┐┌──────┐┌──────┐┌──────┐  →                 │  cuộn ngang
-│  │      ││      ││      ││      │                     │
-│  └──────┘└──────┘└──────┘└──────┘                     │
-│  🎤 BÀI HÁT                                          │
-│  ┌──────┐┌──────┐┌──────┐                            │
-│  └──────┘└──────┘└──────┘                            │
-├──────────────────────────────────────────────────────┤
-│      🏠            ❤️            📺                  │  nav 88px, 3 nút
+│ 🐻Bảo      🏠      ❤️      📺      ⏱ Còn 23'    ⚙  │  thanh dưới 72px
 └──────────────────────────────────────────────────────┘
 ```
+
+**Chỉ có MỘT thanh điều khiển, nằm dưới.** Avatar bé (đổi bé), đồng hồ và nút
+⚙ trước đây ở header riêng phía trên; đã gộp xuống đây vì cả ba đều là *điều
+khiển* chứ không phải *nội dung*. Đỉnh màn hình nhường hết cho hàng nút chọn
+chủ đề. Hai cụm hai bên dùng `flex: 1` để ba nút chính luôn nằm chính giữa dù
+tên bé dài ngắn khác nhau.
+
+Màn hình hẹp thì bỏ chữ theo thứ tự: tên bé (≤820px) → nhãn 3 nút chính và
+thu nhỏ đồng hồ + nút ⚙ (≤640px). Emoji và avatar luôn giữ — đó là thứ trẻ
+nhận dạng bằng mắt.
+
+Trang chủ KHÔNG xếp chồng các kệ theo chiều dọc nữa. Lý do: kệ đầu có hàng
+trăm video thì trẻ phải cuộn rất lâu mới tới kệ sau — thực tế là không bao
+giờ biết bên dưới có gì. Hàng nút dính ở đầu cho mọi chủ đề cách một cú chạm.
+Tab **Kênh** dùng y hệt bố cục này (nguồn dữ liệu khác) — hai layout khác
+nhau là thứ trẻ phải học hai lần.
 
 ### Card video
 ```
@@ -132,6 +153,14 @@ Có thể tắt hết trong cài đặt (`sfx_enabled`).
 ## Khả năng tiếp cận
 
 - Vùng bấm tối thiểu **72×72px** (vượt chuẩn WCAG 44px — tay trẻ nhỏ kém chính xác).
+
+  **Ngoại lệ có chủ ý: thanh nav dưới và hàng nút chọn chủ đề.** Hai thanh này
+  cao 64px và 48px (touch), thấp hơn 72px, để nhường diện tích cho lưới video —
+  trước đây header + nút chủ đề + nav ăn ~33% chiều cao màn hình tablet. Chấp
+  nhận được vì các nút đó **rất rộng**: nút nav ~260px, nút chủ đề ~150px, nên
+  tổng diện tích bấm vẫn lớn hơn nhiều so với một ô vuông 72×72. Vẫn trên chuẩn
+  WCAG 44px, và ngang tầm thanh tab của iOS (49pt) / Android (56dp).
+  **Mọi vùng bấm gần vuông vẫn phải giữ `--tap`** (72px touch / 88px tv).
 - Mọi icon-button có `aria-label`.
 - Không truyền tải thông tin **chỉ** bằng màu (luôn kèm emoji/chữ).
 - Tôn trọng `prefers-reduced-motion` → tắt animation nảy.

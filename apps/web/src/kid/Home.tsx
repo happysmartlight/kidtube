@@ -215,7 +215,7 @@ function TopicBrowser({
         title="Chưa có video nào"
         hint={
           'Bố mẹ cần duyệt video rồi xếp vào kệ thì con mới xem được. ' +
-          'Giữ icon ⚙ ở góc trên 3 giây để vào trang bố mẹ.'
+          'Giữ icon ⚙ ở góc dưới bên phải 3 giây để vào trang bố mẹ.'
         }
       />
     ) : (

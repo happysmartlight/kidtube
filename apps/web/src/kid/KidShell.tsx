@@ -23,10 +23,16 @@ const TABS: Array<{ id: KidTab; emoji: string; label: string }> = [
 ]
 
 /**
- * Khung bao cua giao dien tre: header + vung noi dung cuon + nav duoi.
+ * Khung bao cua giao dien tre: vung noi dung cuon + MOT thanh duoi duy nhat.
  *
- * Nav chi co BA nut, moi nut rat to. Khong co menu an, khong co "thêm",
- * khong co breadcrumb — tre phai thay het lua chon cua minh cung mot luc.
+ * Truoc day co them mot header rieng o tren chua avatar be, dong ho va nut ⚙.
+ * Da gop het xuong thanh duoi: dinh tren man hinh gio chi con hang nut chon
+ * chu de, nen luoi video duoc them ~72px chieu cao (tablet). Ba thu kia deu la
+ * dieu khien chu khong phai noi dung, nen o cung mot cho voi nav la hop ly.
+ *
+ * Bo cuc thanh duoi: [avatar be] ... [3 nut chinh] ... [dong ho] [⚙]
+ * Hai ben dung `flex: 1` de cum ba nut chinh luon nam GIUA man hinh du ten be
+ * dai ngan khac nhau.
  */
 export function KidShell({
   profile,
@@ -37,53 +43,68 @@ export function KidShell({
   onOpenParentGate,
   children,
 }: KidShellProps): React.ReactElement {
-  const remaining = quota
-    ? smallest(quota.dailyRemainingSec, quota.sessionRemainingSec)
-    : null
+  const remaining = quota ? smallest(quota.dailyRemainingSec, quota.sessionRemainingSec) : null
 
   return (
     <div className="flex h-full flex-col">
-      {/* ─── Header ─────────────────────────────────────────────── */}
-      <header
-        className="flex shrink-0 items-center justify-between gap-3"
-        style={{
-          height: 'var(--header-h)',
-          paddingLeft: 'var(--safe-pad)',
-          paddingRight: 'var(--safe-pad)',
-        }}
-      >
-        <FocusButton
-          className="flex items-center gap-3 rounded-full py-1.5 pr-5 pl-1.5"
-          ringColor={profile.color}
-          style={{ background: 'var(--card)', border: 'none', cursor: 'pointer' }}
-          onClick={onSwitchProfile}
-          sound="back"
-          aria-label={`Đang là bé ${profile.name}. Bấm để đổi bé.`}
-        >
-          <span
-            className="grid place-items-center rounded-full"
-            style={{
-              width: 48,
-              height: 48,
-              fontSize: 28,
-              background: mix(profile.color, CARD_HI, 0.3),
-              lineHeight: 1,
-            }}
-            aria-hidden="true"
-          >
-            {profile.avatar}
-          </span>
-          <span className="text-xl font-extrabold">{profile.name}</span>
-        </FocusButton>
+      {/* ─── Noi dung (chiem gan het man hinh) ──────────────────── */}
+      <main className="scroll-y min-h-0 flex-1">{children}</main>
 
-        <div className="flex items-center gap-3">
+      {/* ─── Thanh duoi: dieu khien + dieu huong ─────────────────── */}
+      <nav className="kbar">
+        {/* Trai: doi be */}
+        <div className="kbar-side">
+          <FocusButton
+            className="kbar-profile"
+            ringColor={profile.color}
+            onClick={onSwitchProfile}
+            sound="back"
+            aria-label={`Đang là bé ${profile.name}. Bấm để đổi bé.`}
+          >
+            <span
+              className="kbar-avatar"
+              style={{ background: mix(profile.color, CARD_HI, 0.3) }}
+              aria-hidden="true"
+            >
+              {profile.avatar}
+            </span>
+            <span className="kbar-profile-name">{profile.name}</span>
+          </FocusButton>
+        </div>
+
+        {/* Giua: ba nut chinh */}
+        <div className="kbar-tabs">
+          {TABS.map((t) => {
+            const active = t.id === tab
+            return (
+              <FocusButton
+                key={t.id}
+                className="kbar-tab"
+                style={{
+                  background: active ? 'var(--card-hi)' : 'transparent',
+                  color: active ? 'var(--focus)' : 'var(--text-dim)',
+                }}
+                onClick={() => onTab(t.id)}
+                aria-label={t.label}
+                aria-current={active ? 'page' : undefined}
+              >
+                <span className="kbar-tab-emoji" aria-hidden="true">
+                  {t.emoji}
+                </span>
+                <span className="kbar-tab-label">{t.label}</span>
+              </FocusButton>
+            )
+          })}
+        </div>
+
+        {/* Phai: thoi gian con lai + loi vao trang bo me */}
+        <div className="kbar-side kbar-side-end">
           {remaining !== null ? (
             <span
-              className="rounded-full px-4 py-2 font-extrabold tabular-nums"
+              className="kbar-time"
               style={{
                 background: quota?.warning ? mix('#ff6b8a', CARD, 0.26) : 'var(--card)',
                 color: quota?.warning ? 'var(--danger)' : 'var(--text-dim)',
-                fontSize: 'calc(var(--font-title) * 0.95)',
               }}
               // Doc bang giong noi khi doi -> tre dung man hinh doc hieu duoc
               aria-live="polite"
@@ -94,52 +115,6 @@ export function KidShell({
 
           <ParentGateButton onOpen={onOpenParentGate} />
         </div>
-      </header>
-
-      {/* ─── Noi dung ───────────────────────────────────────────── */}
-      <main className="scroll-y min-h-0 flex-1">{children}</main>
-
-      {/* ─── Nav duoi: 3 nut cuc to ─────────────────────────────── */}
-      <nav
-        className="flex shrink-0 items-stretch justify-around gap-2"
-        style={{
-          height: 'var(--nav-h)',
-          background: 'var(--bg-elev)',
-          paddingLeft: 'var(--safe-pad)',
-          paddingRight: 'var(--safe-pad)',
-          paddingBottom: 'env(safe-area-inset-bottom)',
-          borderTop: '2px solid var(--card)',
-        }}
-      >
-        {TABS.map((t) => {
-          const active = t.id === tab
-          return (
-            <FocusButton
-              key={t.id}
-              className="flex flex-1 flex-col items-center justify-center gap-0.5 rounded-2xl"
-              style={{
-                background: active ? 'var(--card-hi)' : 'transparent',
-                border: 'none',
-                cursor: 'pointer',
-                color: active ? 'var(--focus)' : 'var(--text-dim)',
-                maxWidth: 260,
-              }}
-              onClick={() => onTab(t.id)}
-              aria-label={t.label}
-              aria-current={active ? 'page' : undefined}
-            >
-              <span
-                style={{ fontSize: 'calc(var(--nav-h) * 0.36)', lineHeight: 1 }}
-                aria-hidden="true"
-              >
-                {t.emoji}
-              </span>
-              <span style={{ fontSize: 'calc(var(--font-title) * 0.85)', fontWeight: 800 }}>
-                {t.label}
-              </span>
-            </FocusButton>
-          )
-        })}
       </nav>
     </div>
   )

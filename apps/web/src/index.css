@@ -56,8 +56,14 @@
   --card-w: 180px;
   --font-title: 17px;
   --font-shelf: 22px;
-  --nav-h: 88px;
-  --header-h: 72px;
+  /* Thanh duoi chua TAT CA dieu khien (avatar be, 3 nut chinh, dong ho, ⚙).
+     Khong co header rieng o tren nua. Cao bang --tap de nut ⚙ giu duoc
+     kich thuoc vung bam day du. */
+  --nav-h: 72px;
+  /* Chieu cao nut chon chu de. Thap hon --tap vi nut RAT RONG (emoji + ten
+     ke + so luong), nen tong dien tich bam van lon hon 72x72 — xem ghi chu
+     "Vung bam" trong docs/DESIGN.md. */
+  --tab-h: 48px;
   --safe-pad: 16px;
   --tap: 72px;
   --ctrl-btn: 64px;
@@ -68,8 +74,8 @@
   --card-w: 300px;
   --font-title: 24px;
   --font-shelf: 34px;
-  --nav-h: 112px;
-  --header-h: 96px;
+  --nav-h: 92px;
+  --tab-h: 62px;
   /* 5% chong overscan — nhieu TV van cat mep anh */
   --safe-pad: 5%;
   --tap: 88px;
@@ -227,9 +233,11 @@ body {
 
 /* Hang nut chon chu de truot de len tren khi cuon, nen card o hang dau
    phai chua san khoang trong — khong co cai nay thi card dang focus bi
-   hang nut che mat khi dung D-pad cuon len. */
+   hang nut che mat khi dung D-pad cuon len.
+   Cong thuc phai khop chieu cao THUC cua thanh: --tab-h + padding doc
+   (8px x 2) + chut du cho ring focus. */
 .kgrid .kcard {
-  scroll-margin-top: calc(var(--tap) + 28px);
+  scroll-margin-top: calc(var(--tab-h) + 24px);
 }
 
 /* ═══ Hang nut chon chu de (ke / kenh) ════════════════════════════
@@ -253,7 +261,7 @@ body {
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
   /* Cho ring focus khong bi cat o canh vung cuon */
-  padding: 12px var(--safe-pad);
+  padding: 8px var(--safe-pad);
 }
 
 .ktabs::-webkit-scrollbar {
@@ -271,8 +279,8 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  min-height: var(--tap);
-  padding: 0 22px;
+  min-height: var(--tab-h);
+  padding: 0 18px;
   border: none;
   border-radius: var(--radius-btn);
   font-family: inherit;
@@ -294,6 +302,147 @@ body {
   border-radius: 999px;
   background: var(--card-hi);
   font-variant-numeric: tabular-nums;
+}
+
+/* ═══ Thanh duoi: dieu khien + dieu huong trong MOT hang ══════════
+   Gop header cu (avatar, dong ho, ⚙) xuong day de dinh man hinh chi con
+   hang nut chon chu de — lay lai ~72px chieu cao cho luoi video. */
+.kbar {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+  flex-shrink: 0;
+  /* Vung an toan duoi (thanh home iPad/iPhone) CONG THEM chieu cao, khong
+     an vao no: voi box-sizing: border-box, `height` + `padding-bottom` se
+     bop vung chua noi dung lai. */
+  height: calc(var(--nav-h) + env(safe-area-inset-bottom));
+  padding: 0 var(--safe-pad) env(safe-area-inset-bottom);
+  background: var(--bg-elev);
+  border-top: 2px solid var(--card);
+}
+
+/* Hai ben co cung `flex: 1` de cum ba nut chinh luon nam CHINH GIUA man
+   hinh, khong lech theo do dai ten be. */
+.kbar-side {
+  flex: 1 1 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.kbar-side-end {
+  justify-content: flex-end;
+}
+
+.kbar-tabs {
+  flex: 0 1 auto;
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  min-width: 0;
+  padding: 8px 0;
+}
+
+/* `flex: 0 0 auto` (co theo noi dung) thay vi `1 1 0`: chieu rong tu nhien
+   cua cum nut phai doan duoc thi hai ben moi chia deu duoc phan con lai. */
+.kbar-tab {
+  flex: 0 0 auto;
+  min-width: calc(var(--tap) * 0.9);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border: none;
+  border-radius: 18px;
+  padding: 0 18px;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.kbar-tab-emoji {
+  font-size: calc(var(--nav-h) * 0.36);
+  line-height: 1;
+}
+
+.kbar-tab-label {
+  font-size: calc(var(--font-title) * 0.8);
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.kbar-profile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  max-width: 100%;
+  padding: 4px 14px 4px 4px;
+  border: none;
+  border-radius: var(--radius-btn);
+  background: var(--card);
+  color: inherit;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.kbar-avatar {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: calc(var(--nav-h) * 0.56);
+  height: calc(var(--nav-h) * 0.56);
+  border-radius: 50%;
+  font-size: calc(var(--nav-h) * 0.34);
+  line-height: 1;
+}
+
+.kbar-profile-name {
+  font-size: calc(var(--font-title) * 0.95);
+  font-weight: 800;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.kbar-time {
+  border-radius: var(--radius-btn);
+  padding: 8px 16px;
+  font-weight: 800;
+  font-size: calc(var(--font-title) * 0.85);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Man hinh hep: bo chu, giu emoji va avatar — cai tre nhan dang bang mat.
+   App nham vao tablet va TV, day chi la luoi an toan.
+
+   MOT nguong duy nhat (860px) chu khong phai nhieu nguong lech nhau: hai cum
+   hai ben chia deu phan con lai (flex: 1 1 0) de cum giua nam chinh giua, nen
+   cum trai thua cho KHONG nhuong duoc cho cum phai. Neu bo ten be o mot nguong
+   roi bo nhan nut o nguong thap hon, se co mot khoang be rong (~700px) ma cum
+   phai da tran trong khi nhan nut van con. Bo het cung mot luc thi khong co
+   khoang chet do.
+
+   860px: tren nguong, cum phai can ~210px va duoc ~235px — con du. */
+@media (max-width: 860px) {
+  .kbar-profile-name,
+  .kbar-tab-label {
+    display: none;
+  }
+  .kbar-profile {
+    padding: 4px;
+  }
+  .kbar-time {
+    padding: 6px 10px;
+    font-size: calc(var(--font-title) * 0.75);
+  }
+  /* Nut ⚙ chi bo me dung, lai phai giu 3 giay moi an — thu nho duoc ma
+     khong anh huong tre. Thu cuoi cung bi thu nho, sau ca chu va dong ho. */
+  .kbar {
+    --gate-size: 52px;
+  }
 }
 
 

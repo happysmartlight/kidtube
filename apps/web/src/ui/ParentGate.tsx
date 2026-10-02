@@ -102,8 +102,10 @@ export function ParentGateButton({ onOpen }: { onOpen: () => void }): React.Reac
       data-focusable
       className="focusable relative grid place-items-center rounded-full"
       style={{
-        width: 'var(--tap)',
-        height: 'var(--tap)',
+        // Mac dinh bang --tap. Thanh duoi dat lai --gate-size tren man hinh
+        // hep de nut khong day dong ho va cac nut chinh ra ngoai.
+        width: 'var(--gate-size, var(--tap))',
+        height: 'var(--gate-size, var(--tap))',
         background: 'transparent',
         border: 'none',
         cursor: 'pointer',
@@ -114,7 +116,7 @@ export function ParentGateButton({ onOpen }: { onOpen: () => void }): React.Reac
       title="Giữ 3 giây để vào trang bố mẹ"
       {...handlers}
     >
-      <span style={{ fontSize: 'calc(var(--tap) * 0.42)' }} aria-hidden="true">
+      <span style={{ fontSize: 'calc(var(--gate-size, var(--tap)) * 0.42)' }} aria-hidden="true">
         ⚙
       </span>
 
