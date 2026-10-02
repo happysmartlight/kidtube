@@ -51,12 +51,16 @@ const MAX_TOKENS = 8
 
 /**
  * Tach cau truy van thanh cac tu khoa da chuan hoa.
- * Loai ky tu khong phai chu/so de khong lam vo cau LIKE.
+ *
+ * TACH tai moi ky tu khong phai chu/so (khoang trang, gach noi, dau hai cham,
+ * dau cong...), KHONG xoa chung roi dinh lien. Ban cu xoa dau cau ben trong
+ * tu nen "peppa-pig" thanh "peppapig" — khong khop tieu de "Peppa-Pig" (trong
+ * search_text van con dau gach). Tach ra thanh "peppa" + "pig" thi ca hai deu
+ * la chuoi con cua "peppa-pig", va cua "peppa pig" luon.
  */
 export function searchTokens(q: string): string[] {
   return normalizeVi(q)
-    .split(' ')
-    .map((t) => t.replace(/[^\p{L}\p{N}]/gu, ''))
+    .split(/[^\p{L}\p{N}]+/u)
     .filter((t) => t.length > 0)
     .slice(0, MAX_TOKENS)
 }
@@ -77,8 +81,9 @@ export function searchClause(
   if (tokens.length === 0) return null
 
   return {
-    // ESCAPE '\' vi tu khoa cua nguoi dung co the chua % hoac _ —
-    // khong escape thi go "100%" se match moi thu.
+    // searchTokens hien chi tra ve chu/so nen %, _ khong lot vao duoc. Van
+    // escape de phong ho: neu sau nay doi cach tach tu ma de lot "%", khong
+    // escape thi go "100%" se match moi thu.
     sql: tokens.map(() => `${column} LIKE ? ESCAPE '\\'`).join(' AND '),
     params: tokens.map((t) => `%${escapeLike(t)}%`),
   }
