@@ -270,9 +270,13 @@ docker compose exec kidtube pip3 install --break-system-packages -U "yt-dlp[defa
 docker compose restart kidtube
 ```
 
-Bền hơn: đặt `YTDLP_VERSION` trong `.env` rồi dựng lại (`docker compose up -d
---build`, hoặc bấm **⬆ Cập nhật ngay**). Đừng sửa `Dockerfile` — thư mục cài
-đặt có thay đổi chưa commit sẽ chặn nút cập nhật.
+Bền hơn: đặt `YTDLP_VERSION` trong `.env` rồi dựng lại bằng
+`docker compose up -d --build`. Đừng sửa `Dockerfile` — thư mục cài đặt có thay
+đổi chưa commit sẽ chặn nút cập nhật.
+
+**Nút ⬆ Cập nhật ngay không làm thay bước này.** Nút đó chỉ dựng lại image khi
+`git pull` kéo về commit mới; sửa `.env` không tạo ra commit nào, nên bấm nút
+sẽ báo "đã là bản mới nhất" và giữ nguyên bản yt-dlp cũ. Phải chạy lệnh trên.
 
 **Cài phải kèm extras `[default]`**, đừng cài `yt-dlp` trần: extras kéo theo
 `yt-dlp-ejs`, tức bộ giải đố thách "n challenge" của YouTube. Thiếu nó thì mọi
