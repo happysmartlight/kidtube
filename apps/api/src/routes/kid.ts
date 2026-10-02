@@ -120,70 +120,47 @@ export async function kidRoutes(app: FastifyInstance): Promise<void> {
     return { quota: computeQuota(pid) }
   })
 
-  /** Trang chu: cac ke kem video. */
-  app.get<{ Querystring: { profileId?: string; perShelf?: string } }>(
-    '/api/kid/home',
-    async (req) => {
-      const pid = requireProfileId(req.query.profileId)
-      // Hang ngang chi la PHAN DAU cua ke. Tre khong the bam phai 500 lan,
-      // nen cho con so vua phai o day roi de o "Xem tat ca" (/api/kid/shelf/:id)
-      // hien het dang luoi. `total` duoi day cho client biet con bao nhieu nua.
-      const perShelf = Math.min(Math.max(Number(req.query.perShelf ?? 60) || 60, 1), 200)
-      const db = getDb()
+  /**
+   * Danh sach ke, KHONG kem video.
+   *
+   * Trang chu dung cai nay cho hang nut chon chu de o tren: tre thay ngay
+   * co nhung ke nao ma khong phai cuon het ke thu nhat. Rat nhe (chi mot
+   * cau COUNT moi ke) nen hien duoc tuc thi, roi video cua ke dang chon
+   * lay rieng qua /api/kid/shelf/:id.
+   */
+  app.get<{ Querystring: { profileId?: string } }>('/api/kid/shelves', async (req) => {
+    const pid = requireProfileId(req.query.profileId)
+    const db = getDb()
 
-      touchSession(pid)
+    touchSession(pid)
 
-      const shelves = db
-        .prepare<{ pid: number }, ShelfRow>(
-          `SELECT sh.*
-             FROM shelves sh
-            WHERE sh.is_active = 1
-              AND (
-                NOT EXISTS (SELECT 1 FROM profile_shelves ps WHERE ps.shelf_id = sh.id)
-                OR EXISTS (SELECT 1 FROM profile_shelves ps
-                            WHERE ps.shelf_id = sh.id AND ps.profile_id = @pid)
-              )
-            ORDER BY sh.position, sh.id`,
-        )
-        .all({ pid })
-
-      const itemStmt = db.prepare<{ pid: number; shelfId: number; lim: number }, RawKidVideo>(
-        `SELECT ${KID_VIDEO_COLUMNS}
-           FROM shelf_items si
-           JOIN videos v ON v.id = si.video_id
-          WHERE si.shelf_id = @shelfId
-            AND v.status = 'approved'
-            AND (v.embeddable IS NULL OR v.embeddable = 1 OR v.local_path IS NOT NULL)
-          ORDER BY si.position, si.id
-          LIMIT @lim`,
+    const rows = db
+      .prepare<{ pid: number }, { id: number; title: string; emoji: string; color: string; total: number }>(
+        `SELECT sh.id    AS id,
+                sh.title AS title,
+                sh.emoji AS emoji,
+                sh.color AS color,
+                (SELECT COUNT(*)
+                   FROM shelf_items si
+                   JOIN videos v ON v.id = si.video_id
+                  WHERE si.shelf_id = sh.id
+                    AND v.status = 'approved'
+                    AND (v.embeddable IS NULL OR v.embeddable = 1 OR v.local_path IS NOT NULL)
+                ) AS total
+           FROM shelves sh
+          WHERE sh.is_active = 1
+            AND (
+              NOT EXISTS (SELECT 1 FROM profile_shelves ps WHERE ps.shelf_id = sh.id)
+              OR EXISTS (SELECT 1 FROM profile_shelves ps
+                          WHERE ps.shelf_id = sh.id AND ps.profile_id = @pid)
+            )
+          ORDER BY sh.position, sh.id`,
       )
+      .all({ pid })
 
-      // Tong so video XEM DUOC trong ke — de client biet co can hien
-      // o "Xem tat ca" hay khong.
-      const countStmt = db.prepare<{ shelfId: number }, { n: number }>(
-        `SELECT COUNT(*) AS n
-           FROM shelf_items si
-           JOIN videos v ON v.id = si.video_id
-          WHERE si.shelf_id = @shelfId
-            AND v.status = 'approved'
-            AND (v.embeddable IS NULL OR v.embeddable = 1 OR v.local_path IS NOT NULL)`,
-      )
-
-      const result = shelves
-        .map((sh) => ({
-          id: sh.id,
-          title: sh.title,
-          emoji: sh.emoji,
-          color: sh.color,
-          total: countStmt.get({ shelfId: sh.id })?.n ?? 0,
-          videos: itemStmt.all({ pid, shelfId: sh.id, lim: perShelf }).map(toKidVideo),
-        }))
-        // Ke rong thi khong hien — tre khong hieu "chua co gi o day".
-        .filter((sh) => sh.videos.length > 0)
-
-      return { shelves: result, quota: computeQuota(pid) }
-    },
-  )
+    // Ke rong thi khong hien — tre bam vao roi thay trang se thay la.
+    return { shelves: rows.filter((s) => s.total > 0), quota: computeQuota(pid) }
+  })
 
   app.get<{ Querystring: { profileId?: string } }>('/api/kid/favorites', async (req) => {
     const pid = requireProfileId(req.query.profileId)
@@ -200,10 +177,19 @@ export async function kidRoutes(app: FastifyInstance): Promise<void> {
     return { videos: rows.map(toKidVideo) }
   })
 
-  /** Trang "Kênh": nhom video theo nguon. */
-  app.get<{ Querystring: { profileId?: string; perChannel?: string } }>('/api/kid/channels', async (req) => {
+  /**
+   * Trang "Kênh": danh sach nguon, KHONG kem video.
+   *
+   * Doi xung voi /api/kid/shelves — client chi can ten + so luong de dung
+   * hang nut chon kenh, video cua kenh dang chon lay rieng qua
+   * /api/kid/channel/:id. Keo san video cua MOI kenh la lang phi lon khi
+   * co nhieu kenh.
+   */
+  app.get<{ Querystring: { profileId?: string } }>('/api/kid/channels', async (req) => {
     const pid = requireProfileId(req.query.profileId)
     const db = getDb()
+
+    touchSession(pid)
 
     const groups = db
       .prepare<{ pid: number }, { id: number; title: string; thumbnail: string | null; n: number }>(
@@ -220,28 +206,14 @@ export async function kidRoutes(app: FastifyInstance): Promise<void> {
       )
       .all({ pid })
 
-    // Nhu trang chu: hang ngang chi hien phan dau, "Xem tat ca" di tiep
-    // sang /api/kid/channel/:id. `count` o tren da la tong so thuc.
-    const perChannel = Math.min(Math.max(Number(req.query.perChannel ?? 60) || 60, 1), 200)
-
-    const videoStmt = db.prepare<{ pid: number; sid: number; lim: number }, RawKidVideo>(
-      `SELECT ${KID_VIDEO_COLUMNS}
-         FROM videos v
-        WHERE v.source_id = @sid
-          AND ${VISIBLE}
-        ORDER BY COALESCE(v.published_at, v.added_at) DESC
-        LIMIT @lim`,
-    )
-
     return {
       channels: groups.map((g) => ({
         id: g.id,
         title: g.title,
         thumbnail: g.thumbnail,
-        count: g.n,
         total: g.n,
-        videos: videoStmt.all({ pid, sid: g.id, lim: perChannel }).map(toKidVideo),
       })),
+      quota: computeQuota(pid),
     }
   })
 

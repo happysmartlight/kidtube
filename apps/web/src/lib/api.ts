@@ -117,17 +117,7 @@ export interface KidVideo {
   isFavorite: boolean
 }
 
-export interface KidShelf {
-  id: number
-  title: string
-  emoji: string
-  color: string
-  /** Tong so video xem duoc trong ke. Lon hon videos.length => con nua. */
-  total: number
-  videos: KidVideo[]
-}
-
-/** Mot trang cua "Xem tat ca" — dung cho ca ke va kenh. */
+/** Mot trang video cua mot ke hoac mot kenh. */
 export interface KidShelfPage {
   shelf: { id: number; title: string; emoji: string; color: string }
   videos: KidVideo[]
@@ -195,25 +185,24 @@ export const kidApi = {
 
   quota: (profileId: number) => request<{ quota: Quota }>(`/api/kid/quota?profileId=${profileId}`),
 
-  home: (profileId: number) =>
-    request<{ shelves: KidShelf[]; quota: Quota }>(`/api/kid/home?profileId=${profileId}`),
-
   favorites: (profileId: number) =>
     request<{ videos: KidVideo[] }>(`/api/kid/favorites?profileId=${profileId}`),
 
+  /** Danh sach kenh, khong kem video — doi xung voi `shelves`. */
   channels: (profileId: number) =>
     request<{
-      channels: Array<{
-        id: number
-        title: string
-        thumbnail: string | null
-        count: number
-        total: number
-        videos: KidVideo[]
-      }>
+      channels: Array<{ id: number; title: string; thumbnail: string | null; total: number }>
+      quota: Quota
     }>(`/api/kid/channels?profileId=${profileId}`),
 
-  /** Mot trang cua "Xem tat ca" trong mot ke. */
+  /** Danh sach ke, khong kem video — dung cho hang nut chon chu de. */
+  shelves: (profileId: number) =>
+    request<{
+      shelves: Array<{ id: number; title: string; emoji: string; color: string; total: number }>
+      quota: Quota
+    }>(`/api/kid/shelves?profileId=${profileId}`),
+
+  /** Mot trang video cua mot ke. */
   shelf: (shelfId: number, profileId: number, offset = 0, limit = 60) =>
     request<KidShelfPage>(
       `/api/kid/shelf/${shelfId}?profileId=${profileId}&offset=${offset}&limit=${limit}`,

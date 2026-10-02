@@ -208,9 +208,10 @@ body {
   gap: 12px;
 }
 
-/* Luoi doc cho trang "Xem tat ca".
-   Mot ke co the co hang nghin video — hang cuon ngang thi tre phai bam phai
-   hang nghin lan moi tham duoc cai cuoi, nen o day doi sang luoi cuon doc. */
+/* Luoi doc — bo cuc chinh cua trang chu.
+   Mot ke co the co hang tram video. Hang cuon ngang thi tre phai keo sang
+   phai rat lau moi het, va khong nhin bao quat duoc; luoi cuon doc thi mat
+   luot mot lan thay duoc nhieu video hon. */
 .kgrid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(var(--card-w), 1fr));
@@ -224,61 +225,77 @@ body {
   width: 100%;
 }
 
-/* O "Xem tat ca" o cuoi hang ngang: cung khung voi card nhung la mot loi moi,
-   khong phai mot video. Dung chu + mui tien to de tre nhan ra ngay. */
-.kcard-more {
+/* Hang nut chon chu de truot de len tren khi cuon, nen card o hang dau
+   phai chua san khoang trong — khong co cai nay thi card dang focus bi
+   hang nut che mat khi dung D-pad cuon len. */
+.kgrid .kcard {
+  scroll-margin-top: calc(var(--tap) + 28px);
+}
+
+/* ═══ Hang nut chon chu de (ke / kenh) ════════════════════════════
+   Dinh o dau vung cuon de tre LUON thay co nhung chu de nao, khong phai
+   cuon het ke thu nhat moi biet ben duoi con gi. */
+.ktabs-wrap {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--bg);
+  /* Vien mo duoi de card cuon qua van thay ranh gioi */
+  box-shadow: 0 6px 16px -10px rgba(0, 0, 0, 0.9);
+}
+
+.ktabs {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  min-height: calc(var(--card-w) * 0.5625 + var(--font-title) * 2.5 + 24px);
-  background: var(--card-hi);
-  text-align: center;
-  padding: 12px;
-}
-
-.kcard-more-arrow {
-  font-size: calc(var(--font-shelf) * 1.3);
-  line-height: 1;
-}
-
-.kcard-more-label {
-  font-size: var(--font-title);
-  font-weight: 800;
-  line-height: 1.2;
-}
-
-.kcard-more-count {
-  font-size: calc(var(--font-title) * 0.8);
-  color: var(--text-dim);
-}
-
-/* Cuon ngang muot, an scrollbar (remote TV khong keo scrollbar duoc) */
-.krow {
-  display: flex;
-  gap: var(--gap-card);
+  gap: 12px;
   overflow-x: auto;
   overflow-y: visible;
   scroll-behavior: smooth;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
-  /* Cho ring cua card khong bi cat o canh vung cuon */
-  padding: 10px var(--safe-pad);
-  margin: -10px 0;
+  /* Cho ring focus khong bi cat o canh vung cuon */
+  padding: 12px var(--safe-pad);
 }
 
-.krow::-webkit-scrollbar {
+.ktabs::-webkit-scrollbar {
   display: none;
 }
 
-/* Fallback khoang cach cho TV cu khong ho tro `gap` trong flex:
-   khong co gap thi card dinh nhau, van dung duoc nhung xau. */
 @supports not (gap: 1px) {
-  .krow > * {
-    margin-right: var(--gap-card);
+  .ktabs > * {
+    margin-right: 12px;
   }
 }
+
+.ktab {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: var(--tap);
+  padding: 0 22px;
+  border: none;
+  border-radius: var(--radius-btn);
+  font-family: inherit;
+  font-weight: 800;
+  font-size: calc(var(--font-title) * 1.05);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.ktab-emoji {
+  font-size: calc(var(--font-title) * 1.5);
+  line-height: 1;
+}
+
+.ktab-count {
+  font-size: calc(var(--font-title) * 0.8);
+  font-weight: 800;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--card-hi);
+  font-variant-numeric: tabular-nums;
+}
+
 
 .kbtn {
   min-width: var(--tap);

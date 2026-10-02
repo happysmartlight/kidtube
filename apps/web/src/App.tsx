@@ -3,7 +3,6 @@ import { AdminApp } from '@/admin/AdminApp'
 import { Channels, Favorites, Home } from '@/kid/Home'
 import { KidShell, type KidTab } from '@/kid/KidShell'
 import { ProfilePick } from '@/kid/ProfilePick'
-import { ShelfAll } from '@/kid/ShelfAll'
 import { TimeUp } from '@/kid/TimeUp'
 import { Watch } from '@/kid/Watch'
 import { adminApi, type KidConfig, type KidProfile, kidApi, type Quota } from '@/lib/api'
@@ -87,11 +86,6 @@ export function App(): React.ReactElement {
     // o day chi xu ly cac trang con lai.
     if (path.startsWith('/watch/')) return
     if (path === '/home' || path === '/') return
-    // "Xem tat ca" cua mot kenh -> ve danh sach kenh, khong nhay ve trang chu.
-    if (path.startsWith('/channel/')) {
-      navigate('/channels')
-      return
-    }
     navigate('/home')
   }, [path, navigate])
 
@@ -223,19 +217,8 @@ export function App(): React.ReactElement {
   }
 
   // ─── Cac trang trong shell ─────────────────────────────────────────
-  /**
-   * "Xem tat ca" cua mot ke/kenh. Giu nav duoi sang tab goc de tre khong
-   * cam giac bi nem sang cho khac.
-   */
-  const shelfAllMatch = matchPath('/shelf/:id', path)
-  const channelAllMatch = matchPath('/channel/:id', path)
-
   const tab: KidTab =
-    path === '/favorites'
-      ? 'favorites'
-      : path === '/channels' || channelAllMatch
-        ? 'channels'
-        : 'home'
+    path === '/favorites' ? 'favorites' : path === '/channels' ? 'channels' : 'home'
 
   return (
     <>
@@ -247,47 +230,31 @@ export function App(): React.ReactElement {
         onSwitchProfile={switchProfile}
         onOpenParentGate={openParentGate}
       >
-        {/* "Xem tat ca" — kiem tra TRUOC cac tab vi no chiem ca vung noi dung */}
-        {shelfAllMatch?.id || channelAllMatch?.id ? (
-          <ShelfAll
-            kind={shelfAllMatch ? 'shelf' : 'channel'}
-            id={Number(shelfAllMatch?.id ?? channelAllMatch?.id)}
+        {tab === 'home' ? (
+          <Home
             profileId={profile.id}
             config={config}
             onSelect={(v) => navigate(`/watch/${v.id}`)}
             onQuota={handleQuota}
-            onBack={() => navigate(shelfAllMatch ? '/home' : '/channels')}
           />
-        ) : (
-          <>
-            {tab === 'home' ? (
-              <Home
-                profileId={profile.id}
-                config={config}
-                onSelect={(v) => navigate(`/watch/${v.id}`)}
-                onQuota={handleQuota}
-                onSeeAllShelf={(id) => navigate(`/shelf/${id}`)}
-              />
-            ) : null}
+        ) : null}
 
-            {tab === 'favorites' ? (
-              <Favorites
-                profileId={profile.id}
-                config={config}
-                onSelect={(v) => navigate(`/watch/${v.id}`)}
-              />
-            ) : null}
+        {tab === 'favorites' ? (
+          <Favorites
+            profileId={profile.id}
+            config={config}
+            onSelect={(v) => navigate(`/watch/${v.id}`)}
+          />
+        ) : null}
 
-            {tab === 'channels' ? (
-              <Channels
-                profileId={profile.id}
-                config={config}
-                onSelect={(v) => navigate(`/watch/${v.id}`)}
-                onSeeAllChannel={(id) => navigate(`/channel/${id}`)}
-              />
-            ) : null}
-          </>
-        )}
+        {tab === 'channels' ? (
+          <Channels
+            profileId={profile.id}
+            config={config}
+            onSelect={(v) => navigate(`/watch/${v.id}`)}
+            onQuota={handleQuota}
+          />
+        ) : null}
       </KidShell>
       {pinDialog}
     </>
