@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { adminApi, ApiError, type FilterRule, type UpdateSnapshot } from '@/lib/api'
 import { C } from '@/lib/color'
-import { filterTypeLabel, formatBytes, formatDate, formatRelative } from '@/lib/format'
+import { filterTypeLabel, formatBytes, formatDate, formatMinutes, formatRelative } from '@/lib/format'
 import { getLocalOverride, setLocalOverride, type ModeSetting } from '@/lib/mode'
 import { Spinner } from '@/ui/Spinner'
 import { Alert, Badge, Btn, Field, Input, Panel, Select, toast, Toggle, useLoad } from './ui'
@@ -567,6 +567,36 @@ const FILTER_HELP: Record<string, string> = {
   title_regex: 'Biểu thức chính quy JavaScript, không phân biệt hoa/thường.',
 }
 
+/** Chieu cao chung cua o chon / o nhap / nut trong hang them bo loc. */
+const CONTROL_H = 44
+
+const FILTER_PLACEHOLDER: Record<string, string> = {
+  keyword_block: 'bạo lực, kinh dị, prank',
+  max_duration: '2400',
+  min_duration: '45',
+  block_live: '1',
+  title_regex: '\\b(challenge|24h)\\b',
+}
+
+/** Gia tri cua bo loc theo cach bo me doc duoc: "2400" -> "2400 giây (40 phút)". */
+function describeFilterValue(rule: FilterRule): string {
+  switch (rule.type) {
+    case 'max_duration':
+    case 'min_duration': {
+      const sec = Number(rule.value)
+      if (!Number.isFinite(sec) || sec < 60) return `${rule.value} giây`
+      return `${sec} giây (${sec % 60 === 0 ? '' : '≈ '}${formatMinutes(sec)})`
+    }
+    case 'block_live':
+      // Server chi chan khi gia tri dung bang '1' (xem services/autofilter.ts).
+      return rule.value === '1'
+        ? 'Mọi video đang live'
+        : `${rule.value} — không có tác dụng, giá trị phải là 1`
+    default:
+      return rule.value
+  }
+}
+
 function Filters(): React.ReactElement {
   const { data, loading, reload } = useLoad(() => adminApi.filters())
   const [type, setType] = useState('keyword_block')
@@ -607,92 +637,166 @@ function Filters(): React.ReactElement {
         </Btn>
       }
     >
-      <div className="mb-4 flex flex-wrap items-end gap-2">
-        <div style={{ flex: '0 0 190px' }}>
-          <Field label="Loại">
-            <Select value={type} onChange={(e) => setType(e.target.value)}>
-              {Object.keys(FILTER_HELP).map((t) => (
-                <option key={t} value={t}>
-                  {filterTypeLabel(t)}
-                </option>
-              ))}
-            </Select>
-          </Field>
-        </div>
+      {/*
+        Form them bo loc. Huong dan nhap nam DUOI ca hang chu khong nam trong
+        o "Giá trị": de trong o thi cot do cao hon cac cot khac, nhan va o nhap
+        cua ca hang lech nhau. Boc trong <form> de Enter o o nao cung them duoc.
+      */}
+      <form
+        className="mb-5 rounded-xl px-4 pt-4 pb-3"
+        style={{ background: 'var(--bg)', border: '1px solid var(--card)' }}
+        onSubmit={(e) => {
+          e.preventDefault()
+          void add()
+        }}
+      >
+        {/*
+          Select cua trinh duyet cao hon input cung padding (~48 so voi ~44px)
+          -> dat chieu cao chung CONTROL_H cho ca hang, ke ca nut, de mep tren
+          cung thang hang. Man hinh hep thi o "Loại" gian het chieu ngang.
+        */}
+        <div className="flex flex-wrap items-end gap-x-3">
+          <div className="shrink-0 basis-[190px] max-sm:grow">
+            <Field label="Loại">
+              <Select
+                value={type}
+                onChange={(e) => setType(e.target.value)}
+                style={{ height: CONTROL_H }}
+              >
+                {Object.keys(FILTER_HELP).map((t) => (
+                  <option key={t} value={t}>
+                    {filterTypeLabel(t)}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+          </div>
 
-        <div style={{ flex: '1 1 200px' }}>
-          <Field label="Giá trị" hint={FILTER_HELP[type]}>
-            <Input
-              value={value}
-              onChange={(e) => setValue(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') void add()
-              }}
-              placeholder={
-                type === 'keyword_block'
-                  ? 'bạo lực, kinh dị, prank'
-                  : type === 'block_live'
-                    ? '1'
-                    : type === 'title_regex'
-                      ? '\\b(challenge|24h)\\b'
-                      : '2400'
-              }
-            />
-          </Field>
-        </div>
+          <div style={{ flex: '2 1 220px' }}>
+            <Field label="Giá trị">
+              <Input
+                value={value}
+                onChange={(e) => setValue(e.target.value)}
+                placeholder={FILTER_PLACEHOLDER[type]}
+                style={{ height: CONTROL_H }}
+              />
+            </Field>
+          </div>
 
-        <div style={{ flex: '1 1 150px' }}>
-          <Field label="Ghi chú (tuỳ chọn)">
-            <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="lý do" />
-          </Field>
-        </div>
+          <div style={{ flex: '1 1 160px' }}>
+            <Field label="Ghi chú (tuỳ chọn)">
+              <Input
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                placeholder="lý do"
+                style={{ height: CONTROL_H }}
+              />
+            </Field>
+          </div>
 
-        <Btn variant="primary" onClick={() => void add()} disabled={!value.trim()}>
-          ➕ Thêm
-        </Btn>
-      </div>
-
-      {loading ? <Spinner /> : null}
-
-      <div className="flex flex-col gap-1.5">
-        {data?.filters.map((f: FilterRule) => (
-          <div
-            key={f.id}
-            className="flex flex-wrap items-center gap-2.5 rounded-lg p-2.5"
-            style={{ background: 'var(--card)', opacity: f.is_active ? 1 : 0.5 }}
-          >
-            <Badge color={C.focus}>{filterTypeLabel(f.type)}</Badge>
-            <code className="min-w-0 flex-1 truncate text-sm">{f.value}</code>
-            {f.note ? (
-              <span className="text-xs" style={{ color: 'var(--text-dim)' }}>
-                {f.note}
-              </span>
-            ) : null}
-            <Btn
-              small
-              onClick={() => {
-                void adminApi
-                  .updateFilter(f.id, { isActive: f.is_active !== 1 })
-                  .then(reload)
-                  .catch(() => toast('error', 'Không đổi được'))
-              }}
-            >
-              {f.is_active === 1 ? '⏸ Tắt' : '▶️ Bật'}
-            </Btn>
-            <Btn
-              small
-              variant="danger"
-              onClick={() => {
-                void adminApi
-                  .deleteFilter(f.id)
-                  .then(reload)
-                  .catch(() => toast('error', 'Không xoá được'))
-              }}
-            >
-              🗑
+          {/* mb-4 = khoang cach duoi cua Field -> day nut thang day o nhap.
+              Btn khong nhan style, nen cho wrapper flex cao CONTROL_H de nut
+              tu gian (align-items: stretch). */}
+          <div className="mb-4 flex" style={{ height: CONTROL_H }}>
+            <Btn type="submit" variant="primary" disabled={!value.trim()}>
+              ➕ Thêm
             </Btn>
           </div>
-        ))}
+        </div>
+
+        <p className="-mt-1.5 text-xs" style={{ color: 'var(--text-dim)', lineHeight: 1.5 }}>
+          💡 {FILTER_HELP[type]}
+        </p>
+      </form>
+
+      {/* Chi hien spinner lan dau — bat/tat bo loc cung reload, hien spinner
+          moi lan thi danh sach giat xuong roi len. */}
+      {loading && !data ? <Spinner /> : null}
+
+      {data ? (
+        <h3 className="mb-2 text-sm font-bold">
+          Bộ lọc đang có{' '}
+          <span style={{ color: 'var(--text-dim)' }}>({data.filters.length})</span>
+        </h3>
+      ) : null}
+
+      {data && data.filters.length === 0 ? (
+        <p className="mb-4 text-sm" style={{ color: 'var(--text-dim)' }}>
+          Chưa có bộ lọc nào — mọi video mới đều vào hàng chờ duyệt.
+        </p>
+      ) : null}
+
+      <div className="mb-4 flex flex-col gap-2">
+        {data?.filters.map((f: FilterRule) => {
+          const active = f.is_active === 1
+          return (
+            <div
+              key={f.id}
+              className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl px-4 py-3"
+              style={{ background: 'var(--card)' }}
+            >
+              {/* Chi lam mo phan noi dung khi tat — nut "Bật" van phai ro. */}
+              <div
+                className="flex min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-1.5"
+                style={{ flexBasis: 280, opacity: active ? 1 : 0.5 }}
+              >
+                {/* Cot loai rong co dinh -> gia tri cua moi dong thang hang. */}
+                <div className="shrink-0" style={{ width: 160 }}>
+                  <Badge color={active ? C.focus : C.dim}>{filterTypeLabel(f.type)}</Badge>
+                </div>
+
+                <div className="min-w-0 flex-1" style={{ flexBasis: 160 }}>
+                  {f.type === 'title_regex' ? (
+                    <code className="block truncate text-sm font-bold" title={f.value}>
+                      {f.value}
+                    </code>
+                  ) : (
+                    <p className="truncate text-sm font-bold" title={f.value}>
+                      {describeFilterValue(f)}
+                    </p>
+                  )}
+                  {f.note ? (
+                    <p
+                      className="mt-0.5 truncate text-xs"
+                      style={{ color: 'var(--text-dim)' }}
+                      title={f.note}
+                    >
+                      {f.note}
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+
+              <div className="ml-auto flex shrink-0 items-center gap-2">
+                <Btn
+                  small
+                  onClick={() => {
+                    void adminApi
+                      .updateFilter(f.id, { isActive: !active })
+                      .then(reload)
+                      .catch(() => toast('error', 'Không đổi được'))
+                  }}
+                >
+                  {active ? '⏸ Tắt' : '▶️ Bật'}
+                </Btn>
+                <Btn
+                  small
+                  variant="danger"
+                  title="Xoá bộ lọc"
+                  aria-label="Xoá bộ lọc"
+                  onClick={() => {
+                    void adminApi
+                      .deleteFilter(f.id)
+                      .then(reload)
+                      .catch(() => toast('error', 'Không xoá được'))
+                  }}
+                >
+                  🗑
+                </Btn>
+              </div>
+            </div>
+          )
+        })}
       </div>
 
       <Alert kind="info">
