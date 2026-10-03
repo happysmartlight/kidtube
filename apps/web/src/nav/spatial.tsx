@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { currentMode } from '@/lib/mode'
 import { sfx } from '@/lib/sfx'
 import { safeScrollIntoView } from '@/lib/tv'
 
@@ -182,10 +183,19 @@ export function useSpatialNavigation(opts: SpatialOptions = {}): void {
 /**
  * Dua focus vao trang sau khi render xong.
  * `deps` doi thi focus duoc dat lai — dung khi doi trang hoac du lieu vua ve.
+ *
+ * CHI chay o che do TV. Remote can mot diem xuat phat nhin thay duoc; cam
+ * ung thi khong — tre cham thang vao thu minh muon. Chay ca o che do cam ung
+ * thi sinh loi: mo app khi da nho be = chua co lan cham nao, trinh duyet coi
+ * focus bang script la focus "ban phim" (:focus-visible), nen nut ke dau tien
+ * phong to + hien vong sang ngay khi vao trang, nhin nhu bi loi.
+ *
+ * Ban phim o che do cam ung van dung duoc: bam mui ten khi chua co gi dang
+ * focus thi findNext tra ve phan tu dau tien.
  */
 export function useAutoFocus(enabled: boolean, deps: unknown[] = []): void {
   useEffect(() => {
-    if (!enabled) return
+    if (!enabled || currentMode() !== 'tv') return
     // Doi mot frame de DOM ve xong truoc khi tim element.
     const id = requestAnimationFrame(() => {
       const active = document.activeElement

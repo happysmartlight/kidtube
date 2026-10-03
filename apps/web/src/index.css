@@ -63,6 +63,10 @@
      ke + so luong), nen tong dien tich bam van lon hon 72x72 — xem ghi chu
      "Vung bam" trong docs/DESIGN.md. */
   --tab-h: 48px;
+  /* Dem tren/duoi cua hang nut chu de. Phai du cho vong focus 4px + quang
+     sang cua no ma khong cham mep man hinh — 8px truoc day lam vong sang bi
+     cat o tren. */
+  --tabs-pad-y: 12px;
   --safe-pad: 16px;
   --tap: 72px;
   --ctrl-btn: 64px;
@@ -74,6 +78,7 @@
   --font-title: 24px;
   --nav-h: 92px;
   --tab-h: 62px;
+  --tabs-pad-y: 16px;
   /* 5% chong overscan — nhieu TV van cat mep anh */
   --safe-pad: 5%;
   --tap: 88px;
@@ -211,7 +216,9 @@ body {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(var(--card-w), 1fr));
   gap: var(--gap-card);
-  padding: 10px var(--safe-pad);
+  /* Dem tren = khoang cach giua cac card -> tu hang nut xuong hang card dau
+     cung mot nhip voi phan con lai cua luoi. */
+  padding: var(--gap-card) var(--safe-pad);
 }
 
 /* Trong luoi, card phai gian theo o luoi thay vi giu --card-w co dinh */
@@ -249,7 +256,7 @@ body {
   flex: 0 0 auto;
   display: flex;
   align-items: center;
-  padding: 8px 0 8px var(--safe-pad);
+  padding: var(--tabs-pad-y) 0 var(--tabs-pad-y) var(--safe-pad);
 }
 
 /* Da co nut ghim thi hang nut chu de khong can padding trai nua */
@@ -265,8 +272,9 @@ body {
   scroll-behavior: smooth;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
-  /* Cho ring focus khong bi cat o canh vung cuon */
-  padding: 8px var(--safe-pad);
+  /* Cho ring focus khong bi cat o canh vung cuon. Dem ngang = --safe-pad
+     -> nut dau thang mep voi cot card dau cua luoi. */
+  padding: var(--tabs-pad-y) var(--safe-pad);
 }
 
 .ktabs::-webkit-scrollbar {
@@ -279,13 +287,17 @@ body {
   }
 }
 
+/* Ty le trong nut tinh theo --tab-h de tablet va TV cung mot hinh dang.
+   Le phai NHO hon le trai: chip so dem cao --tab-h/2, nen le phai --tab-h/4
+   dat chip DONG TAM voi vien nut (cach mep tren, duoi, phai bang nhau).
+   Le phai bang le trai thi chip lech vao trong, nhin hut hang. */
 .ktab {
   flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
   gap: 10px;
   min-height: var(--tab-h);
-  padding: 0 18px;
+  padding: 0 calc(var(--tab-h) * 0.25) 0 calc(var(--tab-h) * 0.33);
   border: none;
   border-radius: var(--radius-btn);
   font-family: inherit;
@@ -295,22 +307,50 @@ body {
   white-space: nowrap;
 }
 
+/* Nut chu de KHONG phong to khi focus/hover (khac voi card). Nut dang chon
+   da noi bat bang mau nen; phong to them thi nut tran sang nut ben canh va
+   hang nut trong nhu bi lech. Vong focus van giu — tren TV, focus di qua cac
+   nut CHUA chon, vong la thu duy nhat cho biet remote dang o dau.
+   Specificity (0,3,0) thang .focusable:focus / .focusable:hover (0,2,0). */
+.ktab.focusable:focus,
+.ktab.focusable:hover {
+  transform: none;
+}
+
+/* Glyph emoji co san le trong hai ben (Segoe UI Emoji ~0.2em moi ben), de
+   hop tu co gian thi khoang emoji -> chu trong rong hon han chu -> so dem.
+   Ep hop 1.1em va CAN GIUA bang flex: phan glyph tran ra (neu co) chia deu
+   hai ben thay vi don het sang phai de vao chu. Khong phu thuoc bo emoji
+   cua tung nen tang (Windows / iPad / TV LG rong hep khac nhau). */
 .ktab-emoji {
+  display: inline-flex;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 1.1em;
   font-size: calc(var(--font-title) * 1.5);
   line-height: 1;
 }
 
 /* Nut hanh dong trong hang nut chu de ("Làm mới") — cung khuon voi .ktab
-   nhung mau khac de tre khong nham la mot chu de. */
+   nhung mau khac de tre khong nham la mot chu de. Khong co chip so dem nen
+   le hai ben bang nhau. */
 .ktab-action {
+  padding-right: calc(var(--tab-h) * 0.33);
   background: var(--card-hi);
   color: var(--focus);
 }
 
 .ktab-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: calc(var(--tab-h) / 2);
+  /* So mot chu so -> hinh tron, nhieu chu so -> vien thuoc. */
+  min-width: calc(var(--tab-h) / 2);
+  padding: 0 calc(var(--tab-h) * 0.16);
   font-size: calc(var(--font-title) * 0.8);
   font-weight: 800;
-  padding: 2px 10px;
+  line-height: 1;
   border-radius: 999px;
   background: var(--card-hi);
   font-variant-numeric: tabular-nums;

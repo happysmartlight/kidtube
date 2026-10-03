@@ -18,12 +18,12 @@
 
 /* mode = touch (tablet) */
 --card-w: 180px;  --font-title: 17px;
---nav-h: 72px;    --tab-h: 48px;
+--nav-h: 72px;    --tab-h: 48px;       --tabs-pad-y: 12px;
 --safe-pad: 16px; --tap: 72px;         --scale: 1;
 
 /* mode = tv (xa 3m, remote D-pad) */
 --card-w: 300px;  --font-title: 24px;
---nav-h: 92px;    --tab-h: 62px;
+--nav-h: 92px;    --tab-h: 62px;       --tabs-pad-y: 16px;
 --safe-pad: 5%;   --tap: 88px;         --scale: 1.4;
 ```
 

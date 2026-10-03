@@ -68,7 +68,10 @@ export function TopicTabs({
             <FocusButton
               key={t.id}
               className="ktab"
-              ringColor={t.color}
+              // Nut dang chon to bang mau cua ke -> vong focus cung mau se tan
+              // vao nen, tren TV chi thay nut to ra ma khong thay vong. Dung
+              // mau chu (trang) cho nut dang chon de vong luon noi len.
+              ringColor={on ? 'var(--text)' : t.color}
               role="tab"
               aria-selected={on}
               data-selected={on ? '1' : undefined}

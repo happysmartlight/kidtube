@@ -42,6 +42,11 @@ export function applyMode(mode: UiMode): void {
   document.documentElement.dataset.mode = mode
 }
 
+/** Che do dang ap dung (da chot boi initMode). */
+export function currentMode(): UiMode {
+  return document.documentElement.dataset.mode === 'tv' ? 'tv' : 'touch'
+}
+
 /** Ghi de cuc bo tren THIET BI NAY (uu tien hon cai dat toan he thong). */
 export function getLocalOverride(): ModeSetting | null {
   try {
