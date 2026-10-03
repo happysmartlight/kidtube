@@ -122,11 +122,15 @@ nhau là thứ trẻ phải học hai lần.
 │                 ⬇  │  badge góc: ⬇ đã tải
 │              12:04 │  thời lượng góc phải dưới
 ├────────────────────┤
-│ Tên video chỉ hai  │  max 2 dòng, line-clamp
-│ dòng là hết...     │
+│ Tên video một dò…  │  1 dòng, chữ nhỏ (80% --font-title), cắt "…"
 └────────────────────┘
 ```
-Focus/hover: `scale(1.08)` + ring 4px màu kệ + shadow glow.
+Tiêu đề chỉ là gợi ý cho bố mẹ — trẻ chưa đọc chữ. Một dòng chữ nhỏ cho ảnh
+chiếm ~80% card (2 dòng chữ to trước đây: ~65%).
+Focus (D-pad / phím mũi tên): `scale(1.08)` + ring 4px màu kệ + shadow glow.
+Hover (chuột / con trỏ remote LG): `scale(1.04)` + CÙNG ring màu kệ — chỉ phóng
+to 4% thì khó thấy trên lưới nhiều ảnh. Nút kệ/kênh không phóng to (xem
+`.ktab.focusable`).
 Transition 180ms `--ease-pop`.
 
 ### Trang xem

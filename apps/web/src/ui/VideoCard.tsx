@@ -60,7 +60,10 @@ export function VideoCard({
         ) : null}
       </div>
 
-      <div className="kcard-title">{video.title}</div>
+      {/* Mot dong, cat bang "…" — re chuot (bo me tren may tinh) thi hien du. */}
+      <div className="kcard-title" title={video.title}>
+        {video.title}
+      </div>
     </FocusButton>
   )
 }

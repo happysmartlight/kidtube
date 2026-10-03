@@ -192,6 +192,19 @@ body {
   .focusable:hover {
     transform: scale(1.04);
   }
+
+  /* Card video: re chuot (hoac con tro cua remote LG) hien CA VIEN, khong chi
+     phong to nhe — phong to 4% kho thay tren luoi nhieu anh. Cung mau vien
+     voi luc focus (mau cua ke) de tre/bo me hieu la cung mot y "dang chon".
+     Dat SAU khoi @supports o tren: cung specificity (0,3,0) voi
+     `.focusable:focus:not(:focus-visible)` nen phai dung sau moi thang. */
+  .kcard.focusable:hover {
+    box-shadow:
+      0 0 0 var(--focus-ring) var(--ring-color, var(--ring)),
+      0 0 24px -6px var(--ring-halo);
+    z-index: 5;
+    position: relative;
+  }
 }
 
 /* ═══ Component ═══════════════════════════════════════════════════ */
@@ -234,16 +247,23 @@ body {
   display: block;
 }
 
+/* Tieu de NHO + MOT dong. Tre chua doc chu — tieu de chi la goi y cho bo me,
+   nen nhuong cho thumbnail (nguyen tac "Thumbnail la vua" trong DESIGN.md).
+   Truoc day 2 dong chu to: tieu de cao gan bang nua anh, anh chi chiem ~65%
+   card. Moi kich thuoc tinh bang em (theo co chu) -> tablet va TV cung ti le.
+
+   Mot dong + ellipsis thay cho -webkit-line-clamp: line-clamp van ve cac dong
+   sau dong 2, chi bi overflow cat o mep PADDING — nen phan dem duoi lo nua
+   dong thu 3. `height` co dinh -> moi card cao bang nhau du tieu de co emoji
+   (font emoji co the lam dong cao hon line-height). */
 .kcard-title {
-  font-size: var(--font-title);
-  line-height: 1.25;
-  padding: 10px 12px 14px;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+  font-size: calc(var(--font-title) * 0.8);
+  line-height: 1.3;
+  padding: 0.5em 0.85em;
+  height: 2.3em; /* 1.3em dong chu + 2 x 0.5em dem */
+  white-space: nowrap;
   overflow: hidden;
-  /* Chieu cao co dinh 2 dong -> luoi card khong nhay khi tieu de dai ngan khac nhau */
-  min-height: calc(var(--font-title) * 2.5 + 24px);
+  text-overflow: ellipsis;
 }
 
 /* Luoi doc — bo cuc chinh cua trang chu.
@@ -366,13 +386,15 @@ body {
   line-height: 1;
 }
 
-/* Nut hanh dong trong hang nut chu de ("Làm mới") — cung khuon voi .ktab
-   nhung mau khac de tre khong nham la mot chu de. Khong co chip so dem nen
+/* Nut hanh dong trong hang nut chu de ("Làm mới") — cung khuon voi .ktab.
+   Chu TRANG nhu moi nut khac (khong dung --focus: do la mau nhan do, danh
+   cho thanh tien do / nut phat). Phan biet voi nut chu de bang nen sang hon
+   mot bac + icon 🔀, de tre khong nham la mot kenh. Khong co chip so dem nen
    le hai ben bang nhau. */
 .ktab-action {
   padding-right: calc(var(--tab-h) * 0.33);
   background: var(--card-hi);
-  color: var(--focus);
+  color: var(--text);
 }
 
 .ktab-count {
