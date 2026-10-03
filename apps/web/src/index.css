@@ -513,6 +513,21 @@ body {
   line-height: 1;
 }
 
+/* Khung chua avatar + vong thoi gian + nhan so phut (vong/nhan chi hien o man
+   hinh hep — xem @media 520px ben duoi). */
+.kbar-avatar-wrap {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+}
+
+.kbar-ring,
+.kbar-ring-badge {
+  display: none;
+  pointer-events: none;
+}
+
 .kbar-profile-name {
   font-size: calc(var(--font-title) * 0.95);
   font-weight: 800;
@@ -557,6 +572,42 @@ body {
      khong anh huong tre. Thu cuoi cung bi thu nho, sau ca chu va dong ho. */
   .kbar {
     --gate-size: 52px;
+  }
+}
+
+/* Dien thoai DOC: chip "⏱ Còn 15 phút" khong con cho. Hai cum hai ben chia
+   deu phan thua (de cum giua nam chinh giua); cum phai can chip 88px + nut ⚙
+   52px + khe = 148px, tuc man hinh phai >= ~503px. Duoi muc do chip tran sang
+   trai, de len nut "Kênh" (do duoc: 11px o 390px, 46px o 320px).
+   -> Chuyen thoi gian sang AVATAR (cum trai dang thua cho): vong quanh avatar
+   ngan dan theo thoi gian con lai + nhan so phut. Rong toi thieu ~290px. */
+@media (max-width: 520px) {
+  .kbar-time {
+    display: none;
+  }
+  .kbar-ring {
+    display: block;
+    position: absolute;
+    top: -5px;
+    left: -5px;
+    width: calc(100% + 10px);
+    height: calc(100% + 10px);
+  }
+  .kbar-ring-badge {
+    display: block;
+    position: absolute;
+    left: 50%;
+    bottom: -9px;
+    transform: translateX(-50%);
+    padding: 1px 6px;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.82);
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 800;
+    line-height: 1.3;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
   }
 }
 

@@ -109,6 +109,9 @@ export function ParentGateButton({ onOpen }: { onOpen: () => void }): React.Reac
         // hep de nut khong day dong ho va cac nut chinh ra ngoai.
         width: 'var(--gate-size, var(--tap))',
         height: 'var(--gate-size, var(--tap))',
+        // Khong cho flex bop: o man hinh doc nut tung bi ep con 18px — phai
+        // GIU 3 giay tren mot vung 18px thi bo me cung kho bam trung.
+        flexShrink: 0,
         background: 'transparent',
         border: 'none',
         cursor: 'pointer',

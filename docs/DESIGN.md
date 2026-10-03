@@ -104,9 +104,21 @@ khiển* chứ không phải *nội dung*. Đỉnh màn hình nhường hết ch
 chủ đề. Hai cụm hai bên dùng `flex: 1` để hai nút chính luôn nằm chính giữa dù
 tên bé dài ngắn khác nhau.
 
-Màn hình hẹp thì bỏ chữ theo thứ tự: tên bé (≤820px) → nhãn 2 nút chính và
-thu nhỏ đồng hồ + nút ⚙ (≤640px). Emoji và avatar luôn giữ — đó là thứ trẻ
-nhận dạng bằng mắt.
+Màn hình hẹp (≤860px, MỘT ngưỡng — lý do ở ghi chú trong index.css): bỏ tên bé
+và nhãn 2 nút chính, thu nhỏ đồng hồ, nút ⚙ còn 52px. Emoji và avatar luôn
+giữ — đó là thứ trẻ nhận dạng bằng mắt.
+
+Điện thoại dọc (≤520px): chip "⏱ Còn 15 phút" không còn chỗ (cụm phải cần
+~148px, tức màn ≥ ~503px — dưới mức đó chip đè lên nút "Kênh"). Thời gian
+chuyển sang AVATAR, cụm trái đang thừa chỗ:
+```
+   ◜‾‾◝
+  ( 🐯 )   vòng quanh avatar = phần thời gian CÒN LẠI của giới hạn sắp hết
+   ◟40′    trước (ngày hoặc lượt), màu của bé; sắp hết giờ -> vòng + nhãn hồng
+```
+Nhãn gọn: "40′", "1g", "1g05" (làm tròn LÊN — còn 20 giây là "1′", không "0′").
+Vừa tới 320px. Trình đọc màn hình đọc thời gian qua một vùng `sr-only` riêng
+(chip bị `display: none` thì không đọc được nữa).
 
 Trang chủ KHÔNG xếp chồng các kệ theo chiều dọc nữa. Lý do: kệ đầu có hàng
 trăm video thì trẻ phải cuộn rất lâu mới tới kệ sau — thực tế là không bao

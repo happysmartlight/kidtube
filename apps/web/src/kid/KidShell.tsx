@@ -43,6 +43,8 @@ export function KidShell({
   children,
 }: KidShellProps): React.ReactElement {
   const remaining = quota ? smallest(quota.dailyRemainingSec, quota.sessionRemainingSec) : null
+  const binding = quota ? bindingLimit(quota) : null
+  const warning = quota?.warning === true
 
   return (
     <div className="flex h-full flex-col">
@@ -62,12 +64,29 @@ export function KidShell({
             sound="back"
             aria-label={`Đang là bé ${profile.name}. Bấm để đổi bé.`}
           >
-            <span
-              className="kbar-avatar"
-              style={{ background: withAlpha(profile.color, 0.3) }}
-              aria-hidden="true"
-            >
-              {profile.avatar}
+            <span className="kbar-avatar-wrap" aria-hidden="true">
+              <span className="kbar-avatar" style={{ background: withAlpha(profile.color, 0.3) }}>
+                {profile.avatar}
+              </span>
+
+              {/* Vong + nhan so phut — CHI hien o man hinh hep (xem index.css),
+                  thay cho chip "⏱ Còn … phút" khong con cho o ben phai. */}
+              {binding ? (
+                <>
+                  <TimeRing
+                    fraction={binding.remainingSec / binding.limitSec}
+                    color={warning ? 'var(--danger)' : profile.color}
+                  />
+                  <span
+                    className="kbar-ring-badge"
+                    style={
+                      warning ? { background: 'var(--danger)', color: '#2a0010' } : undefined
+                    }
+                  >
+                    {compactMinutes(binding.remainingSec)}
+                  </span>
+                </>
+              ) : null}
             </span>
             <span className="kbar-profile-name">{profile.name}</span>
           </FocusButton>
@@ -103,17 +122,24 @@ export function KidShell({
         {/* Phai: thoi gian con lai + loi vao trang bo me */}
         <div className="kbar-side kbar-side-end">
           {remaining !== null ? (
-            <span
-              className="kbar-time"
-              style={{
-                background: quota?.warning ? withAlpha('#ff6b8a', 0.26) : 'var(--card)',
-                color: quota?.warning ? 'var(--danger)' : 'var(--text-dim)',
-              }}
-              // Doc bang giong noi khi doi -> tre dung man hinh doc hieu duoc
-              aria-live="polite"
-            >
-              ⏱ Còn {formatMinutes(remaining)}
-            </span>
+            <>
+              <span
+                className="kbar-time"
+                style={{
+                  background: warning ? withAlpha('#ff6b8a', 0.26) : 'var(--card)',
+                  color: warning ? 'var(--danger)' : 'var(--text-dim)',
+                }}
+                aria-hidden="true"
+              >
+                ⏱ Còn {formatMinutes(remaining)}
+              </span>
+              {/* Doc bang giong noi khi doi. Tach khoi chip vi chip bi AN
+                  (display: none) o man hinh hep — an thi trinh doc man hinh
+                  cung khong doc nua. */}
+              <span className="sr-only" aria-live="polite">
+                Còn {formatMinutes(remaining)}
+              </span>
+            </>
           ) : null}
 
           <ParentGateButton onOpen={onOpenParentGate} />
@@ -143,6 +169,61 @@ export function KidPage({
       {header}
       <div className="scroll-y min-h-0 flex-1">{children}</div>
     </>
+  )
+}
+
+/**
+ * Gioi han SAP HET TRUOC (theo ngay hoac theo luot) — cung quy tac voi
+ * `effectiveRemaining` o server (services/timeLimit.ts). null = khong dat gioi
+ * han nao -> khong ve vong.
+ */
+function bindingLimit(q: Quota): { remainingSec: number; limitSec: number } | null {
+  const opts: Array<{ remainingSec: number; limitSec: number }> = []
+  if (q.dailyRemainingSec !== null && q.dailyLimitSec > 0) {
+    opts.push({ remainingSec: q.dailyRemainingSec, limitSec: q.dailyLimitSec })
+  }
+  if (q.sessionRemainingSec !== null && q.sessionLimitSec > 0) {
+    opts.push({ remainingSec: q.sessionRemainingSec, limitSec: q.sessionLimitSec })
+  }
+  opts.sort((a, b) => a.remainingSec - b.remainingSec)
+  return opts[0] ?? null
+}
+
+/**
+ * Nhan gon cho vong: "15′", "1g", "1g05". Lam tron LEN — con 20 giay thi
+ * hien "1′" chu khong phai "0′" (0 nghia la het gio, de gay hieu nham).
+ */
+function compactMinutes(sec: number): string {
+  const totalMin = Math.max(0, Math.ceil(sec / 60))
+  if (totalMin < 60) return `${totalMin}′`
+  const h = Math.floor(totalMin / 60)
+  const m = totalMin % 60
+  return m === 0 ? `${h}g` : `${h}g${String(m).padStart(2, '0')}`
+}
+
+/**
+ * Vong tron quanh avatar = phan thoi gian CON LAI, ngan dan khi xem (nhu dong
+ * ho cat). Tre chua doc so van thay "vong sap het". Bat dau o dinh, chay
+ * theo chieu kim dong ho — cung kieu vong giu nut ⚙ trong ParentGate.
+ */
+function TimeRing({ fraction, color }: { fraction: number; color: string }): React.ReactElement {
+  const C = 2 * Math.PI * 45 // chu vi, r = 45 trong viewBox 100
+  const f = Math.max(0, Math.min(1, fraction))
+  return (
+    <svg className="kbar-ring" viewBox="0 0 100 100">
+      <circle cx="50" cy="50" r="45" fill="none" stroke="rgba(255,255,255,0.16)" strokeWidth="8" />
+      <circle
+        cx="50"
+        cy="50"
+        r="45"
+        fill="none"
+        stroke={color}
+        strokeWidth="8"
+        strokeLinecap="round"
+        strokeDasharray={`${f * C} ${C}`}
+        transform="rotate(-90 50 50)"
+      />
+    </svg>
   )
 }
 
