@@ -51,31 +51,6 @@ export function Downloads(): React.ReactElement {
             >
               🧹 Dọn dẹp
             </Btn>
-            <Btn
-              small
-              onClick={() => {
-                void adminApi
-                  .enqueueFavorites()
-                  .then((r) => {
-                    if (r.enqueued > 0) {
-                      toast('ok', `Đã xếp hàng ${r.enqueued} video yêu thích`)
-                    } else if (r.candidates === 0) {
-                      // Phan biet ro "khong co gi de lam" voi "bam ma khong thay gi".
-                      toast(
-                        'ok',
-                        'Không có video yêu thích nào cần tải — con chưa đánh dấu ❤️ video nào, hoặc tất cả đã có bản offline.',
-                      )
-                    } else {
-                      toast('ok', `${r.candidates} video yêu thích đã nằm sẵn trong hàng đợi`)
-                    }
-                    if (r.notice) toast('error', r.notice)
-                    reload()
-                  })
-                  .catch(() => toast('error', 'Không xếp hàng được'))
-              }}
-            >
-              ❤️ Tải video yêu thích
-            </Btn>
           </>
         }
       >
@@ -117,8 +92,6 @@ export function Downloads(): React.ReactElement {
             Hàng đợi rỗng. Cách xếp video vào hàng:
             <br />• Sang tab <b>Hàng chờ duyệt</b> (thẻ <b>Đã duyệt</b>), bấm nút <b>⬇</b> ngay
             dưới video — hoặc chọn nhiều video rồi bấm <b>⬇ Tải offline</b> ở thanh phía trên.
-            <br />• Hoặc bấm <b>❤️ Tải video yêu thích</b> ở trên để tải tất cả video con đã đánh
-            dấu ❤️.
           </p>
         ) : null}
 

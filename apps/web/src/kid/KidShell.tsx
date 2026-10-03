@@ -4,7 +4,7 @@ import { FocusButton } from '@/ui/Focusable'
 import { ParentGateButton } from '@/ui/ParentGate'
 import { CARD, CARD_HI, mix } from '@/lib/color'
 
-export type KidTab = 'home' | 'favorites' | 'channels'
+export type KidTab = 'home' | 'channels'
 
 interface KidShellProps {
   profile: KidProfile
@@ -18,7 +18,6 @@ interface KidShellProps {
 
 const TABS: Array<{ id: KidTab; emoji: string; label: string }> = [
   { id: 'home', emoji: '🏠', label: 'Trang chủ' },
-  { id: 'favorites', emoji: '❤️', label: 'Yêu thích' },
   { id: 'channels', emoji: '📺', label: 'Kênh' },
 ]
 
@@ -30,8 +29,8 @@ const TABS: Array<{ id: KidTab; emoji: string; label: string }> = [
  * chu de, nen luoi video duoc them ~72px chieu cao (tablet). Ba thu kia deu la
  * dieu khien chu khong phai noi dung, nen o cung mot cho voi nav la hop ly.
  *
- * Bo cuc thanh duoi: [avatar be] ... [3 nut chinh] ... [dong ho] [⚙]
- * Hai ben dung `flex: 1` de cum ba nut chinh luon nam GIUA man hinh du ten be
+ * Bo cuc thanh duoi: [avatar be] ... [2 nut chinh] ... [dong ho] [⚙]
+ * Hai ben dung `flex: 1` de cum nut chinh luon nam GIUA man hinh du ten be
  * dai ngan khac nhau.
  */
 export function KidShell({
@@ -72,7 +71,7 @@ export function KidShell({
           </FocusButton>
         </div>
 
-        {/* Giua: ba nut chinh */}
+        {/* Giua: cac nut chinh */}
         <div className="kbar-tabs">
           {TABS.map((t) => {
             const active = t.id === tab

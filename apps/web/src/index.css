@@ -55,8 +55,7 @@
   /* Mac dinh = touch (tablet) */
   --card-w: 180px;
   --font-title: 17px;
-  --font-shelf: 22px;
-  /* Thanh duoi chua TAT CA dieu khien (avatar be, 3 nut chinh, dong ho, ⚙).
+  /* Thanh duoi chua TAT CA dieu khien (avatar be, 2 nut chinh, dong ho, ⚙).
      Khong co header rieng o tren nua. Cao bang --tap de nut ⚙ giu duoc
      kich thuoc vung bam day du. */
   --nav-h: 72px;
@@ -73,7 +72,6 @@
 :root[data-mode='tv'] {
   --card-w: 300px;
   --font-title: 24px;
-  --font-shelf: 34px;
   --nav-h: 92px;
   --tab-h: 62px;
   /* 5% chong overscan — nhieu TV van cat mep anh */
@@ -203,15 +201,6 @@ body {
   overflow: hidden;
   /* Chieu cao co dinh 2 dong -> luoi card khong nhay khi tieu de dai ngan khac nhau */
   min-height: calc(var(--font-title) * 2.5 + 24px);
-}
-
-.kshelf-label {
-  font-size: var(--font-shelf);
-  font-weight: 800;
-  letter-spacing: 0.02em;
-  display: flex;
-  align-items: center;
-  gap: 12px;
 }
 
 /* Luoi doc — bo cuc chinh cua trang chu.

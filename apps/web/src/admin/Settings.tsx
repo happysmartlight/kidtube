@@ -167,17 +167,9 @@ export function Settings(): React.ReactElement {
           disabled={!sys?.ytdlpAvailable}
         />
 
-        <Toggle
-          checked={bool('offline_auto_favorites')}
-          onChange={(v) => put('offline_auto_favorites', v)}
-          label="Tự tải video con đánh dấu yêu thích"
-          hint="Video hay xem lại thì nên có bản local."
-          disabled={!bool('offline_enabled')}
-        />
-
         <Field
           label="Dung lượng tối đa (GB)"
-          hint="Vượt hạn mức thì tự xoá video ít xem nhất trước. Video trong danh sách yêu thích không bao giờ bị xoá."
+          hint="Vượt hạn mức thì tự xoá video ít xem nhất trước."
         >
           <Input
             type="number"

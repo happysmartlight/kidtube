@@ -6,14 +6,12 @@ interface ControlsProps {
   state: PlayerState
   visible: boolean
   title: string
-  isFavorite: boolean
   hasNext: boolean
   onHome: () => void
   onToggle: () => void
   onSeekBy: (delta: number) => void
   onSeekTo: (seconds: number) => void
   onVolume: (v: number) => void
-  onToggleFavorite: () => void
   onNext: () => void
 }
 
@@ -29,14 +27,12 @@ export function Controls({
   state,
   visible,
   title,
-  isFavorite,
   hasNext,
   onHome,
   onToggle,
   onSeekBy,
   onSeekTo,
   onVolume,
-  onToggleFavorite,
   onNext,
 }: ControlsProps): React.ReactElement {
   const pct = state.duration > 0 ? (state.time / state.duration) * 100 : 0
@@ -126,14 +122,6 @@ export function Controls({
           >
             {state.muted || state.volume === 0 ? '🔇' : '🔊'}
           </CtrlButton>
-
-          <CtrlButton
-            label={isFavorite ? 'Bỏ khỏi yêu thích' : 'Thêm vào yêu thích'}
-            onClick={onToggleFavorite}
-            sound="heart"
-          >
-            {isFavorite ? '❤️' : '🤍'}
-          </CtrlButton>
         </div>
       </div>
     </div>
@@ -151,7 +139,7 @@ function CtrlButton({
   label: string
   onClick: () => void
   big?: boolean
-  sound?: 'pop' | 'back' | 'heart' | 'none'
+  sound?: 'pop' | 'back' | 'none'
 }): React.ReactElement {
   const size = big ? 'calc(var(--ctrl-btn) * 1.4)' : 'var(--ctrl-btn)'
   return (

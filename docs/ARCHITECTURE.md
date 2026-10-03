@@ -63,7 +63,7 @@ apps/
       lib/      api.ts  mode.ts  sfx.ts  format.ts  store.ts
       nav/      spatial.tsx          spatial navigation cho D-pad
       ui/       Button Card Shelf Dialog Spinner Toast ...
-      kid/      ProfilePick Home Favorites Channels Watch TimeUp
+      kid/      ProfilePick Home Channels Watch TimeUp
       player/   PlayerAdapter.ts YouTubePlayer.ts LocalPlayer.ts Controls.tsx
       admin/    Login Dashboard Sources Review Shelves Profiles
                 Settings Filters Downloads Reports
@@ -76,7 +76,6 @@ media/          video đã tải (volume)
 
 ```
 profiles ──┬─< profile_shelves >── shelves ──< shelf_items >── videos
-           ├─< favorites >──────────────────────────────────────┤
            ├─< watch_log >──────────────────────────────────────┤
            └─< kid_sessions                                      │
                                               sources ──────────>┤

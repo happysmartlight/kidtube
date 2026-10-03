@@ -8,7 +8,6 @@ import {
   currentJob,
   enforceStorageLimit,
   enqueue,
-  enqueueFavorites,
   isBusy,
   removeLocalFile,
   storageInfo,
@@ -89,18 +88,6 @@ export async function downloadRoutes(app: FastifyInstance): Promise<void> {
   app.delete<{ Params: { videoId: string } }>('/api/admin/downloads/:videoId/file', async (req) => {
     const removed = removeLocalFile(Number(req.params.videoId))
     return { ok: removed }
-  })
-
-  // `force` = true: bam tay thi chay ngay, khong phu thuoc cai dat tu dong.
-  app.post('/api/admin/downloads/enqueue-favorites', async () => {
-    const r = enqueueFavorites(true)
-    void tick().catch(() => {})
-    return {
-      ok: true,
-      enqueued: r.enqueued,
-      candidates: r.candidates,
-      notice: offlineNotice(),
-    }
   })
 
   app.post('/api/admin/downloads/cleanup', async () => {

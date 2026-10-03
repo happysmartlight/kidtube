@@ -210,7 +210,6 @@ export function storageInfo(): StorageInfo {
 /**
  * Ep giai phong dung luong khi vuot han muc.
  * Xoa video IT XEM NHAT truoc; hoa thi xoa cai tai lau nhat.
- * KHONG bao gio xoa video dang nam trong ke Yeu thich cua bat ky be nao.
  */
 export async function enforceStorageLimit(): Promise<number> {
   const info = storageInfo()
@@ -223,7 +222,6 @@ export async function enforceStorageLimit(): Promise<number> {
          FROM videos v
         WHERE v.download_status = 'done'
           AND v.local_path IS NOT NULL
-          AND v.id NOT IN (SELECT video_id FROM favorites)
         ORDER BY v.watch_count ASC, v.last_watched_at ASC NULLS FIRST, v.added_at ASC`,
     )
     .all()
@@ -288,44 +286,4 @@ export function recoverStuckJobs(): number {
     "UPDATE videos SET download_status = 'queued', download_progress = 0 WHERE download_status = 'downloading'",
   ).run()
   return info.changes
-}
-
-export interface FavoritesEnqueueResult {
-  /** So video vua duoc xep vao hang. */
-  enqueued: number
-  /** So video yeu thich chua co ban offline — ke ca cai da nam san trong hang. */
-  candidates: number
-  /** True khi bo qua vi cai dat `offline_auto_favorites` dang tat. */
-  skippedByAutoSetting: boolean
-}
-
-/**
- * Xep hang tai cac video nam trong ke Yeu thich cua bat ky be nao.
- *
- * `force = true` la bo me bam nut trong tab Tai offline: phai chay ngay ca khi
- * cai dat "tu tai video yeu thich" dang tat, vi nguoi ta vua ra lenh bang tay.
- * Cron goi voi `force = false` — do moi la cho cai dat kia co tieng noi.
- */
-export function enqueueFavorites(force = false): FavoritesEnqueueResult {
-  const auto = getSettingBool('offline_auto_favorites', false)
-  if (!force && !auto) {
-    return { enqueued: 0, candidates: 0, skippedByAutoSetting: true }
-  }
-
-  const rows = getDb()
-    .prepare<[], { id: number }>(
-      `SELECT DISTINCT v.id
-         FROM videos v
-         JOIN favorites f ON f.video_id = v.id
-        WHERE v.status = 'approved'
-          AND v.local_path IS NULL
-          AND v.download_status IN ('none','error')`,
-    )
-    .all()
-
-  let n = 0
-  for (const r of rows) {
-    if (enqueue(r.id, 10).queued) n++
-  }
-  return { enqueued: n, candidates: rows.length, skippedByAutoSetting: false }
 }

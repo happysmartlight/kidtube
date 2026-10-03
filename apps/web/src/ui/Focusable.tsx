@@ -7,7 +7,7 @@ interface FocusButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   /** Mau ring khi focus — dung mau cua ke de tre lien tuong duoc. */
   ringColor?: string
   /** Am thanh khi bam. */
-  sound?: 'pop' | 'back' | 'heart' | 'none'
+  sound?: 'pop' | 'back' | 'none'
 }
 
 /**

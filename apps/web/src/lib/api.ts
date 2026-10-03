@@ -114,7 +114,6 @@ export interface KidVideo {
   durationSec: number | null
   channelTitle: string | null
   hasLocal: boolean
-  isFavorite: boolean
 }
 
 /** Mot trang video cua mot ke hoac mot kenh. */
@@ -184,9 +183,6 @@ export const kidApi = {
   profiles: () => request<{ profiles: KidProfile[] }>('/api/kid/profiles'),
 
   quota: (profileId: number) => request<{ quota: Quota }>(`/api/kid/quota?profileId=${profileId}`),
-
-  favorites: (profileId: number) =>
-    request<{ videos: KidVideo[] }>(`/api/kid/favorites?profileId=${profileId}`),
 
   /** Danh sach kenh, khong kem video — doi xung voi `shelves`. */
   channels: (profileId: number) =>
@@ -258,12 +254,6 @@ export const kidApi = {
     request<{ quota: Quota }>('/api/kid/watch/end', {
       method: 'POST',
       body: { profileId, logId, completed },
-    }),
-
-  toggleFavorite: (profileId: number, videoId: number) =>
-    request<{ isFavorite: boolean }>('/api/kid/favorite', {
-      method: 'POST',
-      body: { profileId, videoId },
     }),
 
   /** Bao lai rang YouTube tu choi nhung video nay (ma loi 101/150). */
@@ -639,12 +629,6 @@ export const adminApi = {
 
   deleteDownloadedFile: (videoId: number) =>
     request<{ ok: boolean }>(`/api/admin/downloads/${videoId}/file`, { method: 'DELETE' }),
-
-  enqueueFavorites: () =>
-    request<{ ok: boolean; enqueued: number; candidates: number; notice: string | null }>(
-      '/api/admin/downloads/enqueue-favorites',
-      { method: 'POST' },
-    ),
 
   cleanupDownloads: () =>
     request<{ ok: boolean; orphansRemoved: number; evictedForSpace: number }>(

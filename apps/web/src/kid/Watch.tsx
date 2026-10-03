@@ -30,7 +30,6 @@ export function Watch({ videoId, profileId, onQuotaBlocked }: WatchProps): React
   const [error, setError] = useState<string | null>(null)
   const [playerState, setPlayerState] = useState<PlayerState>(INITIAL_STATE)
   const [controlsVisible, setControlsVisible] = useState(true)
-  const [isFavorite, setIsFavorite] = useState(false)
   const [ended, setEnded] = useState(false)
   const [embedBlocked, setEmbedBlocked] = useState(false)
 
@@ -71,7 +70,6 @@ export function Watch({ videoId, profileId, onQuotaBlocked }: WatchProps): React
           return
         }
         setInfo(data)
-        setIsFavorite(data.video?.isFavorite ?? false)
       })
       .catch((err: unknown) => {
         if (cancelled) return
@@ -252,11 +250,6 @@ export function Watch({ videoId, profileId, onQuotaBlocked }: WatchProps): React
     return () => window.removeEventListener('keydown', onKey, true)
   }, [showControls, goHome])
 
-  const toggleFavorite = useCallback(() => {
-    if (!info?.video) return
-    void kidApi.toggleFavorite(profileId, info.video.id).then((r) => setIsFavorite(r.isFavorite))
-  }, [info, profileId])
-
   // ─── Render ────────────────────────────────────────────────────────
 
   if (loading) {
@@ -359,7 +352,6 @@ export function Watch({ videoId, profileId, onQuotaBlocked }: WatchProps): React
           state={playerState}
           visible={controlsVisible}
           title={info.video.title}
-          isFavorite={isFavorite}
           hasNext={info.next !== null}
           onHome={goHome}
           onToggle={() => {
@@ -379,7 +371,6 @@ export function Watch({ videoId, profileId, onQuotaBlocked }: WatchProps): React
             adapterRef.current?.setMuted(v === 0)
             showControls()
           }}
-          onToggleFavorite={toggleFavorite}
           onNext={() => {
             if (info.next) navigate(`/watch/${info.next.id}`)
           }}

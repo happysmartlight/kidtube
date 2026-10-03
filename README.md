@@ -31,7 +31,7 @@ tháng sau đăng gì bạn không kiểm soát được.
 - Chọn bé bằng avatar con vật, không mật khẩu
 - Kệ ngang cuộn được, thumbnail to, chữ ít
 - Hoạt động cả **cảm ứng (tablet)** và **remote (TV LG)**
-- Yêu thích ❤️, danh sách theo kênh
+- Tab Kênh: xem ngẫu nhiên video đã duyệt, lọc theo kênh
 - Không thoát ra YouTube được: overlay chặn 100% click vào iframe
 
 **Cho bố mẹ**
@@ -229,13 +229,10 @@ Vài điều nên biết:
 Mặc định **TẮT**. Bật ở *Cài đặt → Tải video về máy*.
 
 **Bật công tắc thôi chưa tải gì cả** — nó chỉ cho phép hàng đợi chạy. Bạn vẫn
-phải chỉ ra video nào cần tải, bằng một trong ba cách:
+phải chỉ ra video nào cần tải, bằng một trong hai cách:
 
 - *Hàng chờ duyệt* → thẻ **Đã duyệt** → bấm **⬇** ngay dưới video.
 - Chọn nhiều video rồi bấm **⬇ Tải offline** ở thanh thao tác phía trên.
-- *Tải offline* → **❤️ Tải video yêu thích**: xếp hàng mọi video con đã đánh
-  dấu ❤️. Muốn việc này tự chạy mỗi lần con thích thêm video mới thì bật
-  *Cài đặt → Tự tải video con đánh dấu yêu thích*.
 
 Tiến độ xem ở tab *Tải offline*. Worker chạy mỗi 30 giây, nhưng khi bạn bấm nút
 thì nó chạy ngay.
@@ -249,8 +246,7 @@ Lợi ích:
 
 Cơ chế: `yt-dlp` tải 720p về `/media`, **một video một lúc** (Pi ghi SSD qua
 USB3, chạy song song sẽ nghẽn và ảnh hưởng video đang phát). Vượt hạn mức dung
-lượng thì tự xoá video ít xem nhất — video trong danh sách yêu thích không bao
-giờ bị xoá.
+lượng thì tự xoá video ít xem nhất trước.
 
 Định dạng tải về ưu tiên **H.264 + AAC**, không phải bản nhỏ nhất. Để mặc định
 thì yt-dlp chọn AV1 + Opus, nhẹ hơn gần một nửa, nhưng TV LG phát bằng trình

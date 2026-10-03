@@ -100,14 +100,6 @@ CREATE TABLE IF NOT EXISTS profile_shelves (
   PRIMARY KEY (profile_id, shelf_id)
 );
 
--- === Yeu thich ========================================================
-CREATE TABLE IF NOT EXISTS favorites (
-  profile_id INTEGER NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
-  video_id   INTEGER NOT NULL REFERENCES videos(id)   ON DELETE CASCADE,
-  created_at TEXT    NOT NULL DEFAULT (datetime('now')),
-  PRIMARY KEY (profile_id, video_id)
-);
-
 -- === Nhat ky xem ======================================================
 CREATE TABLE IF NOT EXISTS watch_log (
   id              INTEGER PRIMARY KEY AUTOINCREMENT,

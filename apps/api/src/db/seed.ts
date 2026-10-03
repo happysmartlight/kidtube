@@ -14,7 +14,6 @@ const DEFAULT_SETTINGS: Record<string, string> = {
   // Offline
   offline_enabled: '0', // mac dinh TAT (dieu khoan YouTube la vung xam)
   offline_max_gb: '20',
-  offline_auto_favorites: '0', // tu tai video trong ke Yeu thich
   // Giao dien
   ui_mode_override: 'auto', // auto | touch | tv
   sfx_enabled: '1',

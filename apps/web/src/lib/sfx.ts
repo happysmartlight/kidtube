@@ -74,11 +74,6 @@ export const sfx = {
     tone(880, 550, 90, 0.07)
   },
 
-  /** Them/bo yeu thich. */
-  heart(): void {
-    tone(880, 1320, 120, 0.08, 'triangle')
-  },
-
   /** Sap het gio — 3 not chuong diu, khong gay lo. */
   warn(): void {
     if (!enabled || !ctx) return

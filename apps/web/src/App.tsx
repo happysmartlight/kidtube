@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { AdminApp } from '@/admin/AdminApp'
-import { Channels, Favorites, Home } from '@/kid/Home'
+import { Channels, Home } from '@/kid/Home'
 import { KidShell, type KidTab } from '@/kid/KidShell'
 import { ProfilePick } from '@/kid/ProfilePick'
 import { TimeUp } from '@/kid/TimeUp'
@@ -217,8 +217,7 @@ export function App(): React.ReactElement {
   }
 
   // ─── Cac trang trong shell ─────────────────────────────────────────
-  const tab: KidTab =
-    path === '/favorites' ? 'favorites' : path === '/channels' ? 'channels' : 'home'
+  const tab: KidTab = path === '/channels' ? 'channels' : 'home'
 
   return (
     <>
@@ -236,14 +235,6 @@ export function App(): React.ReactElement {
             config={config}
             onSelect={(v) => navigate(`/watch/${v.id}`)}
             onQuota={handleQuota}
-          />
-        ) : null}
-
-        {tab === 'favorites' ? (
-          <Favorites
-            profileId={profile.id}
-            config={config}
-            onSelect={(v) => navigate(`/watch/${v.id}`)}
           />
         ) : null}
 

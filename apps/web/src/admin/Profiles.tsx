@@ -246,7 +246,7 @@ function ProfileCard({
               small
               variant="danger"
               onClick={() => {
-                if (!window.confirm(`Xoá bé "${p.name}"? Nhật ký xem và danh sách yêu thích sẽ mất.`)) {
+                if (!window.confirm(`Xoá bé "${p.name}"? Nhật ký xem sẽ mất.`)) {
                   return
                 }
                 void adminApi

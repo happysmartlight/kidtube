@@ -14,7 +14,6 @@ const WRITABLE = new Set([
   'autoplay_max',
   'offline_enabled',
   'offline_max_gb',
-  'offline_auto_favorites',
   'ui_mode_override',
   'sfx_enabled',
   'warn_before_min',

@@ -1,11 +1,6 @@
 import type { FastifyBaseLogger } from 'fastify'
 import { getDb, getSettingInt } from './db/index.js'
-import {
-  cleanupOrphanFiles,
-  enforceStorageLimit,
-  enqueueFavorites,
-  tick,
-} from './services/downloader.js'
+import { cleanupOrphanFiles, enforceStorageLimit, tick } from './services/downloader.js'
 import { ingestAllAutoSources } from './services/ingest.js'
 
 /**
@@ -85,9 +80,6 @@ async function runPull(log: FastifyBaseLogger): Promise<void> {
     for (const f of failed) {
       log.warn({ sourceId: f.sourceId, warnings: f.warnings }, 'Nguồn kéo về bị lỗi')
     }
-
-    // Video moi duoc duyet co the can tai ve.
-    enqueueFavorites()
   } catch (err) {
     log.error({ err }, 'Lỗi khi kéo video mới')
   } finally {
@@ -115,17 +107,12 @@ async function housekeeping(log: FastifyBaseLogger): Promise<void> {
     const orphans = await cleanupOrphanFiles()
     const evicted = await enforceStorageLimit()
 
-    // Con vua danh dau ❤️ thi khong nen doi het chu ky keo nguon (mac dinh 6
-    // gio) moi xep hang tai. Chi chay khi bo me bat cai dat tu dong.
-    const favorites = enqueueFavorites().enqueued
-
-    if (closed.changes > 0 || orphans > 0 || evicted > 0 || favorites > 0) {
+    if (closed.changes > 0 || orphans > 0 || evicted > 0) {
       log.info(
         {
           sessionsClosed: closed.changes,
           orphanFilesRemoved: orphans,
           evictedForSpace: evicted,
-          favoritesQueued: favorites,
         },
         'Dọn dẹp xong',
       )

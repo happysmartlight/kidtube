@@ -17,12 +17,12 @@
 --ease-pop: cubic-bezier(.34, 1.56, .64, 1);   /* nảy nhẹ, trẻ thích */
 
 /* mode = touch (tablet) */
---card-w: 180px;  --font-title: 17px;  --font-shelf: 22px;
+--card-w: 180px;  --font-title: 17px;
 --nav-h: 72px;    --tab-h: 48px;
 --safe-pad: 16px; --tap: 72px;         --scale: 1;
 
 /* mode = tv (xa 3m, remote D-pad) */
---card-w: 300px;  --font-title: 24px;  --font-shelf: 34px;
+--card-w: 300px;  --font-title: 24px;
 --nav-h: 92px;    --tab-h: 62px;
 --safe-pad: 5%;   --tap: 88px;         --scale: 1.4;
 ```
@@ -71,17 +71,17 @@ Focus ring vàng trên nền tối: ~11:1.
 │  └──────┘└──────┘└──────┘└──────┘└──────┘            │
 │              ⬇️ Xem thêm (còn 640)                   │
 ├──────────────────────────────────────────────────────┤
-│ 🐻Bảo      🏠      ❤️      📺      ⏱ Còn 23'    ⚙  │  thanh dưới 72px
+│ 🐻Bảo          🏠      📺          ⏱ Còn 23'    ⚙  │  thanh dưới 72px
 └──────────────────────────────────────────────────────┘
 ```
 
 **Chỉ có MỘT thanh điều khiển, nằm dưới.** Avatar bé (đổi bé), đồng hồ và nút
 ⚙ trước đây ở header riêng phía trên; đã gộp xuống đây vì cả ba đều là *điều
 khiển* chứ không phải *nội dung*. Đỉnh màn hình nhường hết cho hàng nút chọn
-chủ đề. Hai cụm hai bên dùng `flex: 1` để ba nút chính luôn nằm chính giữa dù
+chủ đề. Hai cụm hai bên dùng `flex: 1` để hai nút chính luôn nằm chính giữa dù
 tên bé dài ngắn khác nhau.
 
-Màn hình hẹp thì bỏ chữ theo thứ tự: tên bé (≤820px) → nhãn 3 nút chính và
+Màn hình hẹp thì bỏ chữ theo thứ tự: tên bé (≤820px) → nhãn 2 nút chính và
 thu nhỏ đồng hồ + nút ⚙ (≤640px). Emoji và avatar luôn giữ — đó là thứ trẻ
 nhận dạng bằng mắt.
 
@@ -95,7 +95,7 @@ nhau là thứ trẻ phải học hai lần.
 ```
 ┌────────────────────┐
 │                    │  thumbnail 16:9, object-cover
-│                 ⬇  │  badge góc: ⬇ đã tải / ❤️ yêu thích
+│                 ⬇  │  badge góc: ⬇ đã tải
 │              12:04 │  thời lượng góc phải dưới
 ├────────────────────┤
 │ Tên video chỉ hai  │  max 2 dòng, line-clamp
@@ -113,7 +113,7 @@ Transition 180ms `--ease-pop`.
 │         ┌─ overlay chặn 100% pointer ─┐               │
 │                                                       │
 │  ┌─ thanh điều khiển (ẩn sau 3s, tap để hiện) ─────┐ │
-│  │  🏠   ⏪10   ▶️/⏸   ⏩10   ━━━●────  🔊  ❤️    │ │
+│  │  🏠   ⏪10   ▶️/⏸   ⏩10   ━━━●────  🔊        │ │
 │  └───────────────────────────────────────────────────┘ │
 └──────────────────────────────────────────────────────┘
 ```

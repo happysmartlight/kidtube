@@ -52,7 +52,6 @@ interface KidVideo {
   durationSec: number | null
   channelTitle: string | null
   hasLocal: boolean
-  isFavorite: boolean
 }
 
 const KID_VIDEO_COLUMNS = `
@@ -62,8 +61,7 @@ const KID_VIDEO_COLUMNS = `
   v.thumbnail     AS thumbnail,
   v.duration_sec  AS durationSec,
   v.channel_title AS channelTitle,
-  (v.local_path IS NOT NULL) AS hasLocalRaw,
-  EXISTS (SELECT 1 FROM favorites f WHERE f.video_id = v.id AND f.profile_id = @pid) AS isFavoriteRaw`
+  (v.local_path IS NOT NULL) AS hasLocalRaw`
 
 interface RawKidVideo {
   id: number
@@ -73,7 +71,6 @@ interface RawKidVideo {
   durationSec: number | null
   channelTitle: string | null
   hasLocalRaw: number
-  isFavoriteRaw: number
 }
 
 function toKidVideo(r: RawKidVideo): KidVideo {
@@ -85,7 +82,6 @@ function toKidVideo(r: RawKidVideo): KidVideo {
     durationSec: r.durationSec,
     channelTitle: r.channelTitle,
     hasLocal: r.hasLocalRaw === 1,
-    isFavorite: r.isFavoriteRaw === 1,
   }
 }
 
@@ -160,21 +156,6 @@ export async function kidRoutes(app: FastifyInstance): Promise<void> {
 
     // Ke rong thi khong hien — tre bam vao roi thay trang se thay la.
     return { shelves: rows.filter((s) => s.total > 0), quota: computeQuota(pid) }
-  })
-
-  app.get<{ Querystring: { profileId?: string } }>('/api/kid/favorites', async (req) => {
-    const pid = requireProfileId(req.query.profileId)
-    const rows = getDb()
-      .prepare<{ pid: number }, RawKidVideo>(
-        `SELECT ${KID_VIDEO_COLUMNS}
-           FROM favorites f
-           JOIN videos v ON v.id = f.video_id
-          WHERE f.profile_id = @pid
-            AND ${VISIBLE}
-          ORDER BY f.created_at DESC`,
-      )
-      .all({ pid })
-    return { videos: rows.map(toKidVideo) }
   })
 
   /**
@@ -267,7 +248,7 @@ export async function kidRoutes(app: FastifyInstance): Promise<void> {
       touchSession(pid)
 
       const videos = db
-        .prepare<{ pid: number; shelfId: number; lim: number; off: number }, RawKidVideo>(
+        .prepare<{ shelfId: number; lim: number; off: number }, RawKidVideo>(
           `SELECT ${KID_VIDEO_COLUMNS}
              FROM shelf_items si
              JOIN videos v ON v.id = si.video_id
@@ -277,7 +258,7 @@ export async function kidRoutes(app: FastifyInstance): Promise<void> {
             ORDER BY si.position, si.id
             LIMIT @lim OFFSET @off`,
         )
-        .all({ pid, shelfId, lim: limit, off: offset })
+        .all({ shelfId, lim: limit, off: offset })
         .map(toKidVideo)
 
       const total =
@@ -544,36 +525,6 @@ export async function kidRoutes(app: FastifyInstance): Promise<void> {
       if (completed) countVideo(pid)
 
       return { quota: computeQuota(pid) }
-    },
-  )
-
-  app.post<{ Body: { profileId?: number; videoId?: number } }>(
-    '/api/kid/favorite',
-    async (req) => {
-      const pid = requireProfileId(req.body?.profileId)
-      const videoId = Number(req.body?.videoId)
-      const db = getDb()
-
-      const allowed = db
-        .prepare<{ pid: number; id: number }, { id: number }>(
-          `SELECT v.id FROM videos v WHERE v.id = @id AND ${VISIBLE}`,
-        )
-        .get({ pid, id: videoId })
-      if (!allowed) throw notFound('Video này không xem được')
-
-      const existing = db
-        .prepare<[number, number], { profile_id: number }>(
-          'SELECT profile_id FROM favorites WHERE profile_id = ? AND video_id = ?',
-        )
-        .get(pid, videoId)
-
-      if (existing) {
-        db.prepare('DELETE FROM favorites WHERE profile_id = ? AND video_id = ?').run(pid, videoId)
-        return { isFavorite: false }
-      }
-
-      db.prepare('INSERT INTO favorites (profile_id, video_id) VALUES (?, ?)').run(pid, videoId)
-      return { isFavorite: true }
     },
   )
 

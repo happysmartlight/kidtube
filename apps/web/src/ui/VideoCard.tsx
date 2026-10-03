@@ -41,14 +41,6 @@ export function VideoCard({
 
         {/* Huy hieu goc tren-phai */}
         <div className="absolute top-2 right-2 flex gap-1.5">
-          {video.isFavorite ? (
-            <span
-              className="rounded-full bg-black/65 px-2 py-1 text-base leading-none backdrop-blur-sm"
-              aria-label="Yêu thích"
-            >
-              ❤️
-            </span>
-          ) : null}
           {showDownloadBadge && video.hasLocal ? (
             <span
               className="rounded-full bg-black/65 px-2 py-1 text-base leading-none backdrop-blur-sm"
