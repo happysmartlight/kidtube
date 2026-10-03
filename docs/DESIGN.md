@@ -159,6 +159,14 @@ Transition 180ms `--ease-pop`.
 ```
 Nút trong thanh: 64px (touch) / 88px (tv). Nút ▶️ giữa to hơn 1.4×.
 
+Điện thoại dọc (≤640px): một hàng cần ~568px nên các nút cuối tràn ra ngoài
+màn hình -> chia HAI hàng, hàng chính (bấm nhiều nhất) ở dưới cùng cho dễ với:
+```
+  [🏠]          0:03 / 0:38          [🔊]
+        [⏪]  [  ⏸  ]  [⏩]  [⏭]
+```
+Nút co giãn `clamp(52px, 15vw, 64px)` — vừa 320px. Rộng hơn 640px giữ một hàng.
+
 ## Quy tắc D-pad (TV)
 
 | Phím | Hành vi |

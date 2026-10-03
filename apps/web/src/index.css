@@ -612,6 +612,61 @@ body {
 }
 
 
+/* ═══ Thanh dieu khien trinh phat (player/Controls.tsx) ══════════════
+   Rong: MOT hang — [🏠] [⏪ ⏯ ⏩ ⏭] ...... thoi gian [🔊].
+   Mot hang can ~568px (do bang Edge), them cho cho thoi luong dai kieu
+   "1:04:30 / 1:04:30" -> nguong 640px. Ben duoi la HAI hang (xem @media). */
+.kctrl {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.kctrl-transport {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.kctrl-time {
+  margin-left: auto; /* day thoi gian + 🔊 sang phai */
+  white-space: nowrap;
+}
+
+/* Dien thoai doc: hai hang. Hang CHINH (⏪ ⏯ ⏩ ⏭) o DUOI CUNG, can giua —
+   nut phat/tam dung la nut tre bam nhieu nhat, va ngon cai voi day man hinh
+   de nhat. Hang phu o tren: 🏠 trai, thoi gian giua, 🔊 phai.
+   Nut co gian theo be rong: 52px o 320px -> 64px (bang man hinh rong) tu
+   ~427px; hang chinh 3 nut + nut phat 1.4x + 3 khe vua 320px. Grid chi dung
+   o day (dien thoai doi moi); TV/man hinh rong van la flex nhu cu. */
+@media (max-width: 640px) {
+  .kctrl {
+    --ctrl-btn: clamp(52px, 15vw, 64px);
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    grid-template-areas:
+      'home time vol'
+      'transport transport transport';
+    row-gap: 12px;
+    column-gap: 10px;
+  }
+  .kctrl-home {
+    grid-area: home;
+  }
+  .kctrl-time {
+    grid-area: time;
+    justify-self: center;
+    margin-left: 0;
+  }
+  .kctrl-vol {
+    grid-area: vol;
+  }
+  .kctrl-transport {
+    grid-area: transport;
+    justify-self: center;
+  }
+}
+
 .kbtn {
   min-width: var(--tap);
   min-height: var(--tap);

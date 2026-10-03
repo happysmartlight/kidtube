@@ -81,11 +81,22 @@ export function Controls({
         </div>
       </div>
 
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2.5">
+      {/*
+        Bo cuc do CSS quyet (.kctrl trong index.css):
+          rong : [🏠] [⏪ ⏯ ⏩ ⏭] ............ 0:03 / 0:38 [🔊]   — mot hang
+          hep  : [🏠] ...... 0:03 / 0:38 ...... [🔊]             — hai hang
+                       [⏪] [ ⏯ ] [⏩] [⏭]
+        Mot hang can ~568px; man hinh doc dien thoai (~360-412px) thi cac nut
+        cuoi tran ra ngoai man hinh. Thu tu DOM giu nguyen cho D-pad.
+      */}
+      <div className="kctrl">
+        <div className="kctrl-home">
           <CtrlButton label="Về trang chủ" onClick={onHome} sound="back">
             🏠
           </CtrlButton>
+        </div>
+
+        <div className="kctrl-transport">
           <CtrlButton label="Lùi 10 giây" onClick={() => onSeekBy(-10)} sound="none">
             ⏪
           </CtrlButton>
@@ -107,14 +118,14 @@ export function Controls({
           ) : null}
         </div>
 
-        <div className="flex items-center gap-2.5">
-          <span
-            className="tabular-nums"
-            style={{ fontSize: 'calc(var(--font-title) * 0.95)', color: 'var(--text-dim)' }}
-          >
-            {formatDuration(state.time)} / {formatDuration(state.duration)}
-          </span>
+        <span
+          className="kctrl-time tabular-nums"
+          style={{ fontSize: 'calc(var(--font-title) * 0.95)', color: 'var(--text-dim)' }}
+        >
+          {formatDuration(state.time)} / {formatDuration(state.duration)}
+        </span>
 
+        <div className="kctrl-vol">
           <CtrlButton
             label={state.muted || state.volume === 0 ? 'Bật tiếng' : 'Tắt tiếng'}
             onClick={() => onVolume(state.muted || state.volume === 0 ? 1 : 0)}
@@ -148,7 +159,9 @@ function CtrlButton({
       aria-label={label}
       title={label}
       sound={sound}
-      className="grid place-items-center rounded-full"
+      // shrink-0: khong cho flex bop nut tron thanh hinh bau duc / nho lai
+      // (nut 🔊 tung bi ep tu 64 xuong 44px khi hang chat).
+      className="grid shrink-0 place-items-center rounded-full"
       style={{
         width: size,
         height: size,
