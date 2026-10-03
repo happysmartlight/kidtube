@@ -26,7 +26,8 @@ interface TopicTabsProps {
 }
 
 /**
- * Hang nut chon chu de, dinh o dau vung cuon.
+ * Hang nut chon chu de, nam yen tren dau luoi video (luoi cuon ben duoi —
+ * xem KidPage trong KidShell.tsx).
  *
  * Vi sao can: truoc day trang chu xep cac ke chong len nhau theo chieu doc.
  * Ke dau co nhieu video thi tre phai cuon rat lau moi biet ben duoi con ke
@@ -78,7 +79,7 @@ export function TopicTabs({
               onClick={() => onSelect(t.id)}
               style={
                 on
-                  ? { background: t.color, color: '#1a1526' }
+                  ? { background: t.color, color: '#111111' }
                   : { background: 'var(--card)', color: 'var(--text)' }
               }
             >

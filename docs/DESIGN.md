@@ -38,23 +38,46 @@ Nội dung sát mép sẽ bị mất trên TV cũ.
 
 ## Bảng màu
 
-Nền tối dịu (không đen thuần — đỡ chói khi xem tối), các kệ màu pastel.
+Hai bảng màu, tách bằng token CSS:
+
+**Giao diện của bé** (`:root`) — tối, gần cảm giác YouTube Kids để bé quen mắt.
+Chỉ giống *màu sắc*, không dùng logo hay tên của YouTube Kids.
 
 ```
-Nền:        #16131f  (tím đen rất đậm)
-Nền card:   #241f33
-Chữ chính:  #f6f3ff      Chữ phụ: #a79cc4
-Focus ring: #ffd23f  (vàng, tương phản cao trên mọi thumbnail)
+Nền:        chuyển màu trên <body> (đứng yên khi lưới cuộn):
+              đỏ đậm  rgba(176,0,32,.5)   từ góc trên-trái
+              xanh dương đậm rgba(18,52,170,.55) từ góc trên-phải
+              tan dần về #050507 (gần đen) ở ~3/4 màn hình
+Thanh dưới: dải màu RIÊNG, lặp lại tông đỉnh màn hình nhưng tối hơn một bậc:
+              #4c0716 (đỏ) → #1d0f2b (tím sẫm) → #0d1c56 (xanh dương)
+            → màn hình "đóng khung" màu ở trên và dưới, giữa tối cho lưới video
+Card, nút:  trắng BÁN TRONG SUỐT  rgba(255,255,255,.08) / .14 (đậm hơn)
+            → ăn vào nền chuyển màu, không thành mảng xám đặc
+Chữ chính:  #ffffff      Chữ phụ: #b4b4c0
+Màu nhấn:   #ff0033  (đỏ YouTube) — thanh tiến độ, nút phát, nút chính,
+            vòng tải, chấm PIN. Dùng ít, đúng chỗ (theo hướng dẫn thương hiệu).
+Focus ring: #ffffff  (trắng) — nổi trên mọi thumbnail và cả trên nút đỏ.
+            Card / nút kệ dùng vòng MÀU CỦA KỆ; nút kệ đang chọn dùng vòng trắng.
 
-Màu kệ (pastel, dùng cho viền + nhãn + glow):
+Màu kệ (bố mẹ chọn, dùng cho nền nút kệ đang chọn + viền focus của card):
   đỏ hồng  #ff6b8a      cam     #ff9f43
   vàng     #ffd23f      xanh lá #4ecb71
   xanh lơ  #4ecdc4      xanh dương #5b9cff
   tím      #a78bfa      hồng    #f472b6
 ```
 
-Tương phản chữ chính trên nền: ~14:1 — vượt WCAG AAA.
-Focus ring vàng trên nền tối: ~11:1.
+Hàng nút kệ nằm NGOÀI vùng cuộn (`KidPage` trong `KidShell.tsx`) nên trong
+suốt được — nếu để nó dính (sticky) trong vùng cuộn thì phải có nền đặc để che
+card cuộn qua, và nền đặc đó che đúng phần màu đậm nhất của nền chuyển màu.
+
+**Trang bố mẹ** (`[data-admin]`) — giữ bảng màu cũ, bé không nhìn thấy trang này:
+
+```
+Nền: #16131f (tím đen)   Card: #241f33   Chữ: #f6f3ff / #a79cc4
+Nhấn + focus: #ffd23f (vàng)
+```
+
+Hằng `C` trong `lib/color.ts` khớp với bảng màu trang bố mẹ.
 
 ## Bố cục
 
@@ -62,7 +85,7 @@ Focus ring vàng trên nền tối: ~11:1.
 ```
 ┌──────────────────────────────────────────────────────┐
 │ (⭐HÔM NAY 700)(🎤BÀI HÁT 100)(🔢HỌC CHỮ 60)  →      │  nút chọn chủ đề,
-├──────────────────────────────────────────────────────┤  DÍNH, --tab-h 48px
+├──────────────────────────────────────────────────────┤  ĐỨNG YÊN, --tab-h 48px
 │  ┌──────┐┌──────┐┌──────┐┌──────┐┌──────┐            │  lưới của kệ đang
 │  └──────┘└──────┘└──────┘└──────┘└──────┘            │  chọn, auto-fill,
 │  ┌──────┐┌──────┐┌──────┐┌──────┐┌──────┐            │  CUỘN DỌC
@@ -87,7 +110,8 @@ nhận dạng bằng mắt.
 
 Trang chủ KHÔNG xếp chồng các kệ theo chiều dọc nữa. Lý do: kệ đầu có hàng
 trăm video thì trẻ phải cuộn rất lâu mới tới kệ sau — thực tế là không bao
-giờ biết bên dưới có gì. Hàng nút dính ở đầu cho mọi chủ đề cách một cú chạm.
+giờ biết bên dưới có gì. Hàng nút luôn nằm trên đầu lưới (lưới cuộn bên dưới,
+hàng nút đứng yên) nên mọi chủ đề đều cách một cú chạm.
 Tab **Kênh** dùng y hệt bố cục này (nguồn dữ liệu khác) — hai layout khác
 nhau là thứ trẻ phải học hai lần.
 

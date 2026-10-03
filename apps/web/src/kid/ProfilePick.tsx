@@ -5,7 +5,7 @@ import { EmptyState, Spinner } from '@/ui/Spinner'
 import { FocusButton } from '@/ui/Focusable'
 import { ParentGateButton } from '@/ui/ParentGate'
 import { tryFullscreen } from '@/lib/tv'
-import { CARD_HI, mix } from '@/lib/color'
+import { withAlpha } from '@/lib/color'
 
 interface ProfilePickProps {
   onPick: (profile: KidProfile) => void
@@ -83,7 +83,7 @@ export function ProfilePick({ onPick, onOpenParentGate }: ProfilePickProps): Rea
                     width: 132,
                     height: 132,
                     fontSize: 72,
-                    background: mix(p.color, CARD_HI, 0.26),
+                    background: withAlpha(p.color, 0.26),
                     border: `4px solid ${p.color}`,
                     lineHeight: 1,
                   }}

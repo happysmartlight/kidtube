@@ -220,7 +220,7 @@ export function PinDialog({
   return (
     <div
       className="fixed inset-0 z-50 grid place-items-center p-6"
-      style={{ background: 'rgba(8, 6, 14, 0.88)', backdropFilter: 'blur(6px)' }}
+      style={{ background: 'var(--scrim)', backdropFilter: 'blur(6px)' }}
       role="dialog"
       aria-modal="true"
       aria-label="Nhập PIN của bố mẹ"

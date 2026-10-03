@@ -11,22 +11,31 @@
    ═══════════════════════════════════════════════════════════════════ */
 
 :root {
-  /* Mau nen — app cam ket mot giao dien toi diu (khong den thuan, do choi
-     khi xem buoi toi). Khong co che do sang: day la app chay tren thiet bi
-     rieng trong nha, khong phai trang web cong khai. */
-  --bg: #16131f;
-  --bg-elev: #1e1a2b;
-  --card: #241f33;
-  --card-hi: #2f2942;
-  --text: #f6f3ff;
-  --text-dim: #a79cc4;
+  /* ── Giao dien cua BE: toi, gan voi cam giac YouTube Kids ─────────
+     Nen chuyen mau do dam + xanh duong dam, tan dan ve den (xem body).
+     Mau nhan la do YouTube #FF0033 (thanh tien do, nut phat, nut chinh) —
+     dung it, dung cho. Be mat (card, nut) la trang BAN TRONG SUOT de an vao
+     nen chuyen mau thay vi thanh mang xam dac.
+     Khong co che do sang: app chay tren thiet bi rieng trong nha. */
+  --bg: #050507;
+  --bg-elev: #17171e; /* hop thoai (nhap PIN) — DAC, nam tren lop toi */
+  --card: rgba(255, 255, 255, 0.08);
+  --card-hi: rgba(255, 255, 255, 0.14);
+  --text: #ffffff;
+  --text-dim: #b4b4c0;
 
-  /* Mau nhan manh + cac bien the TINH TRUOC (thay cho color-mix) */
-  --focus: #ffd23f;
-  --focus-glow: rgba(255, 210, 63, 0.55);
-  --focus-bg: rgba(255, 210, 63, 0.16);
-  --focus-border: rgba(255, 210, 63, 0.42);
-  --focus-ink: #2a1f00;
+  /* Mau nhan (ten bien giu la --focus de khong doi hang chuc cho dung) +
+     cac bien the TINH TRUOC (thay cho color-mix) */
+  --focus: #ff0033;
+  --focus-glow: rgba(255, 0, 51, 0.5);
+  --focus-bg: rgba(255, 0, 51, 0.16);
+  --focus-border: rgba(255, 0, 51, 0.42);
+  --focus-ink: #ffffff;
+
+  /* Vong focus mac dinh: TRANG — noi tren moi thumbnail va tren ca nut do.
+     Tach rieng khoi --focus: vong do tren nut do se bien mat. */
+  --ring: #ffffff;
+  --ring-halo: rgba(255, 255, 255, 0.35);
 
   --danger: #ff6b8a;
   --danger-bg: rgba(255, 107, 138, 0.18);
@@ -40,8 +49,8 @@
   --warn-bg: rgba(255, 159, 67, 0.14);
   --warn-border: rgba(255, 159, 67, 0.36);
 
-  --hairline: rgba(246, 243, 255, 0.16);
-  --scrim: rgba(8, 6, 14, 0.88);
+  --hairline: rgba(255, 255, 255, 0.16);
+  --scrim: rgba(0, 0, 0, 0.84);
   --overlay-chip: rgba(0, 0, 0, 0.68);
 
   /* Chung cho moi mode */
@@ -95,9 +104,18 @@ body,
   height: 100%;
 }
 
+/* Nen chuyen mau cua giao dien be: do dam goc tren-trai, xanh duong dam goc
+   tren-phai, tan dan ve den o duoi. Dat tren BODY (khong cuon) nen dung yen
+   khi luoi video cuon — moi lop phia tren (thanh nut, thanh duoi, card) deu
+   trong suot hoac ban trong suot de nen nay lo ra.
+   Chi dung rgba + radial/linear-gradient: TV LG doi cu deu ho tro. */
 body {
   margin: 0;
-  background: var(--bg);
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(120% 100% at 0% 0%, rgba(176, 0, 32, 0.5), rgba(176, 0, 32, 0) 70%),
+    radial-gradient(120% 100% at 100% 0%, rgba(18, 52, 170, 0.55), rgba(18, 52, 170, 0) 70%),
+    linear-gradient(180deg, #0c0a14 0%, #050507 80%);
   color: var(--text);
   font-family: 'Baloo 2', 'Nunito', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   font-weight: 600;
@@ -108,8 +126,28 @@ body {
   -webkit-user-select: none;
 }
 
-/* Cho phep chon van ban trong trang quan tri (bo me can copy link) */
+/* Trang quan tri GIU bang mau rieng (tim toi + nhan vang) — tre khong nhin
+   thay trang nay, khong can giong YouTube Kids. Ghi de token ngay tai goc
+   [data-admin] nen moi thu ben trong (ke ca toast) doc gia tri nay.
+   Giu dong bo voi `C` trong lib/color.ts (admin dung C cho Badge/Alert). */
 [data-admin] {
+  --bg: #16131f;
+  --bg-elev: #1e1a2b;
+  --card: #241f33;
+  --card-hi: #2f2942;
+  --text: #f6f3ff;
+  --text-dim: #a79cc4;
+  --focus: #ffd23f;
+  --focus-glow: rgba(255, 210, 63, 0.55);
+  --focus-bg: rgba(255, 210, 63, 0.16);
+  --focus-border: rgba(255, 210, 63, 0.42);
+  --focus-ink: #2a1f00;
+  --ring: #ffd23f;
+  --ring-halo: rgba(255, 210, 63, 0.55);
+  --hairline: rgba(246, 243, 255, 0.16);
+  --scrim: rgba(8, 6, 14, 0.88);
+
+  /* Cho phep chon van ban trong trang quan tri (bo me can copy link) */
   user-select: text;
   -webkit-user-select: text;
 }
@@ -136,8 +174,8 @@ body {
 .focusable:focus {
   transform: scale(1.08);
   box-shadow:
-    0 0 0 var(--focus-ring) var(--ring-color, var(--focus)),
-    0 0 32px -4px var(--ring-glow, var(--focus-glow));
+    0 0 0 var(--focus-ring) var(--ring-color, var(--ring)),
+    0 0 32px -4px var(--ring-halo);
   z-index: 5;
   position: relative;
 }
@@ -227,25 +265,22 @@ body {
   width: 100%;
 }
 
-/* Hang nut chon chu de truot de len tren khi cuon, nen card o hang dau
-   phai chua san khoang trong — khong co cai nay thi card dang focus bi
-   hang nut che mat khi dung D-pad cuon len.
-   Cong thuc phai khop chieu cao THUC cua thanh: --tab-h + padding doc
-   (8px x 2) + chut du cho ring focus. */
+/* Card dang focus phong to 1.08 + vong 4px. Khi D-pad cuon toi no, chua
+   khoang trong bang mot nhip luoi o mep vung cuon de phan phong to va vong
+   khong bi mep vung cuon cat mat. */
 .kgrid .kcard {
-  scroll-margin-top: calc(var(--tab-h) + 24px);
+  scroll-margin: var(--gap-card);
 }
 
 /* ═══ Hang nut chon chu de (ke / kenh) ════════════════════════════
-   Dinh o dau vung cuon de tre LUON thay co nhung chu de nao, khong phai
-   cuon het ke thu nhat moi biet ben duoi con gi. */
+   Luon nam tren dau luoi video de tre LUON thay co nhung chu de nao, khong
+   phai cuon het ke thu nhat moi biet ben duoi con gi. */
+/* Nam NGOAI vung cuon (xem KidPage trong KidShell.tsx) chu khong dinh
+   (sticky) trong no: luoi video cuon ben duoi, khong luon qua thanh nay, nen
+   thanh khong can nen dac de che — de trong suot cho nen chuyen mau lo ra.
+   Nen dac o day se thanh mot mang toi che dung phan mau dam nhat. */
 .ktabs-wrap {
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  background: var(--bg);
-  /* Vien mo duoi de card cuon qua van thay ranh gioi */
-  box-shadow: 0 6px 16px -10px rgba(0, 0, 0, 0.9);
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
 }
@@ -369,8 +404,14 @@ body {
      bop vung chua noi dung lai. */
   height: calc(var(--nav-h) + env(safe-area-inset-bottom));
   padding: 0 var(--safe-pad) env(safe-area-inset-bottom);
-  background: var(--bg-elev);
-  border-top: 2px solid var(--card);
+  /* Dai mau rieng, lap lai tong cua dinh man hinh (do dam trai -> tim sam
+     giua -> xanh duong dam phai): nen chuyen mau cua body da tan ve den o
+     day, nen neu de trong suot thanh nay chi la mot mang den. Mau DAC —
+     khong co gi cuon duoi thanh nay (no la anh em cua vung cuon). Toi hon
+     dinh man hinh mot bac de noi dung (luoi video) van la thu noi nhat.
+     Cac cum nut ben trong la trang ban trong suot -> tu an theo dai mau. */
+  background: linear-gradient(90deg, #4c0716 0%, #1d0f2b 50%, #0d1c56 100%);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 /* Hai ben co cung `flex: 1` de cum ba nut chinh luon nam CHINH GIUA man

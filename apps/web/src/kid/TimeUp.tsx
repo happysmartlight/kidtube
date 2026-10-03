@@ -60,7 +60,8 @@ export function TimeUp({
   return (
     <div
       className="flex h-full flex-col"
-      style={{ padding: 'var(--safe-pad)', background: 'var(--bg)' }}
+      // Khong to nen: de nen chuyen mau cua body lo ra, giong cac trang khac.
+      style={{ padding: 'var(--safe-pad)' }}
     >
       <div className="flex justify-end">
         <ParentGateButton onOpen={onOpenParentGate} />

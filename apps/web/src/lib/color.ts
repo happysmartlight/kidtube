@@ -63,16 +63,13 @@ export function mix(color: string, base: string, ratio: number): string {
   return `rgb(${r}, ${g}, ${bl})`
 }
 
-/** Mau nen card, khop voi --card-hi trong index.css. */
-export const CARD_HI = '#2f2942'
-export const CARD = '#241f33'
-
 /**
- * Bang mau dang HEX.
+ * Bang mau dang HEX cua TRANG QUAN TRI (Badge, Alert, toast...).
  *
  * Phai la hex (khong phai `var(--x)`) vi `withAlpha()`/`mix()` can doc duoc
  * gia tri that de tinh rgba — JS khong doc duoc gia tri cua CSS custom property
- * ma khong goi getComputedStyle. Giu dong bo voi :root trong index.css.
+ * ma khong goi getComputedStyle. Giu dong bo voi khoi [data-admin] trong
+ * index.css — giao dien cua be dung bang mau khac (:root), khong dung C.
  */
 export const C = {
   focus: '#ffd23f',

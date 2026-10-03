@@ -2,7 +2,7 @@ import type { KidProfile, Quota } from '@/lib/api'
 import { formatMinutes } from '@/lib/format'
 import { FocusButton } from '@/ui/Focusable'
 import { ParentGateButton } from '@/ui/ParentGate'
-import { CARD, CARD_HI, mix } from '@/lib/color'
+import { withAlpha } from '@/lib/color'
 
 export type KidTab = 'home' | 'channels'
 
@@ -46,8 +46,10 @@ export function KidShell({
 
   return (
     <div className="flex h-full flex-col">
-      {/* ─── Noi dung (chiem gan het man hinh) ──────────────────── */}
-      <main className="scroll-y min-h-0 flex-1">{children}</main>
+      {/* ─── Noi dung (chiem gan het man hinh) ──────────────────────
+          KHONG tu cuon: moi trang tu chia phan dau co dinh + phan cuon
+          bang <KidPage>. */}
+      <main className="flex min-h-0 flex-1 flex-col">{children}</main>
 
       {/* ─── Thanh duoi: dieu khien + dieu huong ─────────────────── */}
       <nav className="kbar">
@@ -62,7 +64,7 @@ export function KidShell({
           >
             <span
               className="kbar-avatar"
-              style={{ background: mix(profile.color, CARD_HI, 0.3) }}
+              style={{ background: withAlpha(profile.color, 0.3) }}
               aria-hidden="true"
             >
               {profile.avatar}
@@ -80,8 +82,10 @@ export function KidShell({
                 key={t.id}
                 className="kbar-tab"
                 style={{
+                  // Dang chon = chu trang tren nen sang hon; chua chon = chu mo.
+                  // Khong to do o day — mau do de danh cho thanh tien do / nut phat.
                   background: active ? 'var(--card-hi)' : 'transparent',
-                  color: active ? 'var(--focus)' : 'var(--text-dim)',
+                  color: active ? 'var(--text)' : 'var(--text-dim)',
                 }}
                 onClick={() => onTab(t.id)}
                 aria-label={t.label}
@@ -102,7 +106,7 @@ export function KidShell({
             <span
               className="kbar-time"
               style={{
-                background: quota?.warning ? mix('#ff6b8a', CARD, 0.26) : 'var(--card)',
+                background: quota?.warning ? withAlpha('#ff6b8a', 0.26) : 'var(--card)',
                 color: quota?.warning ? 'var(--danger)' : 'var(--text-dim)',
               }}
               // Doc bang giong noi khi doi -> tre dung man hinh doc hieu duoc
@@ -116,6 +120,29 @@ export function KidShell({
         </div>
       </nav>
     </div>
+  )
+}
+
+/**
+ * Bo cuc mot trang trong shell: `header` dung yen o tren, `children` cuon.
+ *
+ * Vi sao khong de ca trang cuon va cho hang nut "dinh" (sticky) nhu truoc:
+ * hang nut dinh phai co nen DAC de che card cuon qua ben duoi, ma nen dac
+ * thi che mat nen chuyen mau dung o phan dam mau nhat (dinh man hinh). Tach
+ * ra thi card khong bao gio luon duoi hang nut, nen hang nut trong suot duoc.
+ */
+export function KidPage({
+  header,
+  children,
+}: {
+  header?: React.ReactNode
+  children: React.ReactNode
+}): React.ReactElement {
+  return (
+    <>
+      {header}
+      <div className="scroll-y min-h-0 flex-1">{children}</div>
+    </>
   )
 }
 

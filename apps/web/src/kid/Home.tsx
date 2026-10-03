@@ -4,6 +4,7 @@ import { useAutoFocus } from '@/nav/spatial'
 import { FocusButton } from '@/ui/Focusable'
 import { Shelf } from '@/ui/Shelf'
 import { EmptyState, Spinner } from '@/ui/Spinner'
+import { KidPage } from './KidShell'
 import { type Topic, TopicTabs } from './TopicTabs'
 
 /** Moi lan "Xem them" lay bao nhieu video. */
@@ -185,18 +186,32 @@ export function Channels({
     }
   }
 
-  if (error) return <EmptyState emoji="🔌" title="Có lỗi" hint={error} />
-  if (catalog === null) return <Spinner label="Đang tải…" />
+  if (error) {
+    return (
+      <KidPage>
+        <EmptyState emoji="🔌" title="Có lỗi" hint={error} />
+      </KidPage>
+    )
+  }
+  if (catalog === null) {
+    return (
+      <KidPage>
+        <Spinner label="Đang tải…" />
+      </KidPage>
+    )
+  }
 
   // Dung tong chu khong dung so kenh: van co the co video ma khong thuoc kenh
   // nao trong danh sach (nguon da tat / da xoa) — van xem duoc o "Tất cả".
   if (catalog.total === 0) {
     return (
-      <EmptyState
-        emoji="🎲"
-        title="Chưa có video nào"
-        hint="Bố mẹ cần duyệt video trong trang quản lý thì ở đây mới có gì để xem."
-      />
+      <KidPage>
+        <EmptyState
+          emoji="🎲"
+          title="Chưa có video nào"
+          hint="Bố mẹ cần duyệt video trong trang quản lý thì ở đây mới có gì để xem."
+        />
+      </KidPage>
     )
   }
 
@@ -212,28 +227,30 @@ export function Channels({
   const canShuffle = selectedTotal > PAGE
 
   return (
-    <>
-      <TopicTabs
-        topics={topics}
-        selectedId={sourceId}
-        onSelect={setSourceId}
-        label="Chọn kênh"
-        leading={
-          canShuffle ? (
-            <FocusButton
-              className="ktab ktab-action"
-              onClick={() => setSeed(newSeed())}
-              aria-label="Làm mới — xem bộ video khác"
-            >
-              <span className="ktab-emoji" aria-hidden="true">
-                🔀
-              </span>
-              <span className="ktab-title">Làm mới</span>
-            </FocusButton>
-          ) : null
-        }
-      />
-
+    <KidPage
+      header={
+        <TopicTabs
+          topics={topics}
+          selectedId={sourceId}
+          onSelect={setSourceId}
+          label="Chọn kênh"
+          leading={
+            canShuffle ? (
+              <FocusButton
+                className="ktab ktab-action"
+                onClick={() => setSeed(newSeed())}
+                aria-label="Làm mới — xem bộ video khác"
+              >
+                <span className="ktab-emoji" aria-hidden="true">
+                  🔀
+                </span>
+                <span className="ktab-title">Làm mới</span>
+              </FocusButton>
+            ) : null
+          }
+        />
+      }
+    >
       <DiscoverVideos
         videos={videos}
         total={total}
@@ -244,7 +261,7 @@ export function Channels({
         onSelect={onSelect}
         onLoadMore={() => void loadMore()}
       />
-    </>
+    </KidPage>
   )
 }
 
@@ -435,33 +452,49 @@ function TopicBrowser({
     }
   }
 
-  if (error) return <EmptyState emoji="🔌" title="Có lỗi" hint={error} />
-  if (!topics) return <Spinner label="Đang tải…" />
+  if (error) {
+    return (
+      <KidPage>
+        <EmptyState emoji="🔌" title="Có lỗi" hint={error} />
+      </KidPage>
+    )
+  }
+  if (!topics) {
+    return (
+      <KidPage>
+        <Spinner label="Đang tải…" />
+      </KidPage>
+    )
+  }
 
   if (topics.length === 0) {
     return (
-      <EmptyState
-        emoji="🧺"
-        title="Chưa có video nào"
-        hint={
-          'Bố mẹ cần duyệt video rồi xếp vào kệ thì con mới xem được. ' +
-          'Giữ icon ⚙ ở góc dưới bên phải 3 giây để vào trang bố mẹ.'
-        }
-      />
+      <KidPage>
+        <EmptyState
+          emoji="🧺"
+          title="Chưa có video nào"
+          hint={
+            'Bố mẹ cần duyệt video rồi xếp vào kệ thì con mới xem được. ' +
+            'Giữ icon ⚙ ở góc dưới bên phải 3 giây để vào trang bố mẹ.'
+          }
+        />
+      </KidPage>
     )
   }
 
   const current = topics.find((t) => t.id === selectedId) ?? topics[0]!
 
   return (
-    <>
-      <TopicTabs
-        topics={topics}
-        selectedId={selectedId}
-        onSelect={setSelectedId}
-        label="Chọn kệ video"
-      />
-
+    <KidPage
+      header={
+        <TopicTabs
+          topics={topics}
+          selectedId={selectedId}
+          onSelect={setSelectedId}
+          label="Chọn kệ video"
+        />
+      }
+    >
       <TopicVideos
         topic={current}
         videos={videos}
@@ -472,7 +505,7 @@ function TopicBrowser({
         onSelect={onSelect}
         onLoadMore={() => void loadMore()}
       />
-    </>
+    </KidPage>
   )
 }
 

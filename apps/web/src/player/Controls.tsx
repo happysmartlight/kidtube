@@ -46,7 +46,7 @@ export function Controls({
         paddingLeft: 'var(--safe-pad)',
         paddingRight: 'var(--safe-pad)',
         paddingBottom: 'max(var(--safe-pad), env(safe-area-inset-bottom))',
-        background: 'linear-gradient(to top, rgba(8,6,14,0.96) 10%, rgba(8,6,14,0) 100%)',
+        background: 'linear-gradient(to top, rgba(0,0,0,0.92) 10%, rgba(0,0,0,0) 100%)',
         paddingTop: 72,
       }}
       // Khi an, khong cho remote focus vao — tranh bay focus vo hinh.
