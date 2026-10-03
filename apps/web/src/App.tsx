@@ -168,8 +168,28 @@ export function App(): React.ReactElement {
 
   const openParentGate = (): void => {
     // Da dang nhap roi thi vao thang, khong hoi PIN lai.
-    if (isParent) navigate('/admin')
-    else setShowPin(true)
+    if (isParent) {
+      navigate('/admin')
+      return
+    }
+
+    // Hoi server MOI LAN chu khong nho tu luc khoi dong: bo me co the vua tat
+    // hoac bat PIN tu mot may khac. Loi bat ky (mat mang, PIN vua bat lai giua
+    // chung) -> roi ve hop nhap PIN nhu binh thuong.
+    void adminApi
+      .me()
+      .then(async (me) => {
+        if (!me.authenticated) {
+          if (me.pinEnabled) {
+            setShowPin(true)
+            return
+          }
+          await adminApi.login('')
+        }
+        setIsParent(true)
+        navigate('/admin')
+      })
+      .catch(() => setShowPin(true))
   }
 
   // ─── Chon be ───────────────────────────────────────────────────────

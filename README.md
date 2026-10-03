@@ -95,6 +95,12 @@ Mở `http://<ip-của-pi>:8477` → giữ icon ⚙ 3 giây → nhập PIN **`00
 ngay từ lần khởi tạo đầu tiên thì thêm `DEFAULT_PIN=…` vào `.env` **trước**
 lần chạy đầu (sau đó biến này không còn tác dụng — PIN đã nằm trong CSDL).
 
+Không muốn dùng PIN (máy chỉ bố mẹ cầm, con còn quá nhỏ)? *Cài đặt → PIN của
+bố mẹ → Không dùng PIN nữa* (phải nhập PIN hiện tại để xác nhận). Từ đó giữ ⚙
+3 giây là vào thẳng — nhưng mọi máy trong mạng nhà cũng mở được trang quản
+trị. Bật lại bằng cách đặt PIN mới ở cùng chỗ; mọi thiết bị đang đăng nhập sẽ
+bị đăng xuất.
+
 (Thay `8477` bằng giá trị `KIDTUBE_PORT` của bạn. Cổng *bên trong* container
 luôn là 8080 — không cần đổi.)
 

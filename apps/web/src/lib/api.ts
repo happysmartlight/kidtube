@@ -417,7 +417,10 @@ export interface DownloadQueueItem {
 // ═══ API quan tri ═══════════════════════════════════════════════════
 
 export const adminApi = {
-  me: () => request<{ authenticated: boolean; pinIsDefault: boolean }>('/api/admin/me'),
+  me: () =>
+    request<{ authenticated: boolean; pinEnabled: boolean; pinIsDefault: boolean }>(
+      '/api/admin/me',
+    ),
 
   login: (pin: string) =>
     request<{ ok: boolean; pinIsDefault: boolean }>('/api/admin/login', {
@@ -427,8 +430,12 @@ export const adminApi = {
 
   logout: () => request<{ ok: boolean }>('/api/admin/logout', { method: 'POST' }),
 
+  /** Doi PIN, hoac bat lai PIN khi dang tat (luc do `currentPin` bo trong). */
   changePin: (currentPin: string, newPin: string) =>
     request<{ ok: boolean }>('/api/admin/pin', { method: 'POST', body: { currentPin, newPin } }),
+
+  disablePin: (currentPin: string) =>
+    request<{ ok: boolean }>('/api/admin/pin/disable', { method: 'POST', body: { currentPin } }),
 
   // Nguon
   sources: () => request<{ sources: AdminSource[] }>('/api/admin/sources'),

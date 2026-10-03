@@ -26,6 +26,17 @@ function safeEqual(a: string, b: string): boolean {
   return timingSafeEqual(ba, bb)
 }
 
+/**
+ * Bo me co the chon KHONG dung PIN: giu nut ⚙ 3 giay la vao thang.
+ * Thieu key = dang dung PIN — mac dinh nghieng ve an toan.
+ *
+ * `pin_enabled` co y KHONG nam trong WRITABLE cua routes/settings.ts: tat PIN
+ * phai di qua /api/admin/pin/disable, noi bat buoc nhap dung PIN hien tai.
+ */
+export function pinEnabled(): boolean {
+  return getSetting('pin_enabled') !== '0'
+}
+
 export function verifyPin(pin: string): boolean {
   const salt = getSetting('pin_salt')
   const hash = getSetting('pin_hash')
@@ -41,7 +52,9 @@ export function setPin(pin: string): void {
   setSetting('pin_salt', salt)
   setSetting('pin_hash', hashPin(pin, salt))
   setSetting('pin_is_default', '0')
+  setSetting('pin_enabled', '1')
   // Doi PIN thi dang xuat moi phien — thiet bi cu khong duoc giu quyen.
+  // Ke ca khi BAT LAI PIN: may nao da vao luc khong co PIN deu phai nhap.
   sessions.clear()
 }
 
@@ -96,6 +109,13 @@ function recordFailure(ip: string): void {
 
 export async function authRoutes(app: FastifyInstance): Promise<void> {
   app.post<{ Body: { pin?: string } }>('/api/admin/login', async (req, reply) => {
+    // Bo me da tat PIN -> cap phien luon. Van di qua phien (thay vi bo qua
+    // requireParent) de "Thoát" va het han 8 gio hoat dong nhu cu.
+    if (!pinEnabled()) {
+      issue(reply)
+      return { ok: true, pinIsDefault: false }
+    }
+
     const ip = req.ip
     const lockedFor = checkLockout(ip)
     if (lockedFor > 0) {
@@ -127,23 +147,51 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
     return { ok: true }
   })
 
-  app.get('/api/admin/me', async (req) => ({
-    authenticated: isParent(req),
-    pinIsDefault: getSetting('pin_is_default') === '1',
-  }))
+  app.get('/api/admin/me', async (req) => {
+    const enabled = pinEnabled()
+    return {
+      authenticated: isParent(req),
+      pinEnabled: enabled,
+      // Khong dung PIN thi canh bao "PIN mac dinh" vo nghia.
+      pinIsDefault: enabled && getSetting('pin_is_default') === '1',
+    }
+  })
 
+  /**
+   * Doi PIN — hoac BAT LAI PIN khi dang tat. Luc dang tat thi khong co
+   * "PIN hien tai" de doi chieu; phien bo me (requireParent) la du.
+   */
   app.post<{ Body: { currentPin?: string; newPin?: string } }>(
     '/api/admin/pin',
     { preHandler: requireParent },
     async (req, reply) => {
       const current = String(req.body?.currentPin ?? '')
       const next = String(req.body?.newPin ?? '')
-      if (!verifyPin(current)) {
+      if (pinEnabled() && !verifyPin(current)) {
         reply.code(401)
         return { error: 'PIN hiện tại không đúng' }
       }
       setPin(next) // nem HttpError neu dinh dang sai
       issue(reply) // cap lai phien cho chinh thiet bi vua doi PIN
+      return { ok: true }
+    },
+  )
+
+  /**
+   * Thoi dung PIN. Bat nhap PIN hien tai du da co phien: phien co the con
+   * mo tren mot may tre cam duoc, chi nguoi biet PIN moi duoc bo lop khoa.
+   * Giu nguyen cac phien dang mo — khong co ly do bat ai dang nhap lai.
+   */
+  app.post<{ Body: { currentPin?: string } }>(
+    '/api/admin/pin/disable',
+    { preHandler: requireParent },
+    async (req, reply) => {
+      if (!pinEnabled()) return { ok: true }
+      if (!verifyPin(String(req.body?.currentPin ?? ''))) {
+        reply.code(401)
+        return { error: 'PIN hiện tại không đúng' }
+      }
+      setSetting('pin_enabled', '0')
       return { ok: true }
     },
   )

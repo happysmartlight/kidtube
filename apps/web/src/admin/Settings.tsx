@@ -808,48 +808,141 @@ function Filters(): React.ReactElement {
   )
 }
 
-// ═══ Doi PIN ════════════════════════════════════════════════════════
+// ═══ PIN ════════════════════════════════════════════════════════════
 
+const PIN_GRID: React.CSSProperties = {
+  gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))',
+}
+
+/**
+ * Doi PIN, hoac thoi dung PIN.
+ *
+ * Hai trang thai:
+ *   - Dang dung PIN: doi PIN + muc "Không dùng PIN" (phai nhap PIN hien tai).
+ *   - Dang tat:      canh bao ro + dat PIN moi de bat lai. Khong hoi "PIN hien
+ *                    tai" vi khong co — phien bo me dang mo la du (server
+ *                    cung kiem tra nhu vay).
+ */
 function PinSection(): React.ReactElement {
+  const { data: me, error, reload } = useLoad(() => adminApi.me())
   const [current, setCurrent] = useState('')
   const [next, setNext] = useState('')
   const [confirm, setConfirm] = useState('')
-  const [isDefault, setIsDefault] = useState(false)
+  const [disablePin, setDisablePin] = useState('')
 
-  useEffect(() => {
-    void adminApi
-      .me()
-      .then((r) => setIsDefault(r.pinIsDefault))
-      .catch(() => {})
-  }, [])
+  function resetFields(): void {
+    setCurrent('')
+    setNext('')
+    setConfirm('')
+    setDisablePin('')
+  }
 
-  async function change(): Promise<void> {
+  /** Doi PIN khi dang bat, hoac dat PIN moi = bat lai khi dang tat. */
+  async function save(enabled: boolean): Promise<void> {
     if (next !== confirm) {
       toast('error', 'Hai lần nhập PIN mới không giống nhau')
       return
     }
     try {
-      await adminApi.changePin(current, next)
-      toast('ok', 'Đã đổi PIN. Các thiết bị khác đã bị đăng xuất.')
-      setCurrent('')
-      setNext('')
-      setConfirm('')
-      setIsDefault(false)
+      await adminApi.changePin(enabled ? current : '', next)
+      toast(
+        'ok',
+        enabled
+          ? 'Đã đổi PIN. Các thiết bị khác đã bị đăng xuất.'
+          : 'Đã bật lại PIN. Các thiết bị khác đã bị đăng xuất.',
+      )
+      resetFields()
+      reload()
     } catch (err) {
-      toast('error', err instanceof ApiError ? err.message : 'Không đổi được PIN')
+      toast('error', err instanceof ApiError ? err.message : 'Không lưu được PIN')
     }
   }
 
+  async function turnOff(): Promise<void> {
+    const ok = window.confirm(
+      'Không dùng PIN nữa?\n\n' +
+        'Ai giữ nút ⚙ 3 giây cũng vào được trang bố mẹ — kể cả con, nếu con biết cách. ' +
+        'Bạn có thể bật lại PIN bất cứ lúc nào ở đây.',
+    )
+    if (!ok) return
+    try {
+      await adminApi.disablePin(disablePin)
+      toast('ok', 'Đã tắt PIN — từ giờ giữ nút ⚙ 3 giây là vào thẳng')
+      resetFields()
+      reload()
+    } catch (err) {
+      toast('error', err instanceof ApiError ? err.message : 'Không tắt được PIN')
+    }
+  }
+
+  if (!me) {
+    return (
+      <Panel title="PIN của bố mẹ">
+        {error ? <Alert kind="error">{error}</Alert> : <Spinner />}
+      </Panel>
+    )
+  }
+
+  const newPinFields = (
+    <>
+      <Field label="PIN mới" hint="4–12 chữ số">
+        <Input
+          type="password"
+          inputMode="numeric"
+          autoComplete="new-password"
+          value={next}
+          onChange={(e) => setNext(e.target.value)}
+        />
+      </Field>
+      <Field label="Nhập lại PIN mới">
+        <Input
+          type="password"
+          inputMode="numeric"
+          autoComplete="new-password"
+          value={confirm}
+          onChange={(e) => setConfirm(e.target.value)}
+        />
+      </Field>
+    </>
+  )
+
+  // ─── Dang tat PIN ────────────────────────────────────────────────
+  if (!me.pinEnabled) {
+    return (
+      <Panel title="PIN của bố mẹ" subtitle="Đang tắt — vào trang bố mẹ không cần PIN">
+        <Alert kind="warn">
+          Đang <b>không dùng PIN</b>: chỉ cần giữ nút ⚙ 3 giây là vào được trang này — kể cả con,
+          nếu con biết cách. Mọi máy trong mạng nhà cũng mở được trang quản trị. Đặt PIN mới bên
+          dưới để bật lại.
+        </Alert>
+
+        <div className="grid gap-x-4" style={PIN_GRID}>
+          {newPinFields}
+        </div>
+
+        <Btn
+          variant="primary"
+          onClick={() => void save(false)}
+          disabled={next.length < 4 || !confirm}
+        >
+          🔒 Bật lại PIN
+        </Btn>
+      </Panel>
+    )
+  }
+
+  // ─── Dang dung PIN ───────────────────────────────────────────────
   return (
     <Panel title="PIN của bố mẹ">
-      {isDefault ? (
+      {me.pinIsDefault ? (
         <Alert kind="warn">
           Bạn đang dùng <b>PIN mặc định</b>. Đổi ngay — ai biết PIN mặc định là vào được trang quản
           trị.
         </Alert>
       ) : null}
 
-      <div className="grid gap-x-4" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))' }}>
+      <h3 className="mb-3 text-sm font-bold">Đổi PIN</h3>
+      <div className="grid gap-x-4" style={PIN_GRID}>
         <Field label="PIN hiện tại">
           <Input
             type="password"
@@ -859,33 +952,49 @@ function PinSection(): React.ReactElement {
             onChange={(e) => setCurrent(e.target.value)}
           />
         </Field>
-        <Field label="PIN mới" hint="4–12 chữ số">
-          <Input
-            type="password"
-            inputMode="numeric"
-            autoComplete="new-password"
-            value={next}
-            onChange={(e) => setNext(e.target.value)}
-          />
-        </Field>
-        <Field label="Nhập lại PIN mới">
-          <Input
-            type="password"
-            inputMode="numeric"
-            autoComplete="new-password"
-            value={confirm}
-            onChange={(e) => setConfirm(e.target.value)}
-          />
-        </Field>
+        {newPinFields}
       </div>
 
       <Btn
         variant="primary"
-        onClick={() => void change()}
+        onClick={() => void save(true)}
         disabled={!current || next.length < 4 || !confirm}
       >
         🔑 Đổi PIN
       </Btn>
+
+      <div className="mt-6 pt-5" style={{ borderTop: '1px solid var(--card)' }}>
+        <h3 className="text-sm font-bold">Không dùng PIN</h3>
+        <p className="mt-1 mb-3 text-xs" style={{ color: 'var(--text-dim)', lineHeight: 1.5 }}>
+          Vào trang bố mẹ chỉ cần giữ nút ⚙ 3 giây, không hỏi PIN. Hợp khi máy chỉ bố mẹ cầm, hoặc
+          con còn quá nhỏ. Nhập PIN hiện tại để xác nhận.
+        </p>
+
+        {/* Cung cach can hang voi form bo loc: o nhap va nut cao bang nhau,
+            mb-4 cua wrapper nut = khoang cach duoi cua Field. */}
+        <div className="flex flex-wrap items-end gap-x-3">
+          <div style={{ flex: '0 1 240px' }}>
+            <Field label="PIN hiện tại">
+              <Input
+                type="password"
+                inputMode="numeric"
+                autoComplete="current-password"
+                value={disablePin}
+                onChange={(e) => setDisablePin(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && disablePin) void turnOff()
+                }}
+                style={{ height: CONTROL_H }}
+              />
+            </Field>
+          </div>
+          <div className="mb-4 flex" style={{ height: CONTROL_H }}>
+            <Btn variant="danger" onClick={() => void turnOff()} disabled={!disablePin}>
+              🔓 Không dùng PIN nữa
+            </Btn>
+          </div>
+        </div>
+      </div>
     </Panel>
   )
 }

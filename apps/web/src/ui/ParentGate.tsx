@@ -11,6 +11,9 @@ import { FocusButton } from './Focusable'
  * Co y KHONG dung "phep tinh" lam cong chan nhu mot so app khac:
  * tre 6-7 tuoi giai duoc 7x8, con PIN thi khong doan duoc.
  * Long-press moi la phan "an", PIN la phan "khoa".
+ *
+ * Bo me co the tat lop PIN (Cai dat → PIN cua bo me). Khi do long-press xong
+ * la vao thang — App.openParentGate hoi server truoc khi mo PinDialog.
  */
 
 const HOLD_MS = 3000
