@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify'
 import { getDb, getSettingBool, getSettingInt, getSetting } from '../db/index.js'
 import type { ProfileRow, ShelfRow, VideoRow } from '../db/types.js'
 import { badRequest, notFound } from '../lib/errors.js'
+import { relevance, searchClause, searchTokens } from '../lib/search.js'
 import { localDay, sqlNow } from '../lib/time.js'
 import {
   addWatchTime,
@@ -354,6 +355,67 @@ export async function kidRoutes(app: FastifyInstance): Promise<void> {
       quota: computeQuota(pid),
     }
   })
+
+  /**
+   * Tim kiem cho tre (o 🔍 cua Trang chu va Kenh) — goi theo tung phim go.
+   *
+   * Pham vi = moi video be DUOC XEM (cung HAI TANG CUA — VISIBLE), khong phai
+   * moi video da duyet: video da duyet ma chua xep ke thi /api/kid/video cung
+   * chan, tim ra ma bam vao bi loi thi con te hon khong thay.
+   *
+   * Loc bang `searchClause` (bo dau, moi tu deu phai co) roi XEP HANG trong JS
+   * bang `relevance` — SQL khong biet "khop dau tu" hay "trung ca cum". Tap
+   * ket qua nho (vai nghin video la cung) nen tinh lai moi lan van nhanh; phan
+   * trang cat tren danh sach da xep nen "Xem thêm" khong lap, khong sot.
+   */
+  app.get<{ Querystring: { profileId?: string; q?: string; offset?: string; limit?: string } }>(
+    '/api/kid/search',
+    async (req) => {
+      const pid = requireProfileId(req.query.profileId)
+      const limit = Math.min(Math.max(Number(req.query.limit ?? 60) || 60, 1), 200)
+      const offset = Math.max(Number(req.query.offset ?? 0) || 0, 0)
+      const q = String(req.query.q ?? '').slice(0, 100)
+
+      touchSession(pid)
+
+      const clause = searchClause(q, 'v.search_text')
+      if (!clause) {
+        return { videos: [], total: 0, offset, hasMore: false, quota: computeQuota(pid) }
+      }
+
+      const rows = getDb()
+        .prepare<unknown[], RawKidVideo & { watchCount: number; sortDate: string | null }>(
+          `SELECT ${KID_VIDEO_COLUMNS},
+                  v.watch_count                       AS watchCount,
+                  COALESCE(v.published_at, v.added_at) AS sortDate
+             FROM videos v
+            WHERE ${VISIBLE}
+              AND (${clause.sql})
+            LIMIT 5000`,
+        )
+        .all(...clause.params, { pid })
+
+      const tokens = searchTokens(q)
+      const ranked = rows
+        .map((r) => ({ r, score: relevance(tokens, r.title, r.channelTitle) }))
+        .sort(
+          (a, b) =>
+            b.score - a.score ||
+            b.r.watchCount - a.r.watchCount ||
+            (b.r.sortDate ?? '').localeCompare(a.r.sortDate ?? '') ||
+            a.r.id - b.r.id,
+        )
+
+      const videos = ranked.slice(offset, offset + limit).map(({ r }) => toKidVideo(r))
+      return {
+        videos,
+        total: ranked.length,
+        offset,
+        hasMore: offset + videos.length < ranked.length,
+        quota: computeQuota(pid),
+      }
+    },
+  )
 
 
   /**

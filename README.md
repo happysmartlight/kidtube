@@ -84,6 +84,8 @@ tháng sau đăng gì bạn không kiểm soát được.
 - Kệ ngang cuộn được, thumbnail to, chữ ít
 - Hoạt động cả **cảm ứng (tablet)** và **remote (TV LG)**
 - Tab Kênh: xem ngẫu nhiên video đã duyệt, lọc theo kênh
+- Kính lúp 🔍 ở Trang chủ và Kênh: gõ tới đâu hiện video tới đó, không cần
+  dấu, video sát nhất lên đầu — cho bé biết chữ hoặc bố mẹ tìm giúp
 - Không thoát ra YouTube được: overlay chặn 100% click vào iframe
 
 **Cho bố mẹ**

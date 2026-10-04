@@ -18,9 +18,9 @@ interface TopicTabsProps {
   /**
    * Nut ghim o ben TRAI, khong cuon theo cac nut chu de.
    *
-   * Dung cho nut "Làm mới" cua tab Khám phá: dat o day thi no luon nhin thay
-   * duoc va KHONG ton them mot hang ngang nao — chieu cao man hinh vua moi
-   * phai danh cho luoi video.
+   * Dung cho nut 🔍 tim kiem va nut "Làm mới" cua tab Kênh: dat o day thi
+   * chung luon nhin thay duoc va KHONG ton them mot hang ngang nao — chieu
+   * cao man hinh vua moi phai danh cho luoi video.
    */
   leading?: React.ReactNode
 }

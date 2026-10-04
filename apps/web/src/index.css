@@ -394,9 +394,113 @@ body {
   padding: var(--tabs-pad-y) 0 var(--tabs-pad-y) var(--safe-pad);
 }
 
+/* Nhieu nut ghim (🔍 + "Làm mới" o tab Kênh) cach nhau bang khe cua hang */
+.ktabs-leading {
+  gap: 12px;
+}
+
+@supports not (gap: 1px) {
+  .ktabs-leading > * + * {
+    margin-left: 12px;
+  }
+}
+
 /* Da co nut ghim thi hang nut chu de khong can padding trai nua */
 .ktabs-leading + .ktabs {
   padding-left: 12px;
+}
+
+/* ═══ Tim kiem ════════════════════════════════════════════════════
+   Nut 🔍 / ← TRON, cao bang nut chu de. Bam 🔍 thi chinh hang nut bien
+   thanh o tim (xem kid/Search.tsx) — khong ton them hang ngang nao. */
+.ktab.ksearch-btn {
+  justify-content: center;
+  width: var(--tab-h);
+  padding: 0;
+}
+
+.ksearch-field {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: var(--tab-h);
+  margin: var(--tabs-pad-y) var(--safe-pad) var(--tabs-pad-y) 12px;
+  padding: 0 calc(var(--tab-h) * 0.14) 0 calc(var(--tab-h) * 0.33);
+  border-radius: var(--radius-btn);
+  background: var(--card-hi);
+  cursor: text;
+  transition: box-shadow var(--dur) ease;
+}
+
+@supports not (gap: 1px) {
+  .ksearch-field > * + * {
+    margin-left: 10px;
+  }
+}
+
+/* Vong focus cung kieu .focusable — o nhap la noi remote dang dung */
+.ksearch-field:focus-within {
+  box-shadow:
+    0 0 0 var(--focus-ring) var(--ring),
+    0 0 32px -4px var(--ring-halo);
+}
+
+.ksearch-icon {
+  flex: 0 0 auto;
+  font-size: calc(var(--font-title) * 1.25);
+  line-height: 1;
+}
+
+.ksearch-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--text);
+  font-family: inherit;
+  font-size: calc(var(--font-title) * 1.1);
+  font-weight: 800;
+  /* body tat chon van ban cho giao dien be — o nhap thi phai bat lai, mot
+     so trinh duyet chan ca dat con tro neu de nguyen */
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.ksearch-input::placeholder {
+  color: var(--text-dim);
+  font-weight: 700;
+  opacity: 1;
+}
+
+.ksearch-clear {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: calc(var(--tab-h) * 0.72);
+  height: calc(var(--tab-h) * 0.72);
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+  color: var(--text);
+  font-family: inherit;
+  font-size: calc(var(--font-title) * 0.95);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+/* "12 video" / "Đang tìm…" — thang mep voi cot card dau cua luoi */
+.ksearch-meta {
+  margin: 0;
+  padding: 4px var(--safe-pad) 0;
+  color: var(--text-dim);
+  font-size: calc(var(--font-title) * 0.85);
+  font-weight: 700;
 }
 
 .ktabs {

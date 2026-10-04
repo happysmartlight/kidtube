@@ -93,7 +93,7 @@ Hằng `C` trong `lib/color.ts` khớp với các token trên.
 ### Trang chủ (trẻ)
 ```
 ┌──────────────────────────────────────────────────────┐
-│ (⭐HÔM NAY 700)(🎤BÀI HÁT 100)(🔢HỌC CHỮ 60)  →      │  nút chọn chủ đề,
+│ (🔍)(⭐HÔM NAY 700)(🎤BÀI HÁT 100)(🔢HỌC CHỮ 60)  →  │  🔍 ghim trái + nút chọn chủ đề,
 ├──────────────────────────────────────────────────────┤  ĐỨNG YÊN, --tab-h 48px
 │  ┌──────┐┌──────┐┌──────┐┌──────┐┌──────┐            │  lưới của kệ đang
 │  └──────┘└──────┘└──────┘└──────┘└──────┘            │  chọn, auto-fill,
@@ -135,6 +135,25 @@ giờ biết bên dưới có gì. Hàng nút luôn nằm trên đầu lưới (
 hàng nút đứng yên) nên mọi chủ đề đều cách một cú chạm.
 Tab **Kênh** dùng y hệt bố cục này (nguồn dữ liệu khác) — hai layout khác
 nhau là thứ trẻ phải học hai lần.
+
+**Tìm kiếm (🔍).** Nút tròn chỉ có hình kính lúp, ghim TRÁI hàng nút (không
+cuộn theo) ở cả Trang chủ và Kênh. Bấm thì CHÍNH hàng đó biến thành ô tìm —
+`[←] [🔍 ô nhập ……… ✕]` — không mở màn hình mới, không tốn thêm hàng nào:
+```
+│ (←)( 🔍 be heo                                  ✕ )   │
+│  2 video                                              │
+│  ┌──────┐┌──────┐                                     │  kết quả đã XẾP HẠNG
+```
+
+- Kết quả hiện theo từng phím gõ (chờ 180ms ngừng gõ), không dấu, không phân
+  biệt hoa thường; kết quả cũ mờ đi trong lúc tìm chữ mới chứ không lóe trắng.
+- Phạm vi = mọi video bé ĐƯỢC XEM (hai tầng cửa), không riêng kệ / kênh đang
+  chọn. Thứ tự: trùng / bắt đầu bằng cả cụm từ → khớp đầu từ → khớp giữa từ →
+  chỉ khớp tên kênh; hoà điểm thì video được xem nhiều, rồi video mới.
+- ← / Back / Esc đóng ô tìm, về đúng kệ đang xem. Xem video từ kết quả rồi bấm
+  Back thì ô tìm vẫn còn chữ và kết quả.
+- TV: vào trang thì focus tự động KHÔNG rơi vào 🔍 (`data-no-autofocus`); ↓
+  hoặc OK trong ô nhập nhảy xuống kết quả đầu.
 
 ### Card video
 ```

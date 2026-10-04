@@ -105,7 +105,10 @@ export function focusElement(el: HTMLElement): void {
 /** Dua focus vao element dau tien co y nghia (khi vao trang moi). */
 export function focusFirst(container?: HTMLElement | null): boolean {
   const root = container ?? document
-  const el = root.querySelector<HTMLElement>(SELECTOR)
+  // `data-no-autofocus`: van toi duoc bang D-pad, nhung khong nhan focus TU
+  // DONG khi vao trang (vd: nut 🔍 dung dau hang — vao trang ma focus nam o
+  // kinh lup thi tre bam OK la mo o tim thay vi xem).
+  const el = root.querySelector<HTMLElement>(`${SELECTOR}:not([data-no-autofocus])`)
   if (!el) return false
   focusElement(el)
   return true

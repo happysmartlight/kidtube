@@ -5,6 +5,7 @@ import { FocusButton } from '@/ui/Focusable'
 import { Shelf } from '@/ui/Shelf'
 import { EmptyState, Spinner } from '@/ui/Spinner'
 import { KidPage } from './KidShell'
+import { SearchButton, SearchPage, useSearchState } from './Search'
 import { type Topic, TopicTabs } from './TopicTabs'
 
 /** Moi lan "Xem them" lay bao nhieu video. */
@@ -79,6 +80,7 @@ export function Channels({
    * nut giat qua lai), con nut "Tất cả" thi hien so cua kenh dang chon.
    */
   const [catalog, setCatalog] = useState<{ channels: Topic[]; total: number } | null>(null)
+  const search = useSearchState('channels', profileId)
   // 0 = tron toan bo, khong loc kenh.
   const [sourceId, setSourceId] = useState(0)
   const [seed, setSeed] = useState(newSeed)
@@ -186,6 +188,21 @@ export function Channels({
     }
   }
 
+  // O tim thay cho ca trang; state duyet kenh o tren van giu nguyen, dong o
+  // tim la ve dung kenh dang xem.
+  if (search.open) {
+    return (
+      <SearchPage
+        profileId={profileId}
+        config={config}
+        memoryKey={search.memoryKey}
+        onSelect={onSelect}
+        onQuota={onQuota}
+        onClose={search.closeSearch}
+      />
+    )
+  }
+
   if (error) {
     return (
       <KidPage>
@@ -235,18 +252,21 @@ export function Channels({
           onSelect={setSourceId}
           label="Chọn kênh"
           leading={
-            canShuffle ? (
-              <FocusButton
-                className="ktab ktab-action"
-                onClick={() => setSeed(newSeed())}
-                aria-label="Làm mới — xem bộ video khác"
-              >
-                <span className="ktab-emoji" aria-hidden="true">
-                  🔀
-                </span>
-                <span className="ktab-title">Làm mới</span>
-              </FocusButton>
-            ) : null
+            <>
+              <SearchButton onOpen={search.openSearch} />
+              {canShuffle ? (
+                <FocusButton
+                  className="ktab ktab-action"
+                  onClick={() => setSeed(newSeed())}
+                  aria-label="Làm mới — xem bộ video khác"
+                >
+                  <span className="ktab-emoji" aria-hidden="true">
+                    🔀
+                  </span>
+                  <span className="ktab-title">Làm mới</span>
+                </FocusButton>
+              ) : null}
+            </>
           }
         />
       }
@@ -341,6 +361,7 @@ function TopicBrowser({
   onQuota: (quota: Quota) => void
 }): React.ReactElement {
   const [topics, setTopics] = useState<Topic[] | null>(null)
+  const search = useSearchState('home', profileId)
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const [videos, setVideos] = useState<KidVideo[]>([])
   const [total, setTotal] = useState(0)
@@ -452,6 +473,20 @@ function TopicBrowser({
     }
   }
 
+  // Xem ghi chu cung cho trong Channels.
+  if (search.open) {
+    return (
+      <SearchPage
+        profileId={profileId}
+        config={config}
+        memoryKey={search.memoryKey}
+        onSelect={onSelect}
+        onQuota={onQuota}
+        onClose={search.closeSearch}
+      />
+    )
+  }
+
   if (error) {
     return (
       <KidPage>
@@ -492,6 +527,7 @@ function TopicBrowser({
           selectedId={selectedId}
           onSelect={setSelectedId}
           label="Chọn kệ video"
+          leading={<SearchButton onOpen={search.openSearch} />}
         />
       }
     >

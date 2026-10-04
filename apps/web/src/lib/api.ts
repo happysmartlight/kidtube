@@ -228,6 +228,30 @@ export const kidApi = {
     }>(`/api/kid/discover?${qs}`)
   },
 
+  /**
+   * Tim trong moi video be duoc xem, da XEP HANG (sat nhat len dau).
+   * `signal`: huy cau dang cho khi be go tiep — chi ket qua cua chu moi nhat.
+   */
+  search: (
+    profileId: number,
+    q: string,
+    opts: { offset?: number; limit?: number; signal?: AbortSignal } = {},
+  ) => {
+    const qs = new URLSearchParams({
+      profileId: String(profileId),
+      q,
+      offset: String(opts.offset ?? 0),
+      limit: String(opts.limit ?? 60),
+    })
+    return request<{
+      videos: KidVideo[]
+      total: number
+      offset: number
+      hasMore: boolean
+      quota: Quota
+    }>(`/api/kid/search?${qs}`, { signal: opts.signal })
+  },
+
   /** Mot trang video cua mot ke. */
   shelf: (shelfId: number, profileId: number, offset = 0, limit = 60) =>
     request<KidShelfPage>(
