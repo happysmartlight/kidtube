@@ -10,6 +10,58 @@ Không thuật toán. Không đề xuất. Không hố thỏ.
 
 ---
 
+## Giao diện
+
+### Của con
+
+![Trang chủ của bé: hàng nút chủ đề ở trên, lưới video thumbnail to ở giữa, thanh dưới có avatar bé, Trang chủ / Kênh và thời gian còn lại](docs/screenshots/kid-home.png)
+
+**Trang chủ.** Mỗi kệ là một nút chủ đề ở hàng trên cùng, con số bên cạnh là
+số video trong kệ. Thumbnail to, chữ ít, bấm là xem. Thanh dưới có bé đang
+xem, hai nút Trang chủ / Kênh, đồng hồ "Còn 20 phút", và nút ⚙ dành cho bố mẹ
+(phải giữ 3 giây mới vào được).
+
+<p align="center">
+  <img src="docs/screenshots/kid-profile-pick.png" width="70%" alt="Màn chọn bé: Ai đang xem nào? với hai avatar con thỏ và con hổ">
+</p>
+
+**Chọn bé.** Mỗi bé một avatar con vật, không cần mật khẩu. Giới hạn thời gian
+và kệ được xem tính riêng cho từng bé.
+
+### Của bố mẹ
+
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="docs/screenshots/parent-dashboard.png" alt="Trang Tổng quan của bố mẹ">
+      <p><b>Tổng quan</b>: số video chờ duyệt / đã duyệt / đã loại, các bé hôm
+      nay đã xem bao lâu so với giới hạn, dung lượng video tải về.</p>
+    </td>
+    <td width="50%" valign="top">
+      <img src="docs/screenshots/parent-reports.png" alt="Trang Báo cáo của bố mẹ">
+      <p><b>Báo cáo</b>: hôm nay từng bé xem bao nhiêu phút, biểu đồ 14 ngày,
+      những video con xem nhiều nhất.</p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="docs/screenshots/parent-settings-update.png" alt="Cài đặt: tình trạng hệ thống và cập nhật app">
+      <p><b>Cài đặt</b>: tình trạng hệ thống (yt-dlp, dung lượng) và cập nhật
+      app bằng một cú bấm, không cần SSH vào Pi.</p>
+    </td>
+    <td width="50%" valign="top">
+      <img src="docs/screenshots/parent-settings-filters.png" alt="Cài đặt: bộ lọc tự động">
+      <p><b>Bộ lọc tự động</b>: chặn theo từ khoá, video quá dài, quá ngắn
+      (Shorts), video đang live. Video bị lọc vào tab "Đã loại", bố mẹ vẫn xem
+      lại được.</p>
+    </td>
+  </tr>
+</table>
+
+<sub>Ảnh chụp từ một bản cài thật. Thumbnail video thuộc về các kênh YouTube tương ứng.</sub>
+
+---
+
 ## Nó hoạt động thế nào
 
 ```
