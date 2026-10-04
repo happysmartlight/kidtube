@@ -4,10 +4,12 @@ import { formatMinutes } from '@/lib/format'
 import { sfx } from '@/lib/sfx'
 import { FocusButton } from '@/ui/Focusable'
 import { ParentGateButton } from '@/ui/ParentGate'
+import { GRANTABLE, GrantTime } from './GrantTime'
 
 interface TimeUpProps {
   quota: Quota
   profileId: number
+  profileName: string
   onRecheck: (quota: Quota) => void
   onSwitchProfile: () => void
   onOpenParentGate: () => void
@@ -22,15 +24,23 @@ interface TimeUpProps {
  * Man hinh nay tu kiem tra lai quota moi 30 giay — vi gioi han theo LUOT
  * se tu het sau 10 phut khong hoat dong, va bo me co the cap them gio
  * tu trang quan tri. Tre khong phai tai lai trang.
+ *
+ * Nut "Bố mẹ cho thêm giờ" (xem GrantTime): bo me dung canh be thi cho them
+ * ngay tai day. Mot nut kin dao, KHONG bay san "+15 +30" — ba nut so nam
+ * tren man cua be la loi moi be nan ni, va lam loang "hom nay du roi".
+ * Chi hien voi ly do go duoc bang cach them gio (khong hien ngoai khung gio).
  */
 export function TimeUp({
   quota,
   profileId,
+  profileName,
   onRecheck,
   onSwitchProfile,
   onOpenParentGate,
 }: TimeUpProps): React.ReactElement {
   const [checking, setChecking] = useState(false)
+  const [granting, setGranting] = useState(false)
+  const canGrant = GRANTABLE.includes(quota.reason)
 
   useEffect(() => {
     sfx.timeUp()
@@ -115,8 +125,27 @@ export function TimeUp({
           <FocusButton className="kbtn kbtn-ghost" onClick={onSwitchProfile} sound="back">
             👥 Đổi bé
           </FocusButton>
+
+          {canGrant ? (
+            <FocusButton className="kbtn kbtn-ghost" onClick={() => setGranting(true)}>
+              👪 Bố mẹ cho thêm giờ
+            </FocusButton>
+          ) : null}
         </div>
       </div>
+
+      {granting ? (
+        <GrantTime
+          profileId={profileId}
+          profileName={profileName}
+          reason={quota.reason}
+          onGranted={(q) => {
+            setGranting(false)
+            onRecheck(q)
+          }}
+          onCancel={() => setGranting(false)}
+        />
+      ) : null}
     </div>
   )
 }

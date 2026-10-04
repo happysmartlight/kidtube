@@ -127,6 +127,30 @@ CREATE TABLE IF NOT EXISTS kid_sessions (
 );
 CREATE INDEX IF NOT EXISTS idx_sessions_open ON kid_sessions(profile_id, closed, last_seen_at DESC);
 
+-- === Bo me cho them gio ===============================================
+-- Moi lan "cho xem thêm" la MOT dong — vua la phut THUONG cong vao gioi han
+-- (xem computeQuota), vua la nhat ky cho trang Bao cao.
+-- Truoc day cho them gio = TRU seconds_used cua phien hien tai (kep o 0):
+-- phien moi mo sau 10 phut nghi co 0 giay -> cho 30 phut thanh 0 phut, im
+-- lang; va "hom nay da xem" bi bao thieu dung bang so phut da cho.
+CREATE TABLE IF NOT EXISTS time_grants (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  profile_id  INTEGER NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  -- Phien luc cap: phut thuong cong vao gioi han theo LUOT cua phien nay
+  session_id  INTEGER REFERENCES kid_sessions(id) ON DELETE SET NULL,
+  -- Ngay luc cap: phut thuong cong vao gioi han theo NGAY cua ngay nay
+  day         TEXT    NOT NULL,
+  -- 0 = chi "cho xem tiep" (dat lai so video cua luot), khong them phut
+  seconds     INTEGER NOT NULL DEFAULT 0,
+  -- Ly do dang chan luc cap (daily_limit...), NULL = cap khi chua bi chan
+  reason      TEXT,
+  -- 'admin' = trang bo me, 'kid_screen' = man "het gio" cua be
+  source      TEXT    NOT NULL DEFAULT 'admin' CHECK (source IN ('admin','kid_screen')),
+  granted_at  TEXT    NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_grants_profile_day ON time_grants(profile_id, day);
+CREATE INDEX IF NOT EXISTS idx_grants_session ON time_grants(session_id);
+
 -- === Hang doi tai offline =============================================
 CREATE TABLE IF NOT EXISTS download_queue (
   id          INTEGER PRIMARY KEY AUTOINCREMENT,

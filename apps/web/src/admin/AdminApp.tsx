@@ -266,6 +266,12 @@ function Dashboard({ onGo }: { onGo: (t: Tab) => void }): React.ReactElement {
                     / {formatMinutes(p.quota.dailyLimitSec)}
                   </span>
                 ) : null}
+                {p.quota.dailyLimitSec > 0 && p.quota.dailyBonusSec > 0 ? (
+                  <span style={{ color: C.info }}>
+                    {' '}
+                    + {formatMinutes(p.quota.dailyBonusSec)} cho thêm
+                  </span>
+                ) : null}
               </p>
 
               {p.quota.dailyLimitSec > 0 ? (
@@ -276,7 +282,7 @@ function Dashboard({ onGo }: { onGo: (t: Tab) => void }): React.ReactElement {
                   <div
                     className="h-full rounded-full"
                     style={{
-                      width: `${Math.min(100, (p.quota.dailyUsedSec / p.quota.dailyLimitSec) * 100)}%`,
+                      width: `${Math.min(100, (p.quota.dailyUsedSec / (p.quota.dailyLimitSec + p.quota.dailyBonusSec)) * 100)}%`,
                       background: p.quota.warning ? C.warn : C.ok,
                     }}
                   />

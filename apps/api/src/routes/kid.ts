@@ -10,8 +10,14 @@ import {
   computeQuota,
   countVideo,
   getProfile,
+  GRANTABLE_REASONS,
+  grantExtraMinutes,
   touchSession,
 } from '../services/timeLimit.js'
+import { reverifyParent } from './auth.js'
+
+/** Cac muc "cho thêm" tren man het gio. 0 = "cho xem tiep" (gioi han so video). */
+const KID_GRANT_MINUTES = [0, 15, 30, 60]
 
 /**
  * HAI TANG CUA (nguyen tac P1):
@@ -508,6 +514,54 @@ export async function kidRoutes(app: FastifyInstance): Promise<void> {
         autoplay: profile.autoplay === 1,
         autoplayMax: profile.autoplay_max,
       }
+    },
+  )
+
+  // ── Bo me cho them gio ngay tren man "het gio" ───────────────────────
+
+  /**
+   * Buoc 1: kiem PIN TRUOC khi cho chon so phut — sai thi bao ngay, be cung
+   * khong chon truoc duoc. Dung CHUNG bo dem sai voi /api/admin/login (sai 5
+   * lan khoa 5 phut ca dang nhap): tach rieng thi day la cua do PIN.
+   * KHONG cap phien bo me: dang nhap tren may cua be thi be giu ⚙ la vao
+   * thang trang quan tri suot 8 gio.
+   * PIN dang tat thi luon qua — lop chan con lai la "giu 3 giay" o client,
+   * cung muc voi nut ⚙.
+   */
+  app.post<{ Body: { pin?: string } }>('/api/kid/grant/verify', async (req) => {
+    reverifyParent(req, req.body?.pin)
+    return { ok: true }
+  })
+
+  /**
+   * Buoc 2: cho them gio. Gui lai PIN — buoc 1 khong de lai gi o server, goi
+   * thang buoc nay ma khong co PIN thi van bi chan.
+   *
+   * `minutes`: 15 / 30 / 60, hoac 0 = "cho xem tiep" khi bi chan vi du SO
+   * VIDEO (dat lai so video, khong them phut). Chi cap khi be DANG bi chan
+   * vi mot ly do go duoc bang cach nay — xem GRANTABLE_REASONS.
+   */
+  app.post<{ Body: { profileId?: number; minutes?: number; pin?: string } }>(
+    '/api/kid/grant',
+    async (req) => {
+      const pid = requireProfileId(req.body?.profileId)
+      const minutes = Number(req.body?.minutes)
+      if (!KID_GRANT_MINUTES.includes(minutes)) throw badRequest('Số phút không hợp lệ')
+
+      reverifyParent(req, req.body?.pin)
+
+      const q = computeQuota(pid)
+      // Vua het luot nghi (hoac bo me vua cap tu may khac): khong cap them.
+      if (q.allowed) return { ok: true, quota: q }
+      if (!q.reason || !GRANTABLE_REASONS.includes(q.reason)) {
+        throw badRequest('Lúc này không cho thêm giờ được — xem lại khung giờ trong trang bố mẹ')
+      }
+      if (minutes === 0 && q.reason !== 'video_limit') {
+        throw badRequest('Bé đang hết giờ, cần chọn số phút')
+      }
+
+      grantExtraMinutes(pid, minutes, 'kid_screen')
+      return { ok: true, quota: computeQuota(pid) }
     },
   )
 

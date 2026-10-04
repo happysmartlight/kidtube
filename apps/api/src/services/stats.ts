@@ -147,3 +147,35 @@ export function history(limit = 100, profileId?: number): HistoryEntry[] {
     )
     .all(...params)
 }
+
+export interface GrantEntry {
+  id: number
+  profileName: string
+  avatar: string
+  seconds: number
+  reason: string | null
+  source: 'admin' | 'kid_screen'
+  grantedAt: string
+}
+
+/**
+ * Nhat ky "cho them gio" — de bo me thay tuan nay da pha le may lan, nhat
+ * la cac lan cap ngay tren man het gio cua be (khong qua trang quan tri).
+ */
+export function recentGrants(limit = 50): GrantEntry[] {
+  return getDb()
+    .prepare<[number], GrantEntry>(
+      `SELECT g.id         AS id,
+              p.name       AS profileName,
+              p.avatar     AS avatar,
+              g.seconds    AS seconds,
+              g.reason     AS reason,
+              g.source     AS source,
+              g.granted_at AS grantedAt
+         FROM time_grants g
+         JOIN profiles p ON p.id = g.profile_id
+        ORDER BY g.granted_at DESC, g.id DESC
+        LIMIT ?`,
+    )
+    .all(limit)
+}

@@ -220,6 +220,7 @@ export function App(): React.ReactElement {
         <TimeUp
           quota={blocked}
           profileId={profile.id}
+          profileName={profile.name}
           onRecheck={handleRecheck}
           onSwitchProfile={switchProfile}
           onOpenParentGate={openParentGate}

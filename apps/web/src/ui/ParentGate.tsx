@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { adminApi, ApiError } from '@/lib/api'
 import { useBackHandler } from '@/lib/back'
+import { currentMode } from '@/lib/mode'
 import { sfx } from '@/lib/sfx'
 import { FocusButton } from './Focusable'
 
@@ -17,7 +18,7 @@ import { FocusButton } from './Focusable'
  * la vao thang — App.openParentGate hoi server truoc khi mo PinDialog.
  */
 
-const HOLD_MS = 3000
+export const HOLD_MS = 3000
 
 interface LongPressResult {
   progress: number
@@ -33,8 +34,9 @@ interface LongPressResult {
 /**
  * Giu de kich hoat. Ho tro CA cham tay (pointer) va remote TV (giu Enter) —
  * thieu mot trong hai la mot nen tang khong vao duoc admin.
+ * Dung chung cho nut ⚙ va nut "giu 3 giây" cho them gio khi bo me tat PIN.
  */
-function useLongPress(onComplete: () => void): LongPressResult {
+export function useLongPress(onComplete: () => void): LongPressResult {
   const [progress, setProgress] = useState(0)
   const startRef = useRef<number | null>(null)
   const rafRef = useRef<number | null>(null)
@@ -154,12 +156,32 @@ export function ParentGateButton({ onOpen }: { onOpen: () => void }): React.Reac
 
 const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'clear', '0', 'del']
 
+/**
+ * Hop nhap PIN bang ban phim so (bam duoc bang remote).
+ *
+ * Mac dinh la cong vao trang bo me (`verify` = dang nhap). Man het gio dung
+ * lai voi `verify` rieng de kiem PIN ma KHONG cap phien bo me — xem
+ * /api/kid/grant/verify.
+ */
 export function PinDialog({
   onSuccess,
   onCancel,
+  title = 'Trang của bố mẹ',
+  subtitle = 'Nhập PIN để tiếp tục',
+  submitLabel = 'Vào',
+  verify = (pin) => adminApi.login(pin),
+  children,
 }: {
-  onSuccess: (pinIsDefault: boolean) => void
+  /** Nhan lai PIN vua dung — ben goi can gui kem o buoc sau. */
+  onSuccess: (pin: string) => void
   onCancel: () => void
+  title?: string
+  subtitle?: string
+  submitLabel?: string
+  /** Nem loi (ApiError) khi PIN sai — hop hien loi va xoa o nhap. */
+  verify?: (pin: string) => Promise<unknown>
+  /** Chen them duoi tieu de (vd: canh bao PIN mac dinh). */
+  children?: React.ReactNode
 }): React.ReactElement {
   const [pin, setPin] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -174,9 +196,9 @@ export function PinDialog({
       setBusy(true)
       setError(null)
       try {
-        const res = await adminApi.login(value)
+        await verify(value)
         sfx.pop()
-        onSuccess(res.pinIsDefault)
+        onSuccess(value)
       } catch (err) {
         sfx.nope()
         setPin('')
@@ -185,7 +207,7 @@ export function PinDialog({
         setBusy(false)
       }
     },
-    [onSuccess],
+    [onSuccess, verify],
   )
 
   const press = useCallback(
@@ -231,16 +253,17 @@ export function PinDialog({
       style={{ background: 'var(--scrim)', backdropFilter: 'blur(6px)' }}
       role="dialog"
       aria-modal="true"
-      aria-label="Nhập PIN của bố mẹ"
+      aria-label={title}
     >
       <div
         className="anim-pop w-full max-w-sm rounded-3xl p-6"
         style={{ background: 'var(--bg-elev)' }}
       >
-        <h2 className="mb-1 text-center text-2xl font-extrabold">Trang của bố mẹ</h2>
+        <h2 className="mb-1 text-center text-2xl font-extrabold">{title}</h2>
         <p className="mb-5 text-center text-sm" style={{ color: 'var(--text-dim)' }}>
-          Nhập PIN để tiếp tục
+          {subtitle}
         </p>
+        {children}
 
         {/* O hien thi PIN dang dau cham — khong hien so that */}
         <div className="mb-4 flex items-center justify-center gap-2.5" aria-hidden="true">
@@ -273,6 +296,9 @@ export function PinDialog({
               key={k}
               className="kbtn"
               style={{ height: 60, padding: 0, fontSize: 22 }}
+              // TV: vao hop la focus san phim 1 — khong thi focus van nam o
+              // nut phia sau lop phu, bam mui ten di lung tung.
+              autoFocus={k === '1' && currentMode() === 'tv'}
               onClick={() => press(k)}
               sound="none"
               aria-label={k === 'del' ? 'Xoá một số' : k === 'clear' ? 'Xoá hết' : k}
@@ -292,7 +318,7 @@ export function PinDialog({
             style={{ opacity: pin.length < 4 || busy ? 0.45 : 1 }}
             onClick={() => void submit(pin)}
           >
-            {busy ? 'Đang kiểm tra…' : 'Vào'}
+            {busy ? 'Đang kiểm tra…' : submitLabel}
           </FocusButton>
         </div>
       </div>

@@ -204,7 +204,12 @@ function ProfileCard({
           <p className="font-bold" style={{ color: q.allowed ? C.ok : C.danger }}>
             {q.allowed ? '● đang được xem' : '● đang bị chặn'}
           </p>
-          <p>hôm nay: {formatMinutes(q.dailyUsedSec)}</p>
+          <p>
+            hôm nay: {formatMinutes(q.dailyUsedSec)}
+            {q.dailyBonusSec > 0 ? (
+              <span style={{ color: C.info }}> (+{formatMinutes(q.dailyBonusSec)} cho thêm)</span>
+            ) : null}
+          </p>
           {!q.allowed && q.reason ? <p>{REASON[q.reason] ?? q.reason}</p> : null}
         </div>
 
@@ -220,7 +225,7 @@ function ProfileCard({
                 })
                 .catch(() => toast('error', 'Không cấp được'))
             }}
-            title="Trừ 10 phút khỏi thời gian đã dùng và reset số video của lượt hiện tại"
+            title="Cho thêm 10 phút hôm nay (cộng vào giới hạn ngày và lượt hiện tại), đặt lại số video của lượt"
           >
             ⏱ +10 phút
           </Btn>
@@ -365,7 +370,7 @@ function ProfileCard({
   )
 }
 
-const REASON: Record<string, string> = {
+export const REASON: Record<string, string> = {
   outside_window: 'ngoài giờ cho phép',
   daily_limit: 'hết giờ trong ngày',
   session_limit: 'hết giờ của lượt',

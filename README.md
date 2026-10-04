@@ -94,7 +94,9 @@ tháng sau đăng gì bạn không kiểm soát được.
 - Xem trước nguồn trước khi thêm
 - Duyệt hàng loạt, xếp kệ kéo thứ tự
 - Giới hạn: phút/ngày, phút/lượt, số video/lượt, khung giờ
-- Cấp thêm giờ / dừng lượt xem ngay từ trang quản trị
+- Cấp thêm giờ / dừng lượt xem ngay từ trang quản trị — hoặc **cho thêm giờ
+  ngay trên màn hết giờ của con** (+15 / +30 / +1 giờ, phải nhập PIN; tắt PIN
+  thì giữ nút 3 giây). Mỗi lần cho thêm đều ghi vào Báo cáo
 - Bộ lọc tự động (từ khoá tiếng Việt có dấu, độ dài, chặn live)
 - Tải video về máy — sạch quảng cáo, xem được khi mất mạng
 - Báo cáo: biểu đồ 14 ngày, video xem nhiều nhất, nhật ký xem

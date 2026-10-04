@@ -126,7 +126,7 @@ export async function profileRoutes(app: FastifyInstance): Promise<void> {
       if (!Number.isFinite(minutes) || minutes <= 0 || minutes > 240) {
         throw badRequest('Số phút phải từ 1 đến 240')
       }
-      grantExtraMinutes(id, minutes)
+      grantExtraMinutes(id, minutes, 'admin')
       return { ok: true, quota: computeQuota(id) }
     },
   )

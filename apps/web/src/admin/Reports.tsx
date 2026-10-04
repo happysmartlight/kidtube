@@ -2,12 +2,14 @@ import { adminApi } from '@/lib/api'
 import { C } from '@/lib/color'
 import { formatDate, formatMinutes } from '@/lib/format'
 import { Spinner } from '@/ui/Spinner'
+import { REASON } from './Profiles'
 import { Alert, Badge, Btn, Panel, useLoad } from './ui'
 
 export function Reports(): React.ReactElement {
   const days = useLoad(() => adminApi.statsDays(14))
   const top = useLoad(() => adminApi.statsTop(10))
   const history = useLoad(() => adminApi.statsHistory(60))
+  const grants = useLoad(() => adminApi.statsGrants(50))
   const today = useLoad(() => adminApi.stats())
 
   const maxSec = Math.max(1, ...(days.data?.days ?? []).map((d) => d.seconds))
@@ -154,6 +156,52 @@ export function Reports(): React.ReactElement {
               )}
               <span className="shrink-0 text-xs" style={{ color: 'var(--text-dim)' }}>
                 {formatDate(e.startedAt)}
+              </span>
+            </div>
+          ))}
+        </div>
+      </Panel>
+
+      {/* Moi lan "pha le" — nhat la cac lan cho ngay tren man het gio cua be,
+          khong qua trang nay nen bo me con lai khong biet. */}
+      <Panel
+        icon="⏱️"
+        title="Cho thêm giờ"
+        subtitle="Mỗi lần bố mẹ cho con xem thêm — từ trang này hoặc ngay trên màn hết giờ của con"
+        actions={<Btn small onClick={grants.reload}>🔄</Btn>}
+      >
+        {grants.loading ? <Spinner /> : null}
+        {grants.data && grants.data.grants.length === 0 ? (
+          <p style={{ color: 'var(--text-dim)' }}>Chưa lần nào cho thêm giờ.</p>
+        ) : null}
+
+        <div className="flex flex-col gap-1" style={{ maxHeight: 360, overflowY: 'auto' }}>
+          {grants.data?.grants.map((g) => (
+            <div
+              key={g.id}
+              className="flex flex-wrap items-center gap-2.5 rounded-lg p-2 text-sm"
+              style={{ background: 'var(--card)' }}
+            >
+              <span style={{ fontSize: 20 }} aria-hidden="true" title={g.profileName}>
+                {g.avatar}
+              </span>
+              <span className="font-bold">{g.profileName}</span>
+              <span className="tabular-nums" style={{ color: C.info }}>
+                {g.seconds > 0 ? `+${formatMinutes(g.seconds)}` : 'cho xem tiếp'}
+              </span>
+              {g.reason ? (
+                <span className="text-xs" style={{ color: 'var(--text-dim)' }}>
+                  lúc {REASON[g.reason] ?? g.reason}
+                </span>
+              ) : null}
+              <span className="min-w-0 flex-1" />
+              {g.source === 'kid_screen' ? (
+                <Badge color={C.warn}>trên màn hết giờ</Badge>
+              ) : (
+                <Badge color={C.dim}>trang bố mẹ</Badge>
+              )}
+              <span className="shrink-0 text-xs" style={{ color: 'var(--text-dim)' }}>
+                {formatDate(g.grantedAt)}
               </span>
             </div>
           ))}

@@ -34,10 +34,14 @@ export interface QuotaState {
 
   dailyLimitSec: number // 0 = khong gioi han
   dailyUsedSec: number
+  /** Phut bo me cho them HOM NAY (giay) — da tinh vao dailyRemainingSec. */
+  dailyBonusSec: number
   dailyRemainingSec: number | null // null = khong gioi han
 
   sessionLimitSec: number
   sessionUsedSec: number
+  /** Phut cho them trong LUOT nay (giay) — da tinh vao sessionRemainingSec. */
+  sessionBonusSec: number
   sessionRemainingSec: number | null
 
   videoLimit: number
@@ -104,6 +108,19 @@ function dailyUsedSec(profileId: number): number {
   return row?.total ?? 0
 }
 
+/** Tong phut bo me cho them (giay): theo ngay, va rieng phien dang mo. */
+function bonusSec(profileId: number, sessionId: number): { daily: number; session: number } {
+  const row = getDb()
+    .prepare<[number, number, string], { daily: number | null; session: number | null }>(
+      `SELECT SUM(seconds) AS daily,
+              SUM(CASE WHEN session_id = ? THEN seconds ELSE 0 END) AS session
+         FROM time_grants
+        WHERE profile_id = ? AND day = ?`,
+    )
+    .get(sessionId, profileId, localDay())
+  return { daily: row?.daily ?? 0, session: row?.session ?? 0 }
+}
+
 export function computeQuota(profileId: number): QuotaState {
   const profile = getProfile(profileId)
   const session = getOrCreateSession(profileId)
@@ -115,10 +132,14 @@ export function computeQuota(profileId: number): QuotaState {
   const dailyUsed = dailyUsedSec(profileId)
   const sessionUsed = session.seconds_used
   const videosWatched = session.videos_watched
+  const bonus = bonusSec(profileId, session.id)
 
-  const dailyRemaining = dailyLimitSec > 0 ? Math.max(0, dailyLimitSec - dailyUsed) : null
+  // Phut thuong CONG vao gioi han, khong tru vao thoi gian da xem: so "hom
+  // nay da xem" luon dung that, va cho them luc phien vua mo (0 giay) van du.
+  const dailyRemaining =
+    dailyLimitSec > 0 ? Math.max(0, dailyLimitSec + bonus.daily - dailyUsed) : null
   const sessionRemaining =
-    sessionLimitSec > 0 ? Math.max(0, sessionLimitSec - sessionUsed) : null
+    sessionLimitSec > 0 ? Math.max(0, sessionLimitSec + bonus.session - sessionUsed) : null
   const videosRemaining = videoLimit > 0 ? Math.max(0, videoLimit - videosWatched) : null
 
   const warnAtSec = getSettingInt('warn_before_min', 5) * 60
@@ -152,9 +173,11 @@ export function computeQuota(profileId: number): QuotaState {
     message,
     dailyLimitSec,
     dailyUsedSec: dailyUsed,
+    dailyBonusSec: bonus.daily,
     dailyRemainingSec: dailyRemaining,
     sessionLimitSec,
     sessionUsedSec: sessionUsed,
+    sessionBonusSec: bonus.session,
     sessionRemainingSec: sessionRemaining,
     videoLimit,
     videosWatched,
@@ -213,13 +236,40 @@ export function closeSession(profileId: number): void {
     .run(profileId)
 }
 
-/** Bo me cap them gio (nut "cho xem thêm" trong admin). */
-export function grantExtraMinutes(profileId: number, minutes: number): void {
+/**
+ * Ly do chan ma "cho them gio" GO duoc. Ngoai khung gio thi khung gio duoc
+ * kiem tra TRUOC moi gioi han khac — cong bao nhieu phut van bi chan; ho so
+ * dang tat cung vay. Man "het gio" chi hien nut cho cac ly do nay.
+ */
+export const GRANTABLE_REASONS: readonly BlockReason[] = ['daily_limit', 'session_limit', 'video_limit']
+
+/**
+ * Bo me cho xem them `minutes` phut.
+ *
+ * Ghi MOT dong vao time_grants: phut thuong cong vao CA gioi han ngay (cua
+ * hom nay) LAN gioi han luot (cua phien dang mo) — "cho them 15 phut" nghia
+ * la be xem them duoc 15 phut, bat ke gioi han nao vua chan. Dong thoi dat
+ * lai so video cua luot: cong phut ma van ket o gioi han so video thi nhu
+ * chua cho gi. `minutes = 0` = chi "cho xem tiep" (dat lai so video).
+ */
+export function grantExtraMinutes(
+  profileId: number,
+  minutes: number,
+  source: 'admin' | 'kid_screen',
+): void {
+  const reason = computeQuota(profileId).reason
   const session = getOrCreateSession(profileId)
-  const seconds = Math.round(minutes * 60)
-  getDb()
-    .prepare(
-      'UPDATE kid_sessions SET seconds_used = MAX(0, seconds_used - ?), videos_watched = 0 WHERE id = ?',
+  const db = getDb()
+  db.transaction(() => {
+    db.prepare(
+      `INSERT INTO time_grants (profile_id, session_id, day, seconds, reason, source)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+    ).run(profileId, session.id, localDay(), Math.round(minutes * 60), reason, source)
+    // Cham phien: man het gio da dung yen mot luc thi phien sap qua moc 10
+    // phut nghi — dong ngay sau khi cap la mat phut thuong theo luot.
+    db.prepare('UPDATE kid_sessions SET videos_watched = 0, last_seen_at = ? WHERE id = ?').run(
+      sqlNow(),
+      session.id,
     )
-    .run(seconds, session.id)
+  })()
 }

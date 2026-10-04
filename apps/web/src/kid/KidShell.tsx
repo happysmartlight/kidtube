@@ -179,11 +179,16 @@ export function KidPage({
  */
 function bindingLimit(q: Quota): { remainingSec: number; limitSec: number } | null {
   const opts: Array<{ remainingSec: number; limitSec: number }> = []
+  // Gioi han = goc + phut bo me cho them: khong cong thi sau khi cho them,
+  // phan con lai lon hon ca gioi han va vong cu day mai.
   if (q.dailyRemainingSec !== null && q.dailyLimitSec > 0) {
-    opts.push({ remainingSec: q.dailyRemainingSec, limitSec: q.dailyLimitSec })
+    opts.push({ remainingSec: q.dailyRemainingSec, limitSec: q.dailyLimitSec + q.dailyBonusSec })
   }
   if (q.sessionRemainingSec !== null && q.sessionLimitSec > 0) {
-    opts.push({ remainingSec: q.sessionRemainingSec, limitSec: q.sessionLimitSec })
+    opts.push({
+      remainingSec: q.sessionRemainingSec,
+      limitSec: q.sessionLimitSec + q.sessionBonusSec,
+    })
   }
   opts.sort((a, b) => a.remainingSec - b.remainingSec)
   return opts[0] ?? null

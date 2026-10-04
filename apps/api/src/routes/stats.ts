@@ -1,6 +1,13 @@
 import type { FastifyInstance } from 'fastify'
 import { localDay } from '../lib/time.js'
-import { dashboard, history, recentDays, summaryForDay, topVideos } from '../services/stats.js'
+import {
+  dashboard,
+  history,
+  recentDays,
+  recentGrants,
+  summaryForDay,
+  topVideos,
+} from '../services/stats.js'
 import { requireParent } from './auth.js'
 
 export async function statsRoutes(app: FastifyInstance): Promise<void> {
@@ -33,4 +40,8 @@ export async function statsRoutes(app: FastifyInstance): Promise<void> {
       ),
     }),
   )
+
+  app.get<{ Querystring: { limit?: string } }>('/api/admin/stats/grants', async (req) => ({
+    grants: recentGrants(Math.min(Number(req.query.limit ?? 50) || 50, 200)),
+  }))
 }

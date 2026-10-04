@@ -138,9 +138,13 @@ export interface Quota {
   message: string | null
   dailyLimitSec: number
   dailyUsedSec: number
+  /** Phut bo me cho them hom nay (giay), da tinh vao dailyRemainingSec. */
+  dailyBonusSec: number
   dailyRemainingSec: number | null
   sessionLimitSec: number
   sessionUsedSec: number
+  /** Phut cho them trong luot nay (giay), da tinh vao sessionRemainingSec. */
+  sessionBonusSec: number
   sessionRemainingSec: number | null
   videoLimit: number
   videosWatched: number
@@ -183,6 +187,17 @@ export const kidApi = {
   profiles: () => request<{ profiles: KidProfile[] }>('/api/kid/profiles'),
 
   quota: (profileId: number) => request<{ quota: Quota }>(`/api/kid/quota?profileId=${profileId}`),
+
+  /** Man het gio, buoc 1: kiem PIN bo me (PIN tat thi luon qua). */
+  grantVerify: (pin: string) =>
+    request<{ ok: boolean }>('/api/kid/grant/verify', { method: 'POST', body: { pin } }),
+
+  /** Man het gio, buoc 2: cho them `minutes` phut (0 = cho xem tiep khi het so video). */
+  grant: (profileId: number, minutes: number, pin: string) =>
+    request<{ ok: boolean; quota: Quota }>('/api/kid/grant', {
+      method: 'POST',
+      body: { profileId, minutes, pin },
+    }),
 
   /** Danh sach kenh, khong kem video — doi xung voi `shelves`. */
   channels: (profileId: number) =>
@@ -707,6 +722,20 @@ export const adminApi = {
         completed: number
       }>
     }>(`/api/admin/stats/history?limit=${limit}${profileId ? `&profileId=${profileId}` : ''}`),
+
+  /** Nhat ky "cho them gio" — ca tu trang bo me lan tu man het gio cua be. */
+  statsGrants: (limit = 50) =>
+    request<{
+      grants: Array<{
+        id: number
+        profileName: string
+        avatar: string
+        seconds: number
+        reason: string | null
+        source: 'admin' | 'kid_screen'
+        grantedAt: string
+      }>
+    }>(`/api/admin/stats/grants?limit=${limit}`),
 
   // Cap nhat app. `signal` de huy khi server dang khoi dong lai giua chung.
   update: (signal?: AbortSignal) => request<UpdateSnapshot>('/api/admin/update', { signal }),
