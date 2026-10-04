@@ -49,6 +49,7 @@ export function Sources(): React.ReactElement {
   return (
     <>
       <Panel
+        icon="➕"
         title="Thêm nguồn"
         subtitle="Dán link kênh, playlist hoặc video lẻ — hệ thống tự nhận diện"
       >
@@ -93,7 +94,7 @@ export function Sources(): React.ReactElement {
               ) : null}
               <div className="min-w-0 flex-1">
                 <div className="mb-1 flex flex-wrap items-center gap-2">
-                  <Badge color={C.focus}>{sourceTypeLabel(preview.resolved.type)}</Badge>
+                  <Badge color={C.info}>{sourceTypeLabel(preview.resolved.type)}</Badge>
                   <code className="text-xs" style={{ color: 'var(--text-dim)' }}>
                     {preview.resolved.externalId}
                   </code>
@@ -149,6 +150,7 @@ export function Sources(): React.ReactElement {
       </Panel>
 
       <Panel
+        icon="📡"
         title="Nguồn đã thêm"
         subtitle={data ? `${data.sources.length} nguồn` : undefined}
         actions={<Btn small onClick={reload}>🔄 Tải lại</Btn>}
@@ -195,7 +197,7 @@ export function Sources(): React.ReactElement {
                   <span>{sourceTypeLabel(s.type)}</span>
                   <span>{s.video_count} video</span>
                   {s.pending_count > 0 ? (
-                    <Badge color={C.focus}>{s.pending_count} chờ duyệt</Badge>
+                    <Badge color={C.warn}>{s.pending_count} chờ duyệt</Badge>
                   ) : null}
                   <span>kéo {formatRelative(s.last_pulled_at)}</span>
                 </div>

@@ -2,7 +2,7 @@ import { randomBytes, timingSafeEqual } from 'node:crypto'
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import { getSetting, setSetting } from '../db/index.js'
 import { hashPin } from '../db/seed.js'
-import { badRequest, unauthorized } from '../lib/errors.js'
+import { badRequest, HttpError, unauthorized } from '../lib/errors.js'
 
 const COOKIE = 'kt_parent'
 const TTL_MS = 8 * 60 * 60 * 1000 // 8 gio
@@ -105,6 +105,36 @@ function recordFailure(ip: string): void {
     rec.count = 0
   }
   attempts.set(ip, rec)
+}
+
+/**
+ * Xac minh LAI bo me ngay truoc mot thao tac kho hoan tac (vd: thao het video
+ * khoi ke). Phien dang mo chua du: phien song 8 gio, may co the dang nam
+ * trong tay tre.
+ *
+ * Dung CHUNG bo dem sai voi /login — tach rieng thi day thanh cua do PIN
+ * khong bi khoa. PIN dang tat thi khong co gi de doi chieu: phien bo me la
+ * du, giong /api/admin/pin.
+ */
+export function reverifyParent(req: FastifyRequest, pin: unknown): void {
+  if (!pinEnabled()) return
+
+  const ip = req.ip
+  const lockedFor = checkLockout(ip)
+  if (lockedFor > 0) {
+    throw new HttpError(429, `Sai PIN nhiều lần. Thử lại sau ${lockedFor} giây.`, 'LOCKED')
+  }
+
+  const value = String(pin ?? '')
+  if (!value) throw badRequest('Chưa nhập PIN')
+
+  if (!verifyPin(value)) {
+    recordFailure(ip)
+    // KHONG dung `unauthorized()`: code UNAUTHORIZED nghia la "het phien",
+    // con day phien van con — chi la go sai PIN.
+    throw new HttpError(401, 'PIN không đúng', 'BAD_PIN')
+  }
+  attempts.delete(ip)
 }
 
 export async function authRoutes(app: FastifyInstance): Promise<void> {

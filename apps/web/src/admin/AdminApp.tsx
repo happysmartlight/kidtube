@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { adminApi } from '@/lib/api'
 import { C } from '@/lib/color'
 import { formatBytes, formatMinutes } from '@/lib/format'
+import { safeScrollIntoView } from '@/lib/tv'
 import { Spinner } from '@/ui/Spinner'
 import { Downloads } from './Downloads'
 import { Profiles } from './Profiles'
@@ -14,15 +15,21 @@ import { Alert, Badge, Btn, Panel, ToastHost, useLoad } from './ui'
 
 type Tab = 'dashboard' | 'sources' | 'review' | 'shelves' | 'profiles' | 'downloads' | 'reports' | 'settings'
 
-const TABS: Array<{ id: Tab; label: string; emoji: string }> = [
-  { id: 'dashboard', label: 'Tổng quan', emoji: '📊' },
-  { id: 'sources', label: 'Nguồn', emoji: '📡' },
-  { id: 'review', label: 'Hàng chờ duyệt', emoji: '⏳' },
-  { id: 'shelves', label: 'Kệ', emoji: '🗂' },
-  { id: 'profiles', label: 'Bé', emoji: '🧒' },
-  { id: 'downloads', label: 'Tải offline', emoji: '⬇' },
-  { id: 'reports', label: 'Báo cáo', emoji: '📈' },
-  { id: 'settings', label: 'Cài đặt', emoji: '⚙' },
+/**
+ * Cac muc cua trang bo me. `desc` hien duoi tieu de muc dang mo — bo me
+ * moi dung lan dau biet ngay muc nay de lam gi.
+ * Emoji co VS16 (U+FE0F) de hien dang emoji mau: ⬇ / ⚙ tran trui hien
+ * thanh ky hieu chu trang tren Windows.
+ */
+const TABS: Array<{ id: Tab; label: string; emoji: string; desc: string }> = [
+  { id: 'dashboard', label: 'Tổng quan', emoji: '📊', desc: 'Việc cần làm, các bé hôm nay, dung lượng tải về' },
+  { id: 'sources', label: 'Nguồn', emoji: '📡', desc: 'Kênh, playlist, video lẻ — nơi lấy video mới về' },
+  { id: 'review', label: 'Hàng chờ duyệt', emoji: '⏳', desc: 'Video mới về phải được duyệt mới đến được với con' },
+  { id: 'shelves', label: 'Kệ', emoji: '🗂️', desc: 'Các hàng video trên trang chủ của con' },
+  { id: 'profiles', label: 'Bé', emoji: '🧒', desc: 'Hồ sơ từng bé, giới hạn thời gian xem' },
+  { id: 'downloads', label: 'Tải offline', emoji: '⬇️', desc: 'Video lưu sẵn trên máy, xem được khi mất mạng' },
+  { id: 'reports', label: 'Báo cáo', emoji: '📈', desc: 'Con xem gì, xem bao lâu' },
+  { id: 'settings', label: 'Cài đặt', emoji: '⚙️', desc: 'Hệ thống, cập nhật, phát video, giao diện, PIN' },
 ]
 
 export function AdminApp({ onExit }: { onExit: () => void }): React.ReactElement {
@@ -48,46 +55,107 @@ export function AdminApp({ onExit }: { onExit: () => void }): React.ReactElement
     }
   }, [tab])
 
+  const current = TABS.find((t) => t.id === tab) ?? TABS[0]!
+
+  // Man hep: hang muc cuon ngang — dua muc dang chon vao tam nhin (vd: bam
+  // "Duyệt ngay →" o Tong quan nhay sang muc nam ngoai mep phai).
+  const activeTabRef = useRef<HTMLButtonElement>(null)
+  useEffect(() => {
+    if (activeTabRef.current) safeScrollIntoView(activeTabRef.current)
+  }, [tab])
+
   return (
-    <div data-admin className="flex h-full flex-col" style={{ background: 'var(--bg)' }}>
-      <header
-        className="flex shrink-0 flex-wrap items-center gap-2 px-4 py-3"
-        style={{ background: 'var(--bg-elev)', borderBottom: '1px solid var(--card)' }}
-      >
-        <h1 className="mr-2 text-lg font-extrabold">
-          <span aria-hidden="true">🧸</span> KidTube — Bố mẹ
-        </h1>
-
-        <nav className="flex flex-wrap gap-1.5">
-          {TABS.map((t) => (
-            <Btn
-              key={t.id}
-              small
-              variant={tab === t.id ? 'primary' : 'ghost'}
-              onClick={() => setTab(t.id)}
+    // Nen trong suot: nen chuyen mau do / xanh cua body lo ra, giong giao dien be.
+    <div data-admin className="flex h-full flex-col">
+      <header className="admin-header">
+        <div style={{ maxWidth: 1212, margin: '0 auto' }}>
+          <div className="flex items-center gap-3 px-4 pt-3 pb-2.5">
+            <span
+              className="grid shrink-0 place-items-center rounded-xl"
+              style={{
+                width: 38,
+                height: 38,
+                fontSize: 20,
+                background: 'linear-gradient(135deg, #b00020 0%, #1234aa 100%)',
+              }}
+              aria-hidden="true"
             >
-              {t.emoji} {t.label}
-              {t.id === 'review' && pendingCount !== null && pendingCount > 0
-                ? ` (${pendingCount})`
-                : ''}
+              🧸
+            </span>
+            <div className="min-w-0 flex-1" style={{ lineHeight: 1.2 }}>
+              <h1 className="truncate text-lg font-extrabold">KidTube</h1>
+              <p className="truncate text-xs" style={{ color: 'var(--text-dim)' }}>
+                Trang của bố mẹ
+              </p>
+            </div>
+
+            <Btn
+              small
+              onClick={() => {
+                void adminApi.logout().finally(onExit)
+              }}
+              title="Đăng xuất trang bố mẹ và quay về giao diện của con"
+            >
+              <span aria-hidden="true">↩</span>
+              <span className="sm:hidden">Về của con</span>
+              <span className="hidden sm:inline">Về giao diện của con</span>
             </Btn>
-          ))}
-        </nav>
+          </div>
 
-        <div className="flex-1" />
-
-        <Btn
-          small
-          onClick={() => {
-            void adminApi.logout().finally(onExit)
-          }}
-        >
-          🚪 Thoát về giao diện của con
-        </Btn>
+          <nav className="admin-tabs" aria-label="Các mục của trang bố mẹ">
+            {TABS.map((t) => {
+              const on = tab === t.id
+              const badge = t.id === 'review' && pendingCount !== null && pendingCount > 0
+              return (
+                <button
+                  key={t.id}
+                  ref={on ? activeTabRef : undefined}
+                  type="button"
+                  className="admin-tab"
+                  aria-current={on ? 'page' : undefined}
+                  onClick={() => setTab(t.id)}
+                >
+                  <span aria-hidden="true">{t.emoji}</span>
+                  {t.label}
+                  {badge ? (
+                    <span className="admin-tab-count" aria-label={`${pendingCount} video chờ duyệt`}>
+                      {pendingCount}
+                    </span>
+                  ) : null}
+                </button>
+              )
+            })}
+          </nav>
+        </div>
       </header>
 
-      <main className="scroll-y min-h-0 flex-1 p-4">
+      <main className="scroll-y min-h-0 flex-1 px-4 pt-5 pb-8">
         <div style={{ maxWidth: 1180, margin: '0 auto' }}>
+          {/* Ten + y nghia cua muc dang mo: hang chip o tren nho, de bo qua */}
+          <div className="mb-5 flex items-center gap-3.5">
+            <span
+              className="grid shrink-0 place-items-center rounded-2xl"
+              style={{
+                width: 52,
+                height: 52,
+                fontSize: 26,
+                background: 'var(--card)',
+                border: '1px solid var(--panel-border)',
+              }}
+              aria-hidden="true"
+            >
+              {current.emoji}
+            </span>
+            <div className="min-w-0">
+              <h2 className="text-2xl font-extrabold" style={{ lineHeight: 1.2 }}>
+                {current.label}
+              </h2>
+              <p className="mt-0.5 text-sm" style={{ color: 'var(--text-dim)' }}>
+                {current.desc}
+              </p>
+            </div>
+          </div>
+
           {tab === 'dashboard' ? <Dashboard onGo={setTab} /> : null}
           {tab === 'sources' ? <Sources /> : null}
           {tab === 'review' ? <Review /> : null}
@@ -161,11 +229,11 @@ function Dashboard({ onGo }: { onGo: (t: Tab) => void }): React.ReactElement {
         <Stat label="Chờ duyệt" value={s?.pendingCount ?? 0} color={C.warn} onClick={() => onGo('review')} />
         <Stat label="Đã duyệt" value={s?.approvedCount ?? 0} color={C.ok} onClick={() => onGo('review')} />
         <Stat label="Đã loại" value={s?.rejectedCount ?? 0} color={C.dim} onClick={() => onGo('review')} />
-        <Stat label="Nguồn" value={s?.sourceCount ?? 0} color={C.focus} onClick={() => onGo('sources')} />
+        <Stat label="Nguồn" value={s?.sourceCount ?? 0} color={C.info} onClick={() => onGo('sources')} />
         <Stat label="Kệ" value={s?.shelfCount ?? 0} color="#a78bfa" onClick={() => onGo('shelves')} />
       </div>
 
-      <Panel title="Các bé hôm nay" actions={<Btn small onClick={() => onGo('profiles')}>Quản lý bé →</Btn>}>
+      <Panel icon="🧒" title="Các bé hôm nay" actions={<Btn small onClick={() => onGo('profiles')}>Quản lý bé →</Btn>}>
         {profiles.loading ? <Spinner /> : null}
 
         <div
@@ -219,13 +287,13 @@ function Dashboard({ onGo }: { onGo: (t: Tab) => void }): React.ReactElement {
         </div>
       </Panel>
 
-      <Panel title="Tải offline" actions={<Btn small onClick={() => onGo('downloads')}>Chi tiết →</Btn>}>
+      <Panel icon="💾" title="Tải offline" actions={<Btn small onClick={() => onGo('downloads')}>Chi tiết →</Btn>}>
         <div className="flex flex-wrap items-center gap-4 text-sm">
           <span>
             Dung lượng: <b>{formatBytes(s?.storageUsedBytes)}</b> ({s?.storageFileCount} file)
           </span>
           {s && s.downloadQueued > 0 ? (
-            <Badge color={C.focus}>{s.downloadQueued} đang chờ tải</Badge>
+            <Badge color={C.info}>{s.downloadQueued} đang chờ tải</Badge>
           ) : null}
           {s && s.downloadErrors > 0 ? (
             <Badge color={C.danger}>{s.downloadErrors} lỗi</Badge>
@@ -257,7 +325,7 @@ function Stat({
       type="button"
       onClick={onClick}
       className="cursor-pointer rounded-2xl p-4 text-left"
-      style={{ background: 'var(--bg-elev)', border: '1px solid var(--card)' }}
+      style={{ background: 'var(--panel)', border: '1px solid var(--panel-border)' }}
     >
       <p className="text-3xl font-extrabold tabular-nums" style={{ color }}>
         {value}

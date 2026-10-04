@@ -78,8 +78,13 @@ Lấy **Chromium 79 làm sàn** (TV cũ nhất còn dùng) → ràng buộc bắ
   Khoá ứng dụng) để chặn đổi app, hoặc chấp nhận và chỉ dựa vào quota.
 - **Remote LG Magic Remote có HAI chế độ**: con trỏ (chỉ và bấm) và D-pad
   (4 phím mũi tên). Phải hỗ trợ **cả hai** — không giả định chỉ một.
-- **Nút Back của remote = back của trình duyệt**. Router dùng History API nên
-  hoạt động tự nhiên; nhưng ở trang đầu tiên thì Back sẽ thoát app.
+- **Nút Back của remote**: LG gửi `keyCode 461` (Samsung `10009`), trình duyệt
+  có thể còn tự lùi lịch sử. `lib/back.ts` bắt mọi kiểu phím Back; với phím
+  Back của remote thì đợi ~250ms — thấy `popstate` (trình duyệt đã tự lùi) thì
+  thôi, không thì tự xử lý, để không bao giờ lùi hai bước. "Quay lại" trong
+  app luôn LÙI lịch sử thật (`backOr` trong `lib/router.ts`) thay vì đẩy thêm
+  `/home`, nên lùi bằng trình duyệt cũng về đúng chỗ. Ở trang đầu tiên thì
+  Back của trình duyệt vẫn có thể thoát app.
 - **Fullscreen** phải do người dùng kích hoạt: thử `requestFullscreen()` đúng lúc
   trẻ bấm chọn avatar (là user gesture), thất bại thì bỏ qua lặng lẽ.
 

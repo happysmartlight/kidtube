@@ -5,6 +5,7 @@ import { formatDuration } from '@/lib/format'
 import { useDebounced } from '@/lib/useDebounced'
 import { Spinner } from '@/ui/Spinner'
 import { appendPage, type MorePages, NO_MORE } from './morePages'
+import { PinConfirm } from './PinConfirm'
 import { Alert, Badge, Btn, Field, Input, Panel, Select, toast, useLoad } from './ui'
 
 const PALETTE = ['#ffd23f', '#ff6b8a', '#4ecdc4', '#a78bfa', '#ff9f43', '#4ecb71', '#5b9cff', '#f472b6']
@@ -55,7 +56,7 @@ export function Shelves(): React.ReactElement {
 
   return (
     <>
-      <Panel title="Tạo kệ mới" subtitle="Kệ là một hàng ngang trên trang chủ của con">
+      <Panel icon="➕" title="Tạo kệ mới" subtitle="Kệ là một hàng ngang trên trang chủ của con">
         <div className="flex flex-wrap items-end gap-3">
           <div style={{ flex: '1 1 220px' }}>
             <Field label="Tên kệ">
@@ -117,6 +118,7 @@ export function Shelves(): React.ReactElement {
       </Panel>
 
       <Panel
+        icon="🗂️"
         title="Các kệ"
         subtitle="Thứ tự ở đây chính là thứ tự trên trang chủ của con"
         actions={<Btn small onClick={shelves.reload}>🔄</Btn>}
@@ -146,7 +148,7 @@ export function Shelves(): React.ReactElement {
                     {s.profileIds.length === 0 ? (
                       <Badge color={C.ok}>mọi bé</Badge>
                     ) : (
-                      <Badge color={C.focus}>
+                      <Badge color={C.info}>
                         chỉ{' '}
                         {s.profileIds
                           .map((id) => profiles.data?.profiles.find((p) => p.id === id)?.name ?? id)
@@ -221,6 +223,22 @@ function ShelfDetail({
 }): React.ReactElement {
   const items = useLoad(() => adminApi.shelfItems(shelf.id), [shelf.id])
   const [adding, setAdding] = useState(false)
+  const [clearing, setClearing] = useState(false)
+  // Doi key = dung lai o "Thêm video": sau khi thao het, nhan "đã ở N kệ"
+  // cua lan tai truoc da sai.
+  const [addRound, setAddRound] = useState(0)
+  const count = items.data?.items.length ?? 0
+
+  async function clearAll(pin: string): Promise<void> {
+    const r = await adminApi.clearShelf(shelf.id, pin)
+    toast('ok', `Đã tháo ${r.removed} video khỏi kệ — giờ thêm video mới nhé`)
+    setClearing(false)
+    // Thao het la de xep video khac vao — mo san o them.
+    setAddRound((n) => n + 1)
+    setAdding(true)
+    items.reload()
+    onChanged()
+  }
 
   async function moveItem(videoId: number, dir: -1 | 1): Promise<void> {
     const list = items.data?.items ?? []
@@ -298,6 +316,7 @@ function ShelfDetail({
 
       {adding ? (
         <AddVideos
+          key={addRound}
           shelfId={shelf.id}
           onDone={() => {
             setAdding(false)
@@ -308,9 +327,30 @@ function ShelfDetail({
       ) : null}
 
       {/* Danh sach video trong ke */}
-      <p className="mt-4 mb-2 text-sm font-bold">
-        Video trong kệ ({items.data?.items.length ?? 0}) — thứ tự từ trái sang phải
-      </p>
+      <div className="mt-4 mb-2 flex flex-wrap items-center justify-between gap-2">
+        <p className="text-sm font-bold">Video trong kệ ({count}) — thứ tự từ trái sang phải</p>
+        {count > 0 ? (
+          <Btn small variant="danger" onClick={() => setClearing(true)}>
+            🧹 Tháo hết video
+          </Btn>
+        ) : null}
+      </div>
+
+      {clearing ? (
+        <PinConfirm
+          title={`Tháo hết video khỏi kệ "${shelf.title}"?`}
+          confirmLabel={`🧹 Tháo hết ${count} video`}
+          onConfirm={clearAll}
+          onClose={() => setClearing(false)}
+        >
+          <p>
+            <b>{count} video</b> sẽ được bỏ khỏi kệ này. Video <b>không bị xoá</b> — vẫn nằm trong
+            danh sách đã duyệt, thêm lại lúc nào cũng được. Tên, màu và các bé được gán của kệ giữ
+            nguyên.
+          </p>
+          <p className="mt-2">Kệ rỗng sẽ tạm không hiện trên trang chủ của con cho tới khi có video mới.</p>
+        </PinConfirm>
+      ) : null}
 
       {items.loading ? <Spinner /> : null}
       {items.data && items.data.items.length === 0 ? (
@@ -555,7 +595,7 @@ function AddVideos({
         {page1.loading ? <span>đang tìm…</span> : null}
         {sel.size > 0 ? (
           <>
-            <Badge color={C.focus}>đã chọn {sel.size}</Badge>
+            <Badge color={C.info}>đã chọn {sel.size}</Badge>
             <Btn small onClick={() => setSel(new Set())}>
               Bỏ chọn hết
             </Btn>

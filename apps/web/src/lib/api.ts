@@ -553,6 +553,13 @@ export const adminApi = {
       method: 'DELETE',
     }),
 
+  /** Thao het video khoi ke. Server hoi lai PIN (bo qua khi PIN dang tat). */
+  clearShelf: (shelfId: number, pin: string) =>
+    request<{ ok: boolean; removed: number }>(`/api/admin/shelves/${shelfId}/clear`, {
+      method: 'POST',
+      body: { pin },
+    }),
+
   reorderShelfItems: (shelfId: number, order: number[]) =>
     request<{ ok: boolean }>(`/api/admin/shelves/${shelfId}/reorder`, {
       method: 'POST',

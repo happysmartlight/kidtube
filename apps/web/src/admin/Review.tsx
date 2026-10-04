@@ -303,6 +303,7 @@ export function Review(): React.ReactElement {
       ) : null}
 
       <Panel
+        icon="🎬"
         title={
           search
             ? `${statusLabel(tab)} — khớp ${total} video, đang xem ${list.length}`
@@ -404,7 +405,7 @@ export function Review(): React.ReactElement {
                       width: 28,
                       height: 28,
                       background: isSel ? 'var(--focus)' : 'rgba(0,0,0,0.6)',
-                      color: isSel ? '#2a1f00' : '#fff',
+                      color: isSel ? 'var(--focus-ink)' : '#fff',
                     }}
                     aria-hidden="true"
                   >
@@ -457,7 +458,7 @@ export function Review(): React.ReactElement {
                       <Badge color={C.dim}>⏳ chờ tải</Badge>
                     ) : null}
                     {v.download_status === 'downloading' ? (
-                      <Badge color={C.focus}>⬇ đang tải</Badge>
+                      <Badge color={C.info}>⬇ đang tải</Badge>
                     ) : null}
                     {v.download_status === 'error' ? (
                       <Badge color={C.danger}>⬇ tải lỗi</Badge>

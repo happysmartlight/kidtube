@@ -70,14 +70,23 @@ Hàng nút kệ nằm NGOÀI vùng cuộn (`KidPage` trong `KidShell.tsx`) nên 
 suốt được — nếu để nó dính (sticky) trong vùng cuộn thì phải có nền đặc để che
 card cuộn qua, và nền đặc đó che đúng phần màu đậm nhất của nền chuyển màu.
 
-**Trang bố mẹ** (`[data-admin]`) — giữ bảng màu cũ, bé không nhìn thấy trang này:
+**Trang bố mẹ** (`[data-admin]`) — dùng CHUNG bảng màu với giao diện của bé
+(nền chuyển màu, chữ trắng, nút chính đỏ `#FF0033`), chỉ thêm vài token cho
+mật độ thông tin dày:
 
 ```
-Nền: #16131f (tím đen)   Card: #241f33   Chữ: #f6f3ff / #a79cc4
-Nhấn + focus: #ffd23f (vàng)
+--panel: rgba(255,255,255,0.045)   viền --panel-border: rgba(255,255,255,0.09)
+--info:  #6ea8ff   badge thông tin ("đang tải", "chỉ Bé A"), toast thường
 ```
 
-Hằng `C` trong `lib/color.ts` khớp với bảng màu trang bố mẹ.
+- Badge thông tin dùng **xanh `--info`**, không dùng đỏ `--focus` — badge đỏ
+  trông như báo lỗi. Đỏ dành cho nút chính, vùng chọn, thanh tiến độ.
+- Hàng mục ở đầu trang là **một hàng chip cuộn ngang** (chip đang chọn nền
+  trắng chữ tối, kiểu YouTube); dưới đó là tên + mô tả của mục đang mở.
+- `color-scheme: dark` + nền đặc cho `<option>`: danh sách thả xuống của
+  `<select>` là cửa sổ của hệ điều hành, không ăn nền bán trong suốt.
+
+Hằng `C` trong `lib/color.ts` khớp với các token trên.
 
 ## Bố cục
 
@@ -173,7 +182,7 @@ Nút co giãn `clamp(52px, 15vw, 64px)` — vừa 320px. Rộng hơn 640px giữ
 |---|---|
 | ↑ ↓ ← → | Di chuyển focus theo hình học tới card láng giềng gần nhất |
 | Enter / Space | Bấm element đang focus |
-| Escape / Backspace | Quay lại (trang xem → trang chủ) |
+| Back (remote) / Escape / Backspace | Quay lại: hộp thoại đang mở → đóng hộp; trang xem / trang bố mẹ → lưới video của bé; Kênh → Trang chủ |
 | Trong player: ← → | Tua ∓10s (không di chuyển focus) |
 | Trong player: ↑ ↓ | Âm lượng |
 

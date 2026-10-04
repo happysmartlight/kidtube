@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { useBackHandler } from '@/lib/back'
 import { C, withAlpha } from '@/lib/color'
 
 /**
@@ -9,31 +10,56 @@ import { C, withAlpha } from '@/lib/color'
  * Nen o day dung <button> thuong, khong dung FocusButton.
  */
 
+/**
+ * Mot muc trong trang. Nen BAN TRONG SUOT tren nen chuyen mau (giong giao
+ * dien cua be), co bieu tuong o dau tieu de de liec qua la biet muc nao.
+ */
 export function Panel({
   title,
   subtitle,
+  icon,
   actions,
   children,
 }: {
   title?: string
   subtitle?: string
+  icon?: string
   actions?: React.ReactNode
   children: React.ReactNode
 }): React.ReactElement {
   return (
-    <section className="mb-5 rounded-2xl" style={{ background: 'var(--bg-elev)' }}>
+    <section
+      className="mb-5 rounded-2xl"
+      style={{ background: 'var(--panel)', border: '1px solid var(--panel-border)' }}
+    >
       {title || actions ? (
         <header
-          className="flex flex-wrap items-center justify-between gap-3 px-5 py-4"
-          style={{ borderBottom: '1px solid var(--card)' }}
+          className="flex flex-wrap items-center gap-3 px-5 py-4"
+          style={{ borderBottom: '1px solid var(--panel-border)' }}
         >
-          <div>
-            {title ? <h2 className="text-lg font-extrabold">{title}</h2> : null}
-            {subtitle ? (
-              <p className="mt-0.5 text-sm" style={{ color: 'var(--text-dim)' }}>
-                {subtitle}
-              </p>
+          {/* Bieu tuong + chu di lien nhau; man hep thi CA khoi nut xuong hang */}
+          <div className="flex min-w-0 flex-1 items-center gap-3" style={{ flexBasis: 240 }}>
+            {icon ? (
+              <span
+                className="grid shrink-0 place-items-center rounded-xl"
+                style={{ width: 38, height: 38, fontSize: 19, background: 'var(--card)' }}
+                aria-hidden="true"
+              >
+                {icon}
+              </span>
             ) : null}
+            <div className="min-w-0">
+              {title ? (
+                <h2 className="text-lg font-extrabold" style={{ lineHeight: 1.3 }}>
+                  {title}
+                </h2>
+              ) : null}
+              {subtitle ? (
+                <p className="mt-0.5 text-sm" style={{ color: 'var(--text-dim)', lineHeight: 1.45 }}>
+                  {subtitle}
+                </p>
+              ) : null}
+            </div>
           </div>
           {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
         </header>
@@ -55,7 +81,7 @@ export function Btn({
   small?: boolean
 }): React.ReactElement {
   const styles: Record<BtnVariant, React.CSSProperties> = {
-    primary: { background: 'var(--focus)', color: '#2a1f00' },
+    primary: { background: 'var(--focus)', color: 'var(--focus-ink)' },
     ghost: {
       background: 'var(--card)',
       color: 'var(--text)',
@@ -126,9 +152,8 @@ const inputStyle: React.CSSProperties = {
   outline: 'none',
 }
 
-export function Input(
-  props: React.InputHTMLAttributes<HTMLInputElement>,
-): React.ReactElement {
+/** `ComponentProps` thay vi `InputHTMLAttributes` de nhan `ref` (React 19: ref la prop). */
+export function Input(props: React.ComponentProps<'input'>): React.ReactElement {
   return <input {...props} style={{ ...inputStyle, ...props.style }} />
 }
 
@@ -246,6 +271,109 @@ export function Alert({
   )
 }
 
+// ─── Hop thoai ────────────────────────────────────────────────────────
+
+/**
+ * Hop thoai giua man hinh — thay cho `window.confirm`: hop cua trinh duyet
+ * khong dinh dang duoc, chu dinh mot cuc, va lac long han voi giao dien.
+ *
+ * Esc / bam ra ngoai = dong, TRU khi `locked` (dang gui yeu cau — dong luc do
+ * thi bo me khong biet ket qua ra sao).
+ *
+ * Cuon ca lop phu chu khong gioi han chieu cao the bang `dvh`: TV LG cu
+ * khong hieu `dvh`, va can giua bang flex + min-h-full thi noi dung dai
+ * khong bi cat mat phan dau.
+ */
+export function Dialog({
+  title,
+  subtitle,
+  icon,
+  /** PHAI la hex — xem chu thich cua Badge. */
+  iconColor = C.info,
+  locked = false,
+  onClose,
+  footer,
+  children,
+}: {
+  title: string
+  subtitle?: React.ReactNode
+  icon?: string
+  iconColor?: string
+  locked?: boolean
+  onClose: () => void
+  footer: React.ReactNode
+  children?: React.ReactNode
+}): React.ReactElement {
+  // Hop thoai nam TREN tang "ve trang cua be" cua App (lib/back.ts): Esc /
+  // Back cua remote chi dong hop, khong da bo me ra khoi trang quan tri.
+  useBackHandler(() => {
+    if (!locked) onClose()
+  })
+
+  return (
+    <div
+      className="fixed inset-0 z-50 overflow-y-auto"
+      style={{ background: 'var(--scrim)', backdropFilter: 'blur(6px)' }}
+    >
+      <div
+        className="flex min-h-full items-center justify-center p-4"
+        onClick={(e) => {
+          if (e.target === e.currentTarget && !locked) onClose()
+        }}
+      >
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={title}
+          className="anim-pop w-full max-w-md rounded-2xl"
+          style={{
+            background: 'var(--bg-elev)',
+            border: '1px solid var(--card-hi)',
+            boxShadow: '0 24px 64px rgba(0, 0, 0, 0.45)',
+          }}
+        >
+          <header className="flex items-start gap-3 px-5 pt-5 pb-4">
+            {icon ? (
+              <span
+                className="grid shrink-0 place-items-center rounded-xl"
+                style={{
+                  width: 44,
+                  height: 44,
+                  fontSize: 22,
+                  background: withAlpha(iconColor, 0.16),
+                  border: `1px solid ${withAlpha(iconColor, 0.35)}`,
+                }}
+                aria-hidden="true"
+              >
+                {icon}
+              </span>
+            ) : null}
+            <div className="min-w-0 flex-1 pt-0.5">
+              <h2 className="text-lg font-extrabold" style={{ lineHeight: 1.3 }}>
+                {title}
+              </h2>
+              {subtitle ? (
+                <p className="mt-0.5 text-sm" style={{ color: 'var(--text-dim)' }}>
+                  {subtitle}
+                </p>
+              ) : null}
+            </div>
+          </header>
+
+          {children ? <div className="px-5">{children}</div> : null}
+
+          <footer
+            className="flex flex-wrap justify-end gap-2 px-5 py-4"
+            style={{ borderTop: '1px solid var(--card)' }}
+          >
+            {footer}
+          </footer>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── Toast ────────────────────────────────────────────────────────────
 
 export interface ToastMessage {
@@ -284,7 +412,7 @@ export function ToastHost(): React.ReactElement {
       aria-live="polite"
     >
       {items.map((t) => {
-        const c = t.kind === 'ok' ? C.ok : t.kind === 'error' ? C.danger : C.focus
+        const c = t.kind === 'ok' ? C.ok : t.kind === 'error' ? C.danger : C.info
         return (
           <div
             key={t.id}

@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { adminApi, ApiError, type FilterRule, type UpdateSnapshot } from '@/lib/api'
-import { C } from '@/lib/color'
+import { C, withAlpha } from '@/lib/color'
 import { filterTypeLabel, formatBytes, formatDate, formatMinutes, formatRelative } from '@/lib/format'
 import { getLocalOverride, setLocalOverride, type ModeSetting } from '@/lib/mode'
 import { Spinner } from '@/ui/Spinner'
-import { Alert, Badge, Btn, Field, Input, Panel, Select, toast, Toggle, useLoad } from './ui'
+import { Alert, Badge, Btn, Dialog, Field, Input, Panel, Select, toast, Toggle, useLoad } from './ui'
 
 export function Settings(): React.ReactElement {
   const { data, loading, error, reload } = useLoad(() => adminApi.settings())
@@ -33,7 +33,7 @@ export function Settings(): React.ReactElement {
   return (
     <>
       {/* ── Tinh trang he thong ─────────────────────────────────── */}
-      <Panel title="Tình trạng hệ thống">
+      <Panel icon="🩺" title="Tình trạng hệ thống">
         <div
           className="grid gap-3 text-sm"
           style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}
@@ -71,7 +71,7 @@ export function Settings(): React.ReactElement {
       <UpdateSection />
 
       {/* ── Phat video ──────────────────────────────────────────── */}
-      <Panel title="Phát video">
+      <Panel icon="▶️" title="Phát video">
         <Toggle
           checked={bool('autoplay_default')}
           onChange={(v) => put('autoplay_default', v)}
@@ -110,7 +110,7 @@ export function Settings(): React.ReactElement {
       </Panel>
 
       {/* ── Giao dien ───────────────────────────────────────────── */}
-      <Panel title="Giao diện">
+      <Panel icon="🖥️" title="Giao diện">
         <Field
           label="Chế độ hiển thị (áp dụng cho mọi thiết bị)"
           hint="tv = chữ và card to hơn 1.4×, viền an toàn 5% chống overscan của TV. auto = tự nhận diện."
@@ -150,6 +150,7 @@ export function Settings(): React.ReactElement {
 
       {/* ── Tai offline ─────────────────────────────────────────── */}
       <Panel
+        icon="💾"
         title="Tải video về máy (offline)"
         subtitle="Xem được khi mất mạng, không có quảng cáo, load tức thì"
       >
@@ -182,7 +183,7 @@ export function Settings(): React.ReactElement {
       </Panel>
 
       {/* ── Nhap nguon ──────────────────────────────────────────── */}
-      <Panel title="Kéo video mới">
+      <Panel icon="🔄" title="Kéo video mới">
         <Field
           label="Chu kỳ kiểm tra nguồn (giờ)"
           hint="Hệ thống tự kiểm tra các nguồn có bật 'tự kéo'. Video mới vào hàng chờ duyệt, KHÔNG tự hiện cho con."
@@ -330,7 +331,8 @@ function UpdateSection(): React.ReactElement {
     return () => window.clearTimeout(t)
   }, [working, snap, done])
 
-  async function fire(kind: 'check' | 'run'): Promise<void> {
+  /** Tra ve `true` neu server nhan yeu cau — de hop xac nhan biet ma dong. */
+  async function fire(kind: 'check' | 'run'): Promise<boolean> {
     setBusy(true)
     try {
       if (kind === 'check') {
@@ -341,37 +343,25 @@ function UpdateSection(): React.ReactElement {
         toast('ok', 'Đã bắt đầu cập nhật. Đừng tắt nguồn Pi.')
       }
       await load()
+      return true
     } catch (err) {
       toast('error', err instanceof ApiError ? err.message : 'Không gửi được yêu cầu')
+      return false
     } finally {
       setBusy(false)
     }
   }
 
+  const [confirming, setConfirming] = useState(false)
+  const closeConfirm = useCallback(() => setConfirming(false), [])
+
   const u = snap?.updater
   const repo = snap?.repo
   const behind = repo?.behind ?? 0
-  const w = snap?.warnings
-
-  function confirmAndRun(): void {
-    const lines = ['Cập nhật KidTube lên bản mới?', '']
-    if (w?.activeKidSessions) {
-      lines.push(`⚠ Có ${w.activeKidSessions} bé đang xem — video sẽ bị ngắt giữa chừng.`)
-    }
-    if (w?.downloadRunning) {
-      lines.push('⚠ Đang tải một video — job sẽ chạy lại từ đầu sau khi cập nhật.')
-    }
-    lines.push(
-      '',
-      'Quá trình mất khoảng 2–5 phút trên Pi 5. App sẽ tạm ngưng khi khởi động lại.',
-      'ĐỪNG tắt nguồn Pi trong lúc này.',
-    )
-    if (!window.confirm(lines.join('\n'))) return
-    void fire('run')
-  }
 
   return (
     <Panel
+      icon="🚀"
       title="Phiên bản & cập nhật"
       subtitle="Cập nhật app mà không cần mở terminal"
       actions={
@@ -384,7 +374,12 @@ function UpdateSection(): React.ReactElement {
               small
               variant={behind > 0 ? 'primary' : 'ghost'}
               disabled={busy || working || !u.repoOk}
-              onClick={confirmAndRun}
+              onClick={() => {
+                setConfirming(true)
+                // Lay lai so lieu: "bé đang xem" / "đang tải" trong hop phai
+                // la cua LUC NAY, khong phai luc mo trang.
+                void load()
+              }}
             >
               ⬆ Cập nhật ngay
             </Btn>
@@ -392,6 +387,18 @@ function UpdateSection(): React.ReactElement {
         ) : null
       }
     >
+      {confirming ? (
+        <UpdateConfirm
+          snap={snap}
+          busy={busy}
+          working={working}
+          onClose={closeConfirm}
+          onConfirm={async () => {
+            if (await fire('run')) setConfirming(false)
+          }}
+        />
+      ) : null}
+
       {/* ── Dang chay ban nao ─────────────────────────────────── */}
       <div
         className="mb-4 grid gap-3 text-sm"
@@ -557,6 +564,176 @@ function UpdateSection(): React.ReactElement {
   )
 }
 
+/**
+ * Hop xac nhan truoc khi cap nhat. Noi ro ba dieu bo me can biet TRUOC khi
+ * bam: se cai nhung gi, ai bi anh huong (be dang xem, video dang tai), va
+ * mat bao lau / khong duoc tat nguon.
+ */
+function UpdateConfirm({
+  snap,
+  busy,
+  working,
+  onConfirm,
+  onClose,
+}: {
+  snap: UpdateSnapshot | null
+  busy: boolean
+  working: boolean
+  onConfirm: () => Promise<void>
+  onClose: () => void
+}): React.ReactElement {
+  const repo = snap?.repo
+  const w = snap?.warnings
+  const behind = repo?.behind ?? 0
+  const pending = repo?.pending ?? []
+  // Updater chi gui toi da 25 thay doi gan nhat.
+  const older = behind - pending.length
+  const running =
+    snap?.running.commitShort ?? snap?.deployedCommit?.slice(0, 7) ?? repo?.headShort ?? null
+  const target = pending[0]?.short ?? null
+
+  return (
+    <Dialog
+      title="Cập nhật KidTube?"
+      subtitle={
+        behind > 0
+          ? `Có ${behind} thay đổi mới sẵn sàng để cài`
+          : 'Lần kiểm tra gần nhất chưa thấy bản mới'
+      }
+      icon="⬆️"
+      locked={busy}
+      onClose={onClose}
+      footer={
+        <>
+          <Btn onClick={onClose} disabled={busy}>
+            Để sau
+          </Btn>
+          <Btn
+            variant="primary"
+            autoFocus
+            disabled={busy || working}
+            onClick={() => void onConfirm()}
+          >
+            {busy ? 'Đang gửi…' : '⬆ Cập nhật ngay'}
+          </Btn>
+        </>
+      }
+    >
+      {behind > 0 && running && target ? (
+        <div className="mb-3 flex items-center justify-center gap-3">
+          <VersionChip label="đang chạy" value={running} />
+          <span aria-hidden="true" style={{ color: 'var(--text-dim)', fontSize: 18 }}>
+            →
+          </span>
+          <VersionChip label="bản mới" value={target} highlight />
+        </div>
+      ) : null}
+
+      {pending.length > 0 ? (
+        <div
+          className="mb-4 overflow-y-auto rounded-xl"
+          style={{ maxHeight: 188, background: 'var(--card)' }}
+        >
+          {pending.map((c, i) => (
+            <div
+              key={c.short}
+              className="flex items-start gap-2.5 px-3 py-2 text-sm"
+              style={{ borderTop: i > 0 ? '1px solid var(--bg-elev)' : undefined }}
+            >
+              <code className="shrink-0 pt-px text-xs" style={{ color: 'var(--text-dim)' }}>
+                {c.short}
+              </code>
+              <span className="min-w-0 flex-1" style={{ lineHeight: 1.45 }}>
+                {c.subject}
+              </span>
+            </div>
+          ))}
+          {older > 0 ? (
+            <p
+              className="px-3 py-2 text-xs"
+              style={{ color: 'var(--text-dim)', borderTop: '1px solid var(--bg-elev)' }}
+            >
+              …và {older} thay đổi cũ hơn
+            </p>
+          ) : null}
+        </div>
+      ) : behind === 0 ? (
+        <Alert kind="info">
+          Bấm vẫn hỏi lại GitHub một lần nữa. Không có gì mới thì app không bị dựng lại, các bé xem
+          tiếp bình thường.
+        </Alert>
+      ) : null}
+
+      {w?.activeKidSessions ? (
+        <Alert kind="warn">
+          <b>Có {w.activeKidSessions} bé đang xem</b> — video sẽ bị ngắt giữa chừng.
+        </Alert>
+      ) : null}
+      {w?.downloadRunning ? (
+        <Alert kind="warn">
+          <b>Đang tải một video</b> — sẽ tải lại từ đầu sau khi cập nhật.
+        </Alert>
+      ) : null}
+      {working && !busy ? (
+        <Alert kind="info">Đang có một lượt kiểm tra / cập nhật chạy — đợi nó xong đã.</Alert>
+      ) : null}
+
+      <ul
+        className="mb-4 flex flex-col gap-2 rounded-xl px-4 py-3 text-sm"
+        style={{ background: 'var(--card)', lineHeight: 1.45 }}
+      >
+        <UpdateNote icon="⏱">
+          Mất khoảng <b>2–5 phút</b> trên Pi 5.
+        </UpdateNote>
+        <UpdateNote icon="🔄">
+          App tạm ngưng rồi tự khởi động lại — trang này tự tải lại khi xong.
+        </UpdateNote>
+        <UpdateNote icon="🔌">
+          <b style={{ color: C.warn }}>Đừng tắt nguồn Pi</b> trong lúc này.
+        </UpdateNote>
+      </ul>
+    </Dialog>
+  )
+}
+
+function VersionChip({
+  label,
+  value,
+  highlight = false,
+}: {
+  label: string
+  value: string
+  highlight?: boolean
+}): React.ReactElement {
+  return (
+    <span
+      className="inline-flex flex-col items-center rounded-xl px-3.5 py-1.5"
+      style={{
+        background: highlight ? withAlpha(C.info, 0.12) : 'var(--card)',
+        border: `1px solid ${highlight ? withAlpha(C.info, 0.4) : 'var(--card-hi)'}`,
+      }}
+    >
+      <span className="text-xs" style={{ color: 'var(--text-dim)' }}>
+        {label}
+      </span>
+      <code className="text-sm font-bold" style={{ color: highlight ? C.info : 'var(--text)' }}>
+        {value}
+      </code>
+    </span>
+  )
+}
+
+function UpdateNote({ icon, children }: { icon: string; children: React.ReactNode }): React.ReactElement {
+  return (
+    <li className="flex items-start gap-2.5">
+      <span aria-hidden="true" className="shrink-0">
+        {icon}
+      </span>
+      <span className="min-w-0 flex-1">{children}</span>
+    </li>
+  )
+}
+
 // ═══ Bo loc tu dong ═════════════════════════════════════════════════
 
 const FILTER_HELP: Record<string, string> = {
@@ -618,6 +795,7 @@ function Filters(): React.ReactElement {
 
   return (
     <Panel
+      icon="🧹"
       title="Bộ lọc tự động"
       subtitle="Hỗ trợ việc duyệt, KHÔNG thay thế nó — video bị lọc vào tab 'Đã loại', bố mẹ vẫn xem lại được"
       actions={
@@ -742,7 +920,7 @@ function Filters(): React.ReactElement {
               >
                 {/* Cot loai rong co dinh -> gia tri cua moi dong thang hang. */}
                 <div className="shrink-0" style={{ width: 160 }}>
-                  <Badge color={active ? C.focus : C.dim}>{filterTypeLabel(f.type)}</Badge>
+                  <Badge color={active ? C.info : C.dim}>{filterTypeLabel(f.type)}</Badge>
                 </div>
 
                 <div className="min-w-0 flex-1" style={{ flexBasis: 160 }}>
@@ -877,7 +1055,7 @@ function PinSection(): React.ReactElement {
 
   if (!me) {
     return (
-      <Panel title="PIN của bố mẹ">
+      <Panel icon="🔒" title="PIN của bố mẹ">
         {error ? <Alert kind="error">{error}</Alert> : <Spinner />}
       </Panel>
     )
@@ -909,7 +1087,7 @@ function PinSection(): React.ReactElement {
   // ─── Dang tat PIN ────────────────────────────────────────────────
   if (!me.pinEnabled) {
     return (
-      <Panel title="PIN của bố mẹ" subtitle="Đang tắt — vào trang bố mẹ không cần PIN">
+      <Panel icon="🔒" title="PIN của bố mẹ" subtitle="Đang tắt — vào trang bố mẹ không cần PIN">
         <Alert kind="warn">
           Đang <b>không dùng PIN</b>: chỉ cần giữ nút ⚙ 3 giây là vào được trang này — kể cả con,
           nếu con biết cách. Mọi máy trong mạng nhà cũng mở được trang quản trị. Đặt PIN mới bên
@@ -933,7 +1111,7 @@ function PinSection(): React.ReactElement {
 
   // ─── Dang dung PIN ───────────────────────────────────────────────
   return (
-    <Panel title="PIN của bố mẹ">
+    <Panel icon="🔒" title="PIN của bố mẹ">
       {me.pinIsDefault ? (
         <Alert kind="warn">
           Bạn đang dùng <b>PIN mặc định</b>. Đổi ngay — ai biết PIN mặc định là vào được trang quản

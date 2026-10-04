@@ -117,15 +117,14 @@ export interface SpatialOptions {
    * ngang la TUA video, khong phai di chuyen focus.
    */
   intercept?: (key: string, event: KeyboardEvent) => boolean
-  /** Goi khi bam Escape/Backspace. */
-  onBack?: () => void
 }
 
 /**
  * Gan xu ly ban phim toan cuc. Dat MOT lan o cap cao (App), khong dat nhieu noi.
+ * Phim Back (Escape, remote TV...) KHONG o day — xem lib/back.ts.
  */
 export function useSpatialNavigation(opts: SpatialOptions = {}): void {
-  const { intercept, onBack } = opts
+  const { intercept } = opts
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent): void {
@@ -160,24 +159,12 @@ export function useSpatialNavigation(opts: SpatialOptions = {}): void {
           // Remote TV goi Enter; de trinh duyet tu bam <button>.
           break
         }
-
-        case 'Escape':
-        case 'Backspace': {
-          // Backspace trong o nhap lieu = xoa ky tu, khong phai quay lai.
-          if (typing && e.key === 'Backspace') return
-          if (onBack) {
-            e.preventDefault()
-            sfx.back()
-            onBack()
-          }
-          break
-        }
       }
     }
 
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [intercept, onBack])
+  }, [intercept])
 }
 
 /**

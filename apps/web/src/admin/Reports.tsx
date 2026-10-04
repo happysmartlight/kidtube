@@ -14,7 +14,7 @@ export function Reports(): React.ReactElement {
 
   return (
     <>
-      <Panel title="Hôm nay" actions={<Btn small onClick={today.reload}>🔄</Btn>}>
+      <Panel icon="📅" title="Hôm nay" actions={<Btn small onClick={today.reload}>🔄</Btn>}>
         {today.loading ? <Spinner /> : null}
         {today.data && today.data.todayByProfile.length === 0 ? (
           <p style={{ color: 'var(--text-dim)' }}>Hôm nay chưa bé nào xem gì.</p>
@@ -42,7 +42,7 @@ export function Reports(): React.ReactElement {
       </Panel>
 
       {/* Bieu do cot 14 ngay — de bo me thay xu huong, khong chi con so hom nay */}
-      <Panel title="14 ngày gần nhất" subtitle="Tổng thời gian xem mỗi ngày (mọi bé)">
+      <Panel icon="📈" title="14 ngày gần nhất" subtitle="Tổng thời gian xem mỗi ngày (mọi bé)">
         {days.loading ? <Spinner /> : null}
 
         {days.data && days.data.days.length === 0 ? (
@@ -82,7 +82,7 @@ export function Reports(): React.ReactElement {
         )}
       </Panel>
 
-      <Panel title="Video con xem nhiều nhất">
+      <Panel icon="🏆" title="Video con xem nhiều nhất">
         {top.loading ? <Spinner /> : null}
         {top.data && top.data.videos.length === 0 ? (
           <p style={{ color: 'var(--text-dim)' }}>Chưa có dữ liệu.</p>
@@ -111,7 +111,7 @@ export function Reports(): React.ReactElement {
                 />
               ) : null}
               <span className="min-w-0 flex-1 truncate text-sm">{v.title}</span>
-              <Badge color={C.focus}>{v.plays} lần</Badge>
+              <Badge color={C.info}>{v.plays} lần</Badge>
               <span className="shrink-0 text-xs tabular-nums" style={{ color: 'var(--text-dim)' }}>
                 {formatMinutes(v.seconds)}
               </span>
@@ -125,7 +125,7 @@ export function Reports(): React.ReactElement {
         </Alert>
       </Panel>
 
-      <Panel title="Nhật ký xem" actions={<Btn small onClick={history.reload}>🔄</Btn>}>
+      <Panel icon="📝" title="Nhật ký xem" actions={<Btn small onClick={history.reload}>🔄</Btn>}>
         {history.loading ? <Spinner /> : null}
         {history.data && history.data.entries.length === 0 ? (
           <p style={{ color: 'var(--text-dim)' }}>Chưa có lượt xem nào.</p>

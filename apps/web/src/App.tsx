@@ -7,8 +7,9 @@ import { TimeUp } from '@/kid/TimeUp'
 import { Watch } from '@/kid/Watch'
 import { adminApi, type KidConfig, type KidProfile, kidApi, type Quota } from '@/lib/api'
 import { initMode } from '@/lib/mode'
-import { matchPath, useNavigate, usePath } from '@/lib/router'
-import { setSfxEnabled } from '@/lib/sfx'
+import { useBackHandler, useBackKeys } from '@/lib/back'
+import { backOr, isKidListing, matchPath, useNavigate, usePath } from '@/lib/router'
+import { setSfxEnabled, sfx } from '@/lib/sfx'
 import { getStoredProfileId, setStoredProfileId } from '@/lib/store'
 import { useSpatialNavigation } from '@/nav/spatial'
 import { PinDialog } from '@/ui/ParentGate'
@@ -80,16 +81,24 @@ export function App(): React.ReactElement {
     }
   }, [])
 
-  // ─── Dieu huong bang D-pad (toan cuc, MOT lan duy nhat) ────────────
-  const onBack = useCallback(() => {
-    // Trang xem video tu xu ly Escape/Backspace cua no (co capture) —
-    // o day chi xu ly cac trang con lai.
-    if (path.startsWith('/watch/')) return
-    if (path === '/home' || path === '/') return
-    navigate('/home')
-  }, [path, navigate])
+  // ─── Dieu huong bang D-pad + nut Back (toan cuc, MOT lan duy nhat) ──
+  useSpatialNavigation()
+  useBackKeys()
 
-  useSpatialNavigation({ onBack })
+  // Tang duoi cung cua nut Back. Trang xem video va cac hop thoai dang ky
+  // tang rieng nam tren — toi duoc day la khong ai trong so do dang mo.
+  useBackHandler(() => {
+    // Trang bo me / trang xem video (dang bi man "het gio" che) -> ve luoi
+    // video cua be. Trang Kenh -> ve Trang chu.
+    if (path.startsWith('/admin') || path.startsWith('/watch/')) {
+      sfx.back()
+      backOr('/home', isKidListing)
+    } else if (path === '/channels') {
+      sfx.back()
+      backOr('/home')
+    }
+    // Trang chu / chon be: trang dau, khong con cho nao de lui.
+  })
 
   const handleQuotaBlocked = useCallback((q: Quota) => {
     setBlocked(q)
@@ -111,7 +120,9 @@ export function App(): React.ReactElement {
     (q: Quota) => {
       setBlocked(null)
       setQuota(q)
-      navigate('/home')
+      // Thay tai cho: man het gio co the dang o /watch/x — day them /home thi
+      // nut Back cua remote lai mo lai video do.
+      navigate('/home', { replace: true })
     },
     [navigate],
   )
@@ -149,7 +160,7 @@ export function App(): React.ReactElement {
       <AdminApp
         onExit={() => {
           setIsParent(false)
-          navigate('/')
+          backOr('/home', isKidListing)
         }}
       />
     )
@@ -245,7 +256,9 @@ export function App(): React.ReactElement {
         profile={profile}
         quota={quota}
         tab={tab}
-        onTab={(t) => navigate(t === 'home' ? '/home' : `/${t}`)}
+        // Ve Trang chu = LUI lai neu vua tu do sang: bam qua lai giua hai
+        // tab khong duoc lam lich su dai ra (Back cua remote = back lich su).
+        onTab={(t) => (t === 'home' ? backOr('/home') : navigate(`/${t}`))}
         onSwitchProfile={switchProfile}
         onOpenParentGate={openParentGate}
       >

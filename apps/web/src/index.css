@@ -126,30 +126,110 @@ body {
   -webkit-user-select: none;
 }
 
-/* Trang quan tri GIU bang mau rieng (tim toi + nhan vang) — tre khong nhin
-   thay trang nay, khong can giong YouTube Kids. Ghi de token ngay tai goc
-   [data-admin] nen moi thu ben trong (ke ca toast) doc gia tri nay.
+/* Trang quan tri dung CHUNG bang mau voi giao dien cua be: nen chuyen mau
+   do dam / xanh duong dam (tren body), chu trang, be mat trang ban trong
+   suot, nut chinh do #FF0033. Truoc day trang nay giu bang tim + vang rieng
+   — hai giao dien trong nhu hai app khac nhau.
+   O day chi THEM vai token cho mat do thong tin day cua trang bo me.
    Giu dong bo voi `C` trong lib/color.ts (admin dung C cho Badge/Alert). */
 [data-admin] {
-  --bg: #16131f;
-  --bg-elev: #1e1a2b;
-  --card: #241f33;
-  --card-hi: #2f2942;
-  --text: #f6f3ff;
-  --text-dim: #a79cc4;
-  --focus: #ffd23f;
-  --focus-glow: rgba(255, 210, 63, 0.55);
-  --focus-bg: rgba(255, 210, 63, 0.16);
-  --focus-border: rgba(255, 210, 63, 0.42);
-  --focus-ink: #2a1f00;
-  --ring: #ffd23f;
-  --ring-halo: rgba(255, 210, 63, 0.55);
-  --hairline: rgba(246, 243, 255, 0.16);
-  --scrim: rgba(8, 6, 14, 0.88);
+  /* The Panel: ban trong suot de nen chuyen mau lo ra, nhat hon --card de
+     o nhap / the con ben trong (--card) van noi len mot bac. */
+  --panel: rgba(255, 255, 255, 0.045);
+  --panel-border: rgba(255, 255, 255, 0.09);
+  /* Mau THONG TIN (badge "đang tải", toast thuong): xanh duong sang — nua
+     con lai cua bang mau. Khong dung do --focus: badge do trong nhu bao loi. */
+  --info: #6ea8ff;
+
+  /* O chon, thanh cuon, lich chon ngay... cua trinh duyet ve theo nen toi */
+  color-scheme: dark;
 
   /* Cho phep chon van ban trong trang quan tri (bo me can copy link) */
   user-select: text;
   -webkit-user-select: text;
+}
+
+/* Danh sach tha xuong cua <select> la cua so rieng cua he dieu hanh: nen
+   ban trong suot cua o chon khong ap vao duoc, de nguyen co the thanh chu
+   trang tren nen trang. Dat nen DAC. */
+[data-admin] option,
+[data-admin] optgroup {
+  background: #17171e;
+  color: #ffffff;
+}
+
+/* ═══ Dau trang bo me: thuong hieu + hang muc ═════════════════════
+   Hang muc la MOT hang chip cuon ngang (kieu chip cua YouTube): man hep
+   thi vuot ngang, khong xuong dong lung tung nhu truoc. Chip dang chon nen
+   TRANG chu toi — khong dung do, de do danh cho nut hanh dong chinh. */
+.admin-header {
+  flex: 0 0 auto;
+  background: rgba(5, 5, 7, 0.3);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.admin-tabs {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  padding: 4px 16px 14px;
+}
+
+.admin-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.admin-tab {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 16px 0 12px;
+  border: none;
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color 150ms ease,
+    color 150ms ease;
+}
+
+.admin-tab:hover {
+  background: var(--card-hi);
+}
+
+.admin-tab[aria-current='page'] {
+  background: #ffffff;
+  color: #0f0f14;
+}
+
+.admin-tab:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+/* So viec dang cho (vd: video chua duyet) — cham do kieu thong bao */
+.admin-tab-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--focus);
+  color: var(--focus-ink);
+  font-size: 12px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
 }
 
 /* ═══ FOCUS — quy tac quan trong nhat cho TV ═══════════════════════

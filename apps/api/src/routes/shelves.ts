@@ -2,7 +2,7 @@ import type { FastifyInstance } from 'fastify'
 import { getDb } from '../db/index.js'
 import type { ShelfRow, VideoRow } from '../db/types.js'
 import { badRequest, notFound } from '../lib/errors.js'
-import { requireParent } from './auth.js'
+import { requireParent, reverifyParent } from './auth.js'
 
 export async function shelfRoutes(app: FastifyInstance): Promise<void> {
   app.addHook('preHandler', requireParent)
@@ -216,6 +216,27 @@ export async function shelfRoutes(app: FastifyInstance): Promise<void> {
         .run(Number(req.params.id), Number(req.params.videoId))
       if (info.changes === 0) throw notFound('Video không nằm trong kệ này')
       return { ok: true }
+    },
+  )
+
+  /**
+   * Thao HET video khoi ke — de bo me xep lai ke tu dau. Video khong bi xoa,
+   * van o trang thai da duyet; ke giu nguyen ten, mau, be duoc gan.
+   *
+   * Bat nhap lai PIN du da co phien: mot cu bam la mat ca ke da sap cong phu.
+   */
+  app.post<{ Params: { id: string }; Body: { pin?: string } }>(
+    '/api/admin/shelves/:id/clear',
+    async (req) => {
+      const shelfId = Number(req.params.id)
+      const db = getDb()
+      const shelf = db.prepare<[number], ShelfRow>('SELECT * FROM shelves WHERE id = ?').get(shelfId)
+      if (!shelf) throw notFound('Không có kệ này')
+
+      reverifyParent(req, req.body?.pin)
+
+      const info = db.prepare('DELETE FROM shelf_items WHERE shelf_id = ?').run(shelfId)
+      return { ok: true, removed: info.changes }
     },
   )
 

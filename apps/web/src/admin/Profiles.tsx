@@ -31,6 +31,7 @@ export function Profiles(): React.ReactElement {
   return (
     <>
       <Panel
+        icon="🧒"
         title="Các bé"
         subtitle="Mỗi bé có giới hạn thời gian và kệ riêng"
         actions={

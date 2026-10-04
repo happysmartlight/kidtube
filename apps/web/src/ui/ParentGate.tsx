@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { adminApi, ApiError } from '@/lib/api'
+import { useBackHandler } from '@/lib/back'
 import { sfx } from '@/lib/sfx'
 import { FocusButton } from './Focusable'
 
@@ -163,6 +164,10 @@ export function PinDialog({
   const [pin, setPin] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+
+  // Back / Esc tren remote = "Thoát". Backspace thi de cho ban phim so (xoa
+  // mot so) — khong thi go nham mot so la mat ca hop.
+  useBackHandler(onCancel, { keepBackspace: true })
 
   const submit = useCallback(
     async (value: string) => {

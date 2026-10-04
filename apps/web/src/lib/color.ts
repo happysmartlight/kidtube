@@ -68,14 +68,17 @@ export function mix(color: string, base: string, ratio: number): string {
  *
  * Phai la hex (khong phai `var(--x)`) vi `withAlpha()`/`mix()` can doc duoc
  * gia tri that de tinh rgba — JS khong doc duoc gia tri cua CSS custom property
- * ma khong goi getComputedStyle. Giu dong bo voi khoi [data-admin] trong
- * index.css — giao dien cua be dung bang mau khac (:root), khong dung C.
+ * ma khong goi getComputedStyle. Giu dong bo voi token trong index.css
+ * (:root va khoi [data-admin]) — trang bo me dung chung bang mau voi be.
  */
 export const C = {
-  focus: '#ffd23f',
+  /** = --focus: do nhan, cho nut chinh / thanh tien do. Dung cho badge thi trong nhu bao loi. */
+  focus: '#ff0033',
+  /** = --info: xanh duong sang — badge thong tin ("đang tải", "chỉ Bé A"), toast thuong. */
+  info: '#6ea8ff',
   danger: '#ff6b8a',
   ok: '#4ecb71',
   warn: '#ff9f43',
-  dim: '#a79cc4',
-  text: '#f6f3ff',
+  dim: '#b4b4c0',
+  text: '#ffffff',
 } as const

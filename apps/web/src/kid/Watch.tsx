@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ApiError, kidApi, type PlaybackInfo, type Quota } from '@/lib/api'
-import { useNavigate } from '@/lib/router'
+import { useBackHandler } from '@/lib/back'
+import { backOr, isKidListing, useNavigate } from '@/lib/router'
 import { sfx } from '@/lib/sfx'
 import { Controls } from '@/player/Controls'
 import {
@@ -84,9 +85,19 @@ export function Watch({ videoId, profileId, onQuotaBlocked }: WatchProps): React
     }
   }, [videoId, profileId, onQuotaBlocked])
 
+  /**
+   * Ve luoi video ma be vua chon (Trang chu hoac Kenh) bang cach LUI lich su,
+   * khong day them muc moi — xem backOr. Nut Back cua remote TV cung di duong
+   * nay (useBackHandler ben duoi).
+   */
   const goHome = useCallback(() => {
-    navigate('/home')
-  }, [navigate])
+    backOr('/home', isKidListing)
+  }, [])
+
+  useBackHandler(() => {
+    sfx.back()
+    goHome()
+  })
 
   // ─── Ket thuc video ────────────────────────────────────────────────
   const handleEnded = useCallback(() => {
@@ -113,7 +124,9 @@ export function Watch({ videoId, profileId, onQuotaBlocked }: WatchProps): React
 
       if (canAutoplay && next) {
         autoplayCountRef.current += 1
-        navigate(`/watch/${next.id}`)
+        // THAY tai cho: Back tu video ke tiep ve thang luoi video, khong lui
+        // qua tung video da tu phat.
+        navigate(`/watch/${next.id}`, { replace: true })
       } else {
         sfx.pop()
         goHome()
@@ -236,19 +249,12 @@ export function Watch({ videoId, profileId, onQuotaBlocked }: WatchProps): React
           adapter.toggle()
           showControls()
           break
-        case 'Escape':
-        case 'Backspace':
-          e.preventDefault()
-          e.stopPropagation()
-          sfx.back()
-          goHome()
-          break
       }
     }
     // capture: chay TRUOC spatial navigation o cap window.
     window.addEventListener('keydown', onKey, true)
     return () => window.removeEventListener('keydown', onKey, true)
-  }, [showControls, goHome])
+  }, [showControls])
 
   // ─── Render ────────────────────────────────────────────────────────
 
@@ -372,7 +378,7 @@ export function Watch({ videoId, profileId, onQuotaBlocked }: WatchProps): React
             showControls()
           }}
           onNext={() => {
-            if (info.next) navigate(`/watch/${info.next.id}`)
+            if (info.next) navigate(`/watch/${info.next.id}`, { replace: true })
           }}
         />
       ) : null}

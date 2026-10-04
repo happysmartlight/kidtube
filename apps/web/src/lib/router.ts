@@ -19,15 +19,50 @@ function emit(): void {
   for (const fn of listeners) fn(path)
 }
 
+/**
+ * Moi muc lich su nho duong dan cua muc NGAY TRUOC no. Nho vay "quay lai"
+ * biet duoc lui lich su (history.back) co dua ve dung trang can ve khong.
+ */
+interface NavState {
+  prev?: string
+}
+
+function currentState(): NavState {
+  const s: unknown = window.history.state
+  return s !== null && typeof s === 'object' ? (s as NavState) : {}
+}
+
 export function navigate(path: string, opts: { replace?: boolean } = {}): void {
   if (path === window.location.pathname) return
-  if (opts.replace) window.history.replaceState(null, '', path)
-  else window.history.pushState(null, '', path)
+  if (opts.replace) {
+    // Thay tai cho: muc truoc van la muc truoc — giu nguyen `prev`.
+    window.history.replaceState(currentState(), '', path)
+  } else {
+    const state: NavState = { prev: window.location.pathname }
+    window.history.pushState(state, '', path)
+  }
   emit()
 }
 
-export function back(): void {
-  window.history.back()
+/** Luoi video cua be — noi nut Back tu trang xem video / trang bo me ve toi. */
+export function isKidListing(path: string): boolean {
+  return path === '/home' || path === '/channels' || path === '/'
+}
+
+/**
+ * Quay lai `fallback` theo cach giu lich su SACH.
+ *
+ * Neu muc truoc la trang ma `accept` chap nhan -> lui lich su that
+ * (history.back). Khong thi THAY muc hien tai bang `fallback`.
+ *
+ * Truoc day "ve trang chu" la pushState('/home'): lich su thanh
+ * /home -> /watch/5 -> /home, va nut Back cua remote TV (= back cua trinh
+ * duyet) lai mo lai video vua xem. Lui that thi khong bao gio co chuyen do.
+ */
+export function backOr(fallback: string, accept: (prev: string) => boolean = (p) => p === fallback): void {
+  const prev = currentState().prev
+  if (prev !== undefined && accept(prev)) window.history.back()
+  else navigate(fallback, { replace: true })
 }
 
 export function usePath(): string {

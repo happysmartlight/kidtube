@@ -28,6 +28,7 @@ export function Downloads(): React.ReactElement {
   return (
     <>
       <Panel
+        icon="💾"
         title="Tình trạng"
         actions={
           <>
@@ -86,7 +87,7 @@ export function Downloads(): React.ReactElement {
         </div>
       </Panel>
 
-      <Panel title={`Hàng đợi (${data?.queue.length ?? 0})`}>
+      <Panel icon="⏳" title={`Hàng đợi (${data?.queue.length ?? 0})`}>
         {data && data.queue.length === 0 ? (
           <p style={{ color: 'var(--text-dim)' }}>
             Hàng đợi rỗng. Cách xếp video vào hàng:
@@ -163,14 +164,14 @@ export function Downloads(): React.ReactElement {
                   ✕ Bỏ
                 </Btn>
               ) : (
-                <Badge color={C.focus}>đang tải</Badge>
+                <Badge color={C.info}>đang tải</Badge>
               )}
             </div>
           ))}
         </div>
       </Panel>
 
-      <Panel title={`Đã tải về (${data?.downloaded.length ?? 0})`}>
+      <Panel icon="✅" title={`Đã tải về (${data?.downloaded.length ?? 0})`}>
         {data && data.downloaded.length === 0 ? (
           <p style={{ color: 'var(--text-dim)' }}>Chưa có video nào được tải về.</p>
         ) : null}
