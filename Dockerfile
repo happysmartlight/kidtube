@@ -71,6 +71,7 @@ COPY --from=builder /app/apps/api/src/db/schema.sql ./apps/api/src/db/schema.sql
 
 ENV NODE_ENV=production \
     PORT=8080 \
+    HTTPS_PORT=8443 \
     HOST=0.0.0.0 \
     DATA_DIR=/data \
     MEDIA_DIR=/media \
@@ -103,7 +104,7 @@ RUN chmod +x /usr/local/bin/docker-entrypoint.sh \
 # Muon tu quyet dinh quyen thi dat `user:` trong compose — entrypoint se bo qua.
 
 VOLUME ["/data", "/media"]
-EXPOSE 8080
+EXPOSE 8080 8443
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
   CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||8080)+'/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"

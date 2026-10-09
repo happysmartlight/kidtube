@@ -23,6 +23,24 @@ export const env = {
   port: int('PORT', 8080),
   host: str('HOST', '0.0.0.0'),
 
+  /**
+   * Cong HTTPS song song voi HTTP — can de cai app (PWA) len dien thoai /
+   * tablet. Xem services/tls.ts. 0 = tat.
+   */
+  httpsPort: int('HTTPS_PORT', 8443),
+  /**
+   * Cong HTTPS ma thiet bi THAY tren may chu. Docker map 8478 -> 8443 nen
+   * server khong tu biet duoc — docker-compose truyen vao. Mac dinh = httpsPort.
+   */
+  get httpsPublicPort(): number {
+    return int('HTTPS_PUBLIC_PORT', this.httpsPort)
+  },
+  /**
+   * Them ten/IP cho chung chi HTTPS, phan cach bang dau phay. Thuong KHONG
+   * can: server tu hoc dia chi khi bo me mo muc "Cài app" trong Cai dat.
+   */
+  tlsHosts: str('TLS_HOSTS', ''),
+
   dataDir: resolve(rootDir, str('DATA_DIR', './data')),
   mediaDir: resolve(rootDir, str('MEDIA_DIR', './media')),
 

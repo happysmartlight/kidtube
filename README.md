@@ -145,6 +145,8 @@ Lần build đầu mất khoảng **2 phút** trên Pi 5 (đã đo thực tế: 
 biên dịch `better-sqlite3` cho arm64). Các lần sau nhanh hơn nhờ cache layer.
 
 Mở `http://<ip-của-pi>:8477` → giữ icon ⚙ 3 giây → nhập PIN **`000000`**.
+Dùng trên điện thoại / tablet thì tiếp theo xem
+[Cài app lên điện thoại / tablet](#cài-app-lên-điện-thoại--tablet-android--iphone--ipad).
 
 Đó là PIN mặc định lần đầu, cố tình để dễ nhớ. Vào được rồi thì *Cài đặt →
 Đổi PIN* — trang quản trị sẽ nhắc cho tới khi bạn đổi. Muốn đặt PIN khác
@@ -178,22 +180,73 @@ Toàn bộ cấu hình nằm trong **một file**:
 ```bash
 docker compose stop kidtube
 cp data/kid.db ~/backup/kid-$(date +%F).db
+cp -r data/tls ~/backup/tls   # chứng chỉ HTTPS — mất thì mỗi máy phải cài lại CA
 docker compose start kidtube
 ```
 
 ---
 
-## Mở trên tablet (Android / iPad)
+## Cài app lên điện thoại / tablet (Android / iPhone / iPad)
 
-1. Mở `http://<ip-của-pi>:8477` bằng Chrome hoặc Safari
-2. Menu → **Thêm vào Màn hình chính**
-3. Mở từ icon vừa tạo → chạy **toàn màn hình, không có thanh địa chỉ**
-
-Thanh địa chỉ bị ẩn nghĩa là con **không thoát ra trình duyệt được** — đây là
+Cài thành app thì KidTube chạy **toàn màn hình, không có thanh địa chỉ**. Ẩn
+được thanh địa chỉ nghĩa là con **không thoát ra trình duyệt được** — đây là
 lớp bảo vệ quan trọng nhất trên tablet.
+
+**Vì sao phải làm thêm vài bước?** Trình duyệt chỉ cho cài app khi trang chạy
+**HTTPS có chứng chỉ được tin**. Mở bằng `http://<ip-của-pi>:8477` thì Chrome
+Android chỉ tạo lối tắt — mở ra vẫn là tab trình duyệt có thanh địa chỉ.
+(iPhone / iPad: Safari có thể vẫn mở dạng app qua HTTP — thử *Chia sẻ → Thêm
+vào MH chính* trước; mở từ icon mà còn thanh địa chỉ thì làm các bước dưới.)
+
+KidTube tự lo HTTPS: nó tạo một chứng chỉ gốc (CA) riêng cho nhà bạn và mở thêm
+cổng **8478**. Mỗi máy chỉ cần cài CA **một lần**, trang bố mẹ dẫn từng bước:
+
+1. Trên máy cần cài, mở `http://<ip-của-pi>:8477` → giữ ⚙ 3 giây → **Cài đặt →
+   📲 Cài app lên điện thoại / tablet**
+2. Bấm **⬇️ Tải chứng chỉ**, rồi cài vào máy:
+   - **Android:** *Cài đặt* → tìm "chứng chỉ CA" → *Chứng chỉ CA* → *Vẫn cài
+     đặt* → chọn `kidtube-ca.crt` trong Tải xuống
+   - **iPhone / iPad** (phải dùng Safari): *Cho phép* tải hồ sơ → *Cài đặt* →
+     *Đã tải về hồ sơ* → *Cài đặt* → rồi **Cài đặt chung → Giới thiệu → Cài đặt
+     tin cậy chứng nhận** → bật *KidTube Home CA …*
+3. Bấm **🔒 Mở https://…:8478** → vào lại *Cài đặt* → **📲 Cài KidTube lên máy
+   này** (Android), hoặc nút **Chia sẻ → Thêm vào MH chính** (iPhone / iPad)
+4. Từ giờ mở KidTube bằng icon trên màn hình chính.
+
+Lưu ý:
+
+- **Mở bằng IP của Pi** (hoặc tên `.local` / `.lan` / `.home.arpa`) ở bước 1 —
+  server tự ký chứng chỉ cho đúng địa chỉ bạn đang dùng. Nên đặt IP tĩnh cho Pi
+  trong router. Lỡ đổi IP thì làm lại bước 1 và 3 bằng IP mới, **không** phải
+  cài lại CA.
+- CA bị **giới hạn cứng** (Name Constraints): chỉ ký được cho IP nội bộ và tên
+  miền nội bộ. Kể cả lộ khoá ra ngoài cũng không giả mạo được Google hay ngân
+  hàng trên máy đã cài.
+- Chứng chỉ nằm trong `data/tls/` — sao lưu cùng `kid.db`. Mất thư mục này thì
+  app tạo CA mới và mỗi máy phải cài lại.
+- Trùng cổng 8478: đổi `KIDTUBE_HTTPS_PORT` trong `.env` rồi
+  `docker compose up -d`. Có firewall thì `sudo ufw allow 8478/tcp`.
+
+**Chưa cài app?** Trên tablet Android / iPad, giao diện của con tự xin vào toàn
+màn hình mỗi lần con chạm. Đỡ hơn, nhưng con vẫn vuốt ra được, và iPhone không
+hỗ trợ — cài app mới là cách chắc chắn.
 
 Muốn khoá chặt hơn nữa (Android): dùng **Fully Kiosk Browser** hoặc
 **Screen Pinning** (Cài đặt → Bảo mật → Ghim màn hình).
+
+<details>
+<summary>Cách khác thay cho cài chứng chỉ của KidTube</summary>
+
+- **Đã có HTTPS thật** (tên miền + Caddy/Let's Encrypt qua DNS challenge, hoặc
+  `tailscale serve`): mở KidTube bằng địa chỉ đó là cài được ngay, mục *Cài app*
+  sẽ hiện thẳng nút cài.
+- **Chỉ Android, nhanh nhưng kém bền:** mở
+  `chrome://flags/#unsafely-treat-insecure-origin-as-secure`, điền
+  `http://<ip-của-pi>:8477`, chọn *Enabled*, khởi động lại Chrome. Chrome coi
+  địa chỉ HTTP đó là an toàn nên cho cài app. Đây là cờ thử nghiệm — Chrome có
+  thể đổi hoặc gỡ nó, và phải bật lại trên từng máy.
+
+</details>
 
 ---
 
@@ -415,7 +468,11 @@ docs/        Yêu cầu, kế hoạch, kiến trúc, thiết kế
 | `SQLITE_CANTOPEN: unable to open database file` | Thư mục `./data` trên host thuộc user khác với uid trong container. Bản mới đã tự xử lý bằng entrypoint — `git pull && docker compose up -d --build`. Nếu vẫn lỗi: `chown -R 1000:1000 data media`. |
 | File trong `data/`/`media/` thuộc user lạ | Container chạy bằng `PUID:PGID` (mặc định 1000:1000). Muốn khác: đặt `PUID`/`PGID` trong `.env` theo `id -u` và `id -g`. |
 | `port is already allocated` | Cổng đã bị dịch vụ khác chiếm. Đổi `KIDTUBE_PORT` trong `.env` rồi `docker compose up -d`. |
-| Tablet/TV không vào được nhưng Pi thì được | Kiểm tra firewall trên Pi: `sudo ufw allow 8477/tcp`. |
+| Tablet/TV không vào được nhưng Pi thì được | Kiểm tra firewall trên Pi: `sudo ufw allow 8477/tcp` (và `8478/tcp` cho HTTPS). |
+| "Thêm vào màn hình chính" mở ra vẫn còn thanh địa chỉ | Đang mở bằng HTTP. Làm theo mục [Cài app lên điện thoại / tablet](#cài-app-lên-điện-thoại--tablet-android--iphone--ipad). |
+| Mở link HTTPS báo "Kết nối không riêng tư" | CA chưa được cài. iPhone/iPad: còn phải bật trong *Cài đặt chung → Giới thiệu → Cài đặt tin cậy chứng nhận*. |
+| Mục *Cài app* báo "Không cấp chứng chỉ được cho địa chỉ…" | Đang mở bằng tên máy trần (vd `raspberrypi`) hoặc tên miền ngoài. Mở bằng IP của Pi hoặc tên `.local`. |
+| Đã mở HTTPS mà không có nút *Cài KidTube* | Chrome chưa sẵn sàng hoặc máy đã cài rồi. Dùng menu ⋮ → *Cài đặt ứng dụng*, hoặc tìm icon KidTube trên màn hình chính. |
 | Quên PIN | Xoá hai dòng `pin_salt` và `pin_hash` trong bảng `settings` của `data/kid.db` rồi `docker compose restart kidtube` — PIN quay về `DEFAULT_PIN` (mặc định `000000`). |
 | Restart là phải nhập PIN lại | Chưa đặt `SESSION_SECRET` trong `.env`. |
 | Cài đặt báo "Chưa bật dịch vụ cập nhật" | Thiếu `KIDTUBE_REPO_DIR` + `COMPOSE_PROFILES=updater` trong `.env`. Trang đó hiện sẵn lệnh cần chạy. |

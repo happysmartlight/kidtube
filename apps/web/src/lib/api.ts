@@ -53,6 +53,19 @@ export interface UpdateSnapshot {
   }
 }
 
+// ─── Cai app (PWA) ────────────────────────────────────────────────
+
+export interface InstallInfo {
+  https: {
+    /** Server dang chay cong HTTPS. */
+    enabled: boolean
+    /** Link HTTPS cho dung thiet bi dang mo trang. null = dia chi nay khong cap chung chi duoc. */
+    url: string | null
+    hostError: string | null
+  }
+  ca: { name: string; fingerprint: string; validTo: string; url: string } | null
+}
+
 export class ApiError extends Error {
   constructor(
     readonly status: number,
@@ -743,4 +756,7 @@ export const adminApi = {
   checkUpdate: () => request<{ ok: boolean }>('/api/admin/update/check', { method: 'POST' }),
 
   runUpdate: () => request<{ ok: boolean }>('/api/admin/update/run', { method: 'POST' }),
+
+  // Goi = server hoc dia chi thiet bi dang dung va ky chung chi HTTPS cho no.
+  install: () => request<InstallInfo>('/api/admin/install'),
 }

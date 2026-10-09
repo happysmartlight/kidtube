@@ -104,6 +104,16 @@ body,
   height: 100%;
 }
 
+/* Vung an toan khi chay dang APP DA CAI: `viewport-fit=cover` + thanh trang
+   thai `black-translucent` (iOS) cho noi dung ve tran xuong duoi thanh trang
+   thai / tai tho — hang nut chu de bi gio va pin de len. Tab trinh duyet
+   thuong thi env() = 0, khong doi gi.
+   Canh duoi KHONG dem o day: .kbar va thanh dieu khien video tu cong
+   env(safe-area-inset-bottom) de dai mau cua chung keo tan day man hinh. */
+#root {
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left);
+}
+
 /* Nen chuyen mau cua giao dien be: do dam goc tren-trai, xanh duong dam goc
    tren-phai, tan dan ve den o duoi. Dat tren BODY (khong cuon) nen dung yen
    khi luoi video cuon — moi lop phia tren (thanh nut, thanh duoi, card) deu

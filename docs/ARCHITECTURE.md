@@ -5,7 +5,7 @@
 ```
                     ┌─────────────── Raspberry Pi 5 ───────────────┐
   Tablet ──┐        │                                               │
-           ├─ LAN ──┤  Caddy :443 (HTTPS nội bộ, reverse proxy)     │
+           ├─ LAN ──┤  HTTP :8080 + HTTPS :8443 (CA riêng, tls.ts)  │
   TV/Pi  ──┘        │         │                                     │
   (Chromium         │         ├──> Fastify :8080                    │
    kiosk)           │         │      ├─ /api/kid/*    (không auth)  │
@@ -27,6 +27,14 @@
 **Điểm then chốt:** giao diện của trẻ **không bao giờ** gọi trực tiếp ra YouTube API.
 Nó chỉ đọc SQLite local qua `/api/kid/*` → mở là hiện ngay (nguyên tắc P7).
 Chỉ có iframe player mới kết nối ra youtube-nocookie.com.
+
+**HTTPS để cài app (PWA):** trình duyệt chỉ cho cài PWA và chạy service worker
+trên HTTPS được tin. Fastify mở thêm cổng HTTPS (`:8443`, Docker map ra `:8478`)
+bằng chứng chỉ do **CA riêng của nhà** ký (`services/tls.ts`, lưu ở `data/tls/`).
+CA bị Name Constraints giới hạn vào IP / tên miền nội bộ. Server học địa chỉ
+thiết bị đang dùng từ header `Host` khi bố mẹ mở mục *Cài app* và ký lại chứng
+chỉ tại chỗ (`setSecureContext`), không cần khởi động lại. HTTP vẫn giữ cho TV LG
+và cho lần tải CA đầu tiên. Caddy giờ chỉ cần khi muốn tên miền thật.
 
 ## Cây thư mục
 
@@ -50,17 +58,18 @@ apps/
         timeLimit.ts          tính quota phía server
         downloader.ts         worker hàng đợi tải offline
         stats.ts              tổng hợp nhật ký xem
+        tls.ts                CA riêng của nhà + chứng chỉ HTTPS (để cài PWA)
       routes/
         auth.ts  sources.ts  videos.ts  shelves.ts
         profiles.ts  settings.ts  filters.ts  downloads.ts
-        stats.ts  kid.ts
+        stats.ts  kid.ts  install.ts (tải CA, link HTTPS)
       lib/
         errors.ts  http.ts  ids.ts  time.ts
       cron.ts                 lịch nền
   web/                        Frontend React
     src/
       main.tsx  App.tsx
-      lib/      api.ts  mode.ts  sfx.ts  format.ts  store.ts
+      lib/      api.ts  mode.ts  sfx.ts  format.ts  store.ts  pwa.ts  tv.ts
       nav/      spatial.tsx          spatial navigation cho D-pad
       ui/       Button Card Shelf Dialog Spinner Toast ...
       kid/      ProfilePick Home Channels Watch TimeUp

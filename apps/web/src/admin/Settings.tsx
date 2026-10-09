@@ -1,10 +1,24 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { adminApi, ApiError, type FilterRule, type UpdateSnapshot } from '@/lib/api'
+import { adminApi, ApiError, type FilterRule, type InstallInfo, type UpdateSnapshot } from '@/lib/api'
 import { C, withAlpha } from '@/lib/color'
 import { filterTypeLabel, formatBytes, formatDate, formatMinutes, formatRelative } from '@/lib/format'
 import { getLocalOverride, setLocalOverride, type ModeSetting } from '@/lib/mode'
+import { detectPlatform, isInstalled, type Platform, promptInstall, useInstallPrompt } from '@/lib/pwa'
 import { Spinner } from '@/ui/Spinner'
-import { Alert, Badge, Btn, Dialog, Field, Input, Panel, Select, toast, Toggle, useLoad } from './ui'
+import {
+  Alert,
+  Badge,
+  Btn,
+  BtnLink,
+  Dialog,
+  Field,
+  Input,
+  Panel,
+  Select,
+  toast,
+  Toggle,
+  useLoad,
+} from './ui'
 
 export function Settings(): React.ReactElement {
   const { data, loading, error, reload } = useLoad(() => adminApi.settings())
@@ -67,6 +81,8 @@ export function Settings(): React.ReactElement {
           </Alert>
         ) : null}
       </Panel>
+
+      <InstallSection />
 
       <UpdateSection />
 
@@ -211,6 +227,224 @@ function Info({ label, children }: { label: string; children: React.ReactNode })
         {label}
       </p>
       <p className="font-bold">{children}</p>
+    </div>
+  )
+}
+
+// ═══ Cai app len dien thoai / tablet ════════════════════════════════
+
+/**
+ * Dan bo me cai KidTube thanh app: chay toan man hinh, khong con thanh dia
+ * chi — be khong thoat ra trinh duyet duoc (nguyen tac P4).
+ *
+ * Trinh duyet chi cho cai qua HTTPS duoc tin. Tren HTTP, muc nay dan qua ba
+ * buoc: tai CA cua nha minh -> cai vao may -> mo link HTTPS (server tu ky
+ * chung chi cho dung dia chi bo me dang dung, xem api services/tls.ts). Den
+ * HTTPS roi thi chi con mot nut bam (Chrome) hoac nut Chia se (Safari).
+ */
+function InstallSection(): React.ReactElement {
+  const { data, error } = useLoad(() => adminApi.install())
+  const canPrompt = useInstallPrompt()
+  const platform = detectPlatform()
+
+  async function install(): Promise<void> {
+    const outcome = await promptInstall()
+    if (outcome === 'accepted') toast('ok', 'Đã cài. Mở KidTube từ icon trên màn hình chính.')
+  }
+
+  let body: React.ReactNode
+  if (isInstalled()) {
+    body = (
+      <Alert kind="ok">
+        Thiết bị này đang chạy KidTube dạng app — toàn màn hình, không có thanh địa chỉ. Muốn cài
+        cho máy khác thì mở trang này trên máy đó.
+      </Alert>
+    )
+  } else if (window.isSecureContext) {
+    body = canPrompt ? (
+      <div className="flex flex-col items-start gap-3">
+        <p className="text-sm" style={{ color: 'var(--text-dim)' }}>
+          Trang đang chạy HTTPS — cài được rồi.
+        </p>
+        <Btn variant="primary" onClick={() => void install()}>
+          📲 Cài KidTube lên máy này
+        </Btn>
+      </div>
+    ) : (
+      <InstallSteps platform={platform} />
+    )
+  } else {
+    body = (
+      <>
+        {platform === 'ios' ? (
+          <Alert kind="warn">
+            Trang đang mở bằng <b>HTTP</b>. Safari có thể vẫn cài được — thử <b>Chia sẻ → Thêm vào
+            MH chính</b> trước. Mở từ icon mà còn thanh địa chỉ thì cần chuyển sang <b>HTTPS</b>
+            theo các bước dưới — làm một lần cho mỗi máy.
+          </Alert>
+        ) : (
+          <Alert kind="warn">
+            Trang đang mở bằng <b>HTTP</b> nên trình duyệt <b>không cho cài app</b>: “Thêm vào
+            màn hình chính” chỉ tạo lối tắt, mở ra vẫn còn thanh địa chỉ. Cần mở bằng{' '}
+            <b>HTTPS</b> — làm một lần cho mỗi máy.
+          </Alert>
+        )}
+        {error ? <Alert kind="error">{error}</Alert> : null}
+        {!data && !error ? <Spinner /> : null}
+        {data ? <HttpsSetup info={data} platform={platform} /> : null}
+      </>
+    )
+  }
+
+  return (
+    <Panel
+      icon="📲"
+      title="Cài app lên điện thoại / tablet"
+      subtitle="Chạy toàn màn hình, không còn thanh địa chỉ — con không thoát ra trình duyệt được"
+    >
+      {body}
+    </Panel>
+  )
+}
+
+function HttpsSetup({ info, platform }: { info: InstallInfo; platform: Platform }): React.ReactElement {
+  const { https, ca } = info
+
+  if (!https.enabled || !ca) {
+    return (
+      <Alert kind="info">
+        Máy chủ đang tắt HTTPS (biến <code>HTTPS_PORT=0</code>, hoặc cổng HTTPS bị trùng — xem log
+        của server). Bật lại rồi khởi động lại app.
+      </Alert>
+    )
+  }
+  if (!https.url) return <Alert kind="warn">{https.hostError}</Alert>
+
+  return (
+    <ol className="flex flex-col gap-5">
+      <Step n={1} title="Tải chứng chỉ của nhà mình">
+        <BtnLink href={ca.url} variant="primary" small>
+          ⬇️ Tải chứng chỉ
+        </BtnLink>
+        <p className="mt-2">
+          Tên: <b>{ca.name}</b>. Chứng chỉ này chỉ dùng được cho địa chỉ trong mạng nhà (IP nội
+          bộ, tên .local…) — không thể dùng để giả mạo trang web bên ngoài.
+        </p>
+        <p className="mt-1 break-all text-xs">
+          Vân tay SHA-256: <code>{ca.fingerprint}</code>
+        </p>
+      </Step>
+
+      <Step n={2} title="Cài chứng chỉ vào máy">
+        {platform !== 'ios' ? (
+          <CaSteps title={platform === 'other' ? 'Android' : undefined}>
+            <li>
+              Mở <b>Cài đặt</b> của máy → gõ tìm <b>“chứng chỉ CA”</b> (hoặc “CA certificate”)
+            </li>
+            <li>
+              Chọn <b>Chứng chỉ CA</b> → <b>Vẫn cài đặt</b> → chọn file <b>kidtube-ca.crt</b> trong
+              Tải xuống
+            </li>
+            <li>Máy có thể đòi đặt khoá màn hình — Android bắt buộc khi cài chứng chỉ.</li>
+          </CaSteps>
+        ) : null}
+        {platform !== 'android' ? (
+          <CaSteps title={platform === 'other' ? 'iPhone / iPad' : undefined}>
+            <li>
+              Bấm nút tải ở bước 1 <b>bằng Safari</b> → <b>Cho phép</b> tải hồ sơ cấu hình
+            </li>
+            <li>
+              Mở <b>Cài đặt</b> → <b>Đã tải về hồ sơ</b> (ngay dưới tên tài khoản) → <b>Cài đặt</b>
+            </li>
+            <li>
+              Vào <b>Cài đặt chung → Giới thiệu → Cài đặt tin cậy chứng nhận</b> → bật{' '}
+              <b>{ca.name}</b>. Thiếu bước này Safari vẫn báo không an toàn.
+            </li>
+          </CaSteps>
+        ) : null}
+      </Step>
+
+      <Step n={3} title="Mở bản HTTPS rồi cài app">
+        <BtnLink href={https.url} variant="primary" small>
+          🔒 Mở {https.url}
+        </BtnLink>
+        <p className="mt-2">
+          Không còn cảnh báo bảo mật là xong. Vào lại trang bố mẹ → <b>Cài đặt</b> → mục này để
+          cài app. Còn thấy “Kết nối không riêng tư” thì chứng chỉ chưa được cài đúng — xem lại
+          bước 2.
+        </p>
+      </Step>
+    </ol>
+  )
+}
+
+/** Huong dan cai khi da o HTTPS nhung Chrome chua (hoac khong bao gio) ban su kien cai. */
+function InstallSteps({ platform }: { platform: Platform }): React.ReactElement {
+  if (platform === 'ios') {
+    return (
+      <CaSteps>
+        <li>
+          Bấm nút <b>Chia sẻ</b> (ô vuông có mũi tên ↑) trên thanh của Safari
+        </li>
+        <li>
+          Chọn <b>Thêm vào MH chính</b> → <b>Thêm</b>
+        </li>
+        <li>Mở KidTube từ icon mới trên màn hình chính</li>
+      </CaSteps>
+    )
+  }
+  return (
+    <CaSteps>
+      <li>
+        Mở menu <b>⋮</b> của Chrome → <b>Cài đặt ứng dụng</b> (hoặc <b>Thêm vào màn hình chính</b>)
+      </li>
+      <li>Mở KidTube từ icon mới trên màn hình chính</li>
+      <li>
+        Không thấy mục đó? Có thể máy đã cài rồi — tìm icon KidTube trên màn hình chính. Hoặc
+        thanh địa chỉ đang báo “Không bảo mật”: chứng chỉ chưa được tin, mở trang này bằng địa
+        chỉ http://…:8477 để làm lại các bước cài chứng chỉ.
+      </li>
+    </CaSteps>
+  )
+}
+
+function Step({
+  n,
+  title,
+  children,
+}: {
+  n: number
+  title: string
+  children: React.ReactNode
+}): React.ReactElement {
+  return (
+    <li className="flex gap-3">
+      <span
+        className="grid shrink-0 place-items-center rounded-full text-sm font-extrabold"
+        style={{ width: 28, height: 28, background: 'var(--card-hi)' }}
+        aria-hidden="true"
+      >
+        {n}
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="mb-2 font-extrabold" style={{ lineHeight: '28px' }}>
+          {title}
+        </p>
+        <div className="text-sm" style={{ color: 'var(--text-dim)', lineHeight: 1.6 }}>
+          {children}
+        </div>
+      </div>
+    </li>
+  )
+}
+
+function CaSteps({ title, children }: { title?: string; children: React.ReactNode }): React.ReactElement {
+  return (
+    <div className="mb-2 text-sm" style={{ lineHeight: 1.6 }}>
+      {title ? <p className="font-bold" style={{ color: 'var(--text)' }}>{title}</p> : null}
+      <ul className="list-disc pl-5" style={{ color: 'var(--text-dim)' }}>
+        {children}
+      </ul>
     </div>
   )
 }
