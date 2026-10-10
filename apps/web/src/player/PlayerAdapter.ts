@@ -87,7 +87,12 @@ export class LocalPlayer implements PlayerAdapter {
     // Chan menu chuot phai (co "Luu video thanh...").
     video.addEventListener('contextmenu', (e) => e.preventDefault())
 
-    video.addEventListener('loadedmetadata', () => this.patch({ ready: true, duration: video.duration }))
+    video.addEventListener('loadedmetadata', () => {
+      // Tat phu de neu file co nhung san (yt-dlp hien khong nhung, nhung
+      // file cu / tai tay thi co the co) — dong bo voi player YouTube.
+      for (const t of Array.from(video.textTracks)) t.mode = 'disabled'
+      this.patch({ ready: true, duration: video.duration })
+    })
     video.addEventListener('play', () => this.patch({ playing: true }))
     video.addEventListener('pause', () => this.patch({ playing: false }))
     video.addEventListener('waiting', () => this.patch({ buffering: true }))
@@ -209,6 +214,28 @@ interface YTPlayer {
   unMute(): void
   isMuted(): boolean
   destroy(): void
+  /** KHONG co trong tai lieu chinh thuc — luon goi trong try/catch. */
+  unloadModule?(name: string): void
+  setOption?(module: string, option: string, value: unknown): void
+}
+
+/**
+ * Tat phu de [CC].
+ *
+ * `cc_load_policy: 0` KHONG tat duoc: 0 chi nghia la "khong ep bat". YouTube
+ * van tu bat phu de khi ngon ngu video khac ngon ngu cua may (video tieng Anh
+ * xem tren may tieng Viet), hoac khi chu kenh dat phu de mac dinh. Cach chac
+ * chan la go module phu de moi khi YouTube nap no — goi o onReady, onApiChange
+ * (luc module vua nap) va moi lan bat dau phat.
+ */
+function hideCaptions(player: YTPlayer): void {
+  try {
+    player.setOption?.('captions', 'track', {})
+    player.unloadModule?.('captions')
+    player.unloadModule?.('cc') // ten module o ban player cu
+  } catch {
+    // API khong chinh thuc — doi thi bo qua, video van phat binh thuong.
+  }
 }
 
 interface YTNamespace {
@@ -306,7 +333,7 @@ export class YouTubePlayer implements PlayerAdapter {
         fs: 0, // khong cho fullscreen (se hien UI cua YouTube)
         playsinline: 1,
         autoplay: 1,
-        cc_load_policy: 0,
+        cc_load_policy: 0, // khong du de tat phu de — xem hideCaptions
         origin: window.location.origin,
       },
       events: {
@@ -321,8 +348,12 @@ export class YouTubePlayer implements PlayerAdapter {
             volume: e.target.getVolume() / 100,
             muted: e.target.isMuted(),
           })
+          hideCaptions(e.target)
           e.target.playVideo()
         },
+
+        // Ban ra khi module phu de vua nap xong — luc phu de sap hien.
+        onApiChange: (e: { target: YTPlayer }) => hideCaptions(e.target),
 
         onStateChange: (e: { data: number; target: YTPlayer }) => {
           const S = YT.PlayerState
@@ -334,6 +365,8 @@ export class YouTubePlayer implements PlayerAdapter {
             this.cb?.onEnded()
             return
           }
+
+          if (e.data === S.PLAYING) hideCaptions(e.target)
 
           this.patch({
             playing: e.data === S.PLAYING,
