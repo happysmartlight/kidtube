@@ -743,4 +743,7 @@ export const adminApi = {
   checkUpdate: () => request<{ ok: boolean }>('/api/admin/update/check', { method: 'POST' }),
 
   runUpdate: () => request<{ ok: boolean }>('/api/admin/update/run', { method: 'POST' }),
+
+  // Link HTTPS cua Tailscale de cai app. Goi tu chinh link do = server nho lai.
+  install: () => request<{ appUrl: string | null }>('/api/admin/install'),
 }

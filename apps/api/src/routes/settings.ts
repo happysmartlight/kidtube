@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import { env } from '../env.js'
-import { getAllSettings, getDb, setSetting } from '../db/index.js'
+import { getAllSettings, getDb, getSetting, setSetting } from '../db/index.js'
 import type { FilterRuleRow, FilterType } from '../db/types.js'
 import { badRequest, notFound } from '../lib/errors.js'
 import { storageInfo } from '../services/downloader.js'
@@ -21,6 +21,9 @@ const WRITABLE = new Set([
   'show_duration',
   'show_download_badge',
 ])
+
+/** Ten MagicDNS cua Tailscale: <may>.<tailnet>.ts.net, co the kem cong. */
+const TAILSCALE_HOST = /^[a-z0-9-]+(\.[a-z0-9-]+)*\.ts\.net(:\d{1,5})?$/i
 
 const FILTER_TYPES: FilterType[] = [
   'keyword_block',
@@ -73,6 +76,26 @@ export async function settingsRoutes(app: FastifyInstance): Promise<void> {
       throw badRequest(`Không có cài đặt nào hợp lệ. Bỏ qua: ${ignored.join(', ')}`)
     }
     return { ok: true, applied, ignored }
+  })
+
+  /**
+   * Dia chi HTTPS de cai app (PWA) — trinh duyet chi cho cai qua HTTPS duoc tin.
+   *
+   * Khong tu lam HTTPS: Pi da co Tailscale, `tailscale serve` cap chung chi
+   * that cho <may>.<tailnet>.ts.net va chuyen vao cong HTTP cua app. Bo me mo
+   * trang nay qua dia chi do mot lan la server nho lai, de chi duong cho may
+   * dang mo bang http://<ip> trong LAN.
+   *
+   * Nhan ra qua header Tailscale gan vao: X-Forwarded-Proto chi la "https" khi
+   * ket noi den Tailscale co TLS, Host giu nguyen (trustProxy dang bat). Route
+   * nay sau requireParent nen nguoi la trong mang khong ghi duoc.
+   */
+  app.get('/api/admin/install', async (req) => {
+    if (req.protocol === 'https' && TAILSCALE_HOST.test(req.host)) {
+      const url = `https://${req.host.toLowerCase()}`
+      if (getSetting('app_url') !== url) setSetting('app_url', url)
+    }
+    return { appUrl: getSetting('app_url') }
   })
 
   // ── Bo loc tu dong ───────────────────────────────────────────────────

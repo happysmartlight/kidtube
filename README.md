@@ -145,6 +145,8 @@ Lần build đầu mất khoảng **2 phút** trên Pi 5 (đã đo thực tế: 
 biên dịch `better-sqlite3` cho arm64). Các lần sau nhanh hơn nhờ cache layer.
 
 Mở `http://<ip-của-pi>:8477` → giữ icon ⚙ 3 giây → nhập PIN **`000000`**.
+Dùng trên điện thoại / tablet thì tiếp theo xem
+[Cài app lên điện thoại / tablet](#cài-app-lên-điện-thoại--tablet-android--iphone--ipad).
 
 Đó là PIN mặc định lần đầu, cố tình để dễ nhớ. Vào được rồi thì *Cài đặt →
 Đổi PIN* — trang quản trị sẽ nhắc cho tới khi bạn đổi. Muốn đặt PIN khác
@@ -183,17 +185,75 @@ docker compose start kidtube
 
 ---
 
-## Mở trên tablet (Android / iPad)
+## Cài app lên điện thoại / tablet (Android / iPhone / iPad)
 
-1. Mở `http://<ip-của-pi>:8477` bằng Chrome hoặc Safari
-2. Menu → **Thêm vào Màn hình chính**
-3. Mở từ icon vừa tạo → chạy **toàn màn hình, không có thanh địa chỉ**
-
-Thanh địa chỉ bị ẩn nghĩa là con **không thoát ra trình duyệt được** — đây là
+Cài thành app thì KidTube chạy **toàn màn hình, không có thanh địa chỉ**. Ẩn
+được thanh địa chỉ nghĩa là con **không thoát ra trình duyệt được** — đây là
 lớp bảo vệ quan trọng nhất trên tablet.
+
+Trình duyệt chỉ cho cài app khi trang chạy **HTTPS có chứng chỉ được tin**. Mở
+bằng `http://<ip-của-pi>:8477` thì Chrome chỉ tạo lối tắt — mở ra vẫn là tab
+có thanh địa chỉ. Pi đã có **Tailscale** thì đây là việc của `tailscale serve`:
+nó cấp HTTPS bằng chứng chỉ Let's Encrypt thật cho tên
+`<tên-máy>.<tailnet>.ts.net`, không phải cài chứng chỉ gì lên từng máy.
+
+1. **Trên Pi, một lần:**
+
+   ```bash
+   tailscale serve --bg --https=8477 http://localhost:8477
+   tailscale serve status   # in ra https://<tên-máy>.<tailnet>.ts.net:8477
+   ```
+
+   Đổi `8477` nếu bạn đặt `KIDTUBE_PORT` khác. Cùng số cổng là tiện nhất:
+   Tailscale chỉ chiếm cổng đó trên địa chỉ tailnet (100.x), còn
+   `http://<ip-của-pi>:8477` trong LAN — cho TV LG — vẫn chạy như cũ. `--bg`
+   lưu cấu hình lại, Pi khởi động lại không phải chạy lệnh nữa. (Cần bật
+   *MagicDNS* và *HTTPS Certificates* trong trang quản trị Tailscale — đã dùng
+   `tailscale serve` cho app khác thì đã bật rồi.)
+2. **Trên máy cần cài:** cài app **Tailscale**, đăng nhập cùng tailnet với Pi,
+   bật lên.
+3. Mở `https://<tên-máy>.<tailnet>.ts.net:8477` → giữ ⚙ 3 giây, nhập PIN →
+   **Cài đặt → 📲 Cài app lên điện thoại / tablet** → **📲 Cài KidTube lên máy
+   này** (Chrome Android), hoặc nút **Chia sẻ → Thêm vào MH chính** (Safari
+   iPhone / iPad).
+4. Từ giờ mở KidTube bằng icon trên màn hình chính.
+
+Mục *Cài app* trong trang bố mẹ dẫn lại đúng các bước này, có sẵn lệnh để copy.
+Mở trang bố mẹ qua link Tailscale một lần là KidTube nhớ link — từ đó máy nào
+mở bằng `http://<ip-của-pi>:8477` cũng có nút bấm thẳng sang bản HTTPS.
+
+Lưu ý:
+
+- **Tailscale phải luôn bật trên máy của con** — tắt là app không vào được
+  KidTube. Android: *Cài đặt → Mạng → VPN → ⚙ Tailscale → VPN luôn bật*. Ở nhà
+  thì Tailscale nối thẳng trong LAN, xem video không chậm hơn.
+- Vào tailnet rồi thì máy của con cũng **thấy các dịch vụ khác** của nhà (Home
+  Assistant, Immich…). Muốn chặn: cho máy đó một tag riêng và viết ACL của
+  Tailscale chỉ cho nó tới cổng 8477 của Pi.
+- **Đừng dùng `tailscale funnel`** — nó mở app ra Internet công khai.
+- Mỗi địa chỉ một phiên đăng nhập: vào trang bố mẹ qua link Tailscale thì nhập
+  PIN lại một lần.
+
+**Chưa cài app?** Trên tablet Android / iPad, giao diện của con tự xin vào toàn
+màn hình mỗi lần con chạm. Đỡ hơn, nhưng con vẫn vuốt ra được, và iPhone không
+hỗ trợ — cài app mới là cách chắc chắn.
 
 Muốn khoá chặt hơn nữa (Android): dùng **Fully Kiosk Browser** hoặc
 **Screen Pinning** (Cài đặt → Bảo mật → Ghim màn hình).
+
+<details>
+<summary>Không dùng Tailscale?</summary>
+
+- **Tên miền thật** + Caddy lấy chứng chỉ Let's Encrypt qua DNS challenge (xem
+  `Caddyfile.example`): mở KidTube bằng tên đó là cài được, mục *Cài app* hiện
+  thẳng nút cài. `tls internal` thì **không** được — thiết bị không tin chứng
+  chỉ đó.
+- **Chỉ Android, nhanh nhưng kém bền:** mở
+  `chrome://flags/#unsafely-treat-insecure-origin-as-secure`, điền
+  `http://<ip-của-pi>:8477`, chọn *Enabled*, khởi động lại Chrome. Đây là cờ
+  thử nghiệm — Chrome có thể gỡ nó, và phải bật lại trên từng máy.
+
+</details>
 
 ---
 
@@ -416,6 +476,9 @@ docs/        Yêu cầu, kế hoạch, kiến trúc, thiết kế
 | File trong `data/`/`media/` thuộc user lạ | Container chạy bằng `PUID:PGID` (mặc định 1000:1000). Muốn khác: đặt `PUID`/`PGID` trong `.env` theo `id -u` và `id -g`. |
 | `port is already allocated` | Cổng đã bị dịch vụ khác chiếm. Đổi `KIDTUBE_PORT` trong `.env` rồi `docker compose up -d`. |
 | Tablet/TV không vào được nhưng Pi thì được | Kiểm tra firewall trên Pi: `sudo ufw allow 8477/tcp`. |
+| "Thêm vào màn hình chính" mở ra vẫn còn thanh địa chỉ | Đang mở bằng HTTP. Mở bằng link Tailscale — xem [Cài app lên điện thoại / tablet](#cài-app-lên-điện-thoại--tablet-android--iphone--ipad). |
+| Link `https://….ts.net:8477` không mở được | Tailscale trên máy đó chưa bật hoặc khác tailnet. Trên Pi: `tailscale serve status` phải có dòng `proxy http://localhost:8477`. |
+| Đã mở HTTPS mà không có nút *Cài KidTube* | Chrome chưa sẵn sàng hoặc máy đã cài rồi. Dùng menu ⋮ → *Cài đặt ứng dụng*, hoặc tìm icon KidTube trên màn hình chính. |
 | Quên PIN | Xoá hai dòng `pin_salt` và `pin_hash` trong bảng `settings` của `data/kid.db` rồi `docker compose restart kidtube` — PIN quay về `DEFAULT_PIN` (mặc định `000000`). |
 | Restart là phải nhập PIN lại | Chưa đặt `SESSION_SECRET` trong `.env`. |
 | Cài đặt báo "Chưa bật dịch vụ cập nhật" | Thiếu `KIDTUBE_REPO_DIR` + `COMPOSE_PROFILES=updater` trong `.env`. Trang đó hiện sẵn lệnh cần chạy. |

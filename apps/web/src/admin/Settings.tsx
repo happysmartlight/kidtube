@@ -3,8 +3,22 @@ import { adminApi, ApiError, type FilterRule, type UpdateSnapshot } from '@/lib/
 import { C, withAlpha } from '@/lib/color'
 import { filterTypeLabel, formatBytes, formatDate, formatMinutes, formatRelative } from '@/lib/format'
 import { getLocalOverride, setLocalOverride, type ModeSetting } from '@/lib/mode'
+import { detectPlatform, isInstalled, type Platform, promptInstall, useInstallPrompt } from '@/lib/pwa'
 import { Spinner } from '@/ui/Spinner'
-import { Alert, Badge, Btn, Dialog, Field, Input, Panel, Select, toast, Toggle, useLoad } from './ui'
+import {
+  Alert,
+  Badge,
+  Btn,
+  BtnLink,
+  Dialog,
+  Field,
+  Input,
+  Panel,
+  Select,
+  toast,
+  Toggle,
+  useLoad,
+} from './ui'
 
 export function Settings(): React.ReactElement {
   const { data, loading, error, reload } = useLoad(() => adminApi.settings())
@@ -67,6 +81,8 @@ export function Settings(): React.ReactElement {
           </Alert>
         ) : null}
       </Panel>
+
+      <InstallSection />
 
       <UpdateSection />
 
@@ -212,6 +228,201 @@ function Info({ label, children }: { label: string; children: React.ReactNode })
       </p>
       <p className="font-bold">{children}</p>
     </div>
+  )
+}
+
+// ═══ Cai app len dien thoai / tablet ════════════════════════════════
+
+/**
+ * Dan bo me cai KidTube thanh app: chay toan man hinh, khong con thanh dia
+ * chi — be khong thoat ra trinh duyet duoc (nguyen tac P4).
+ *
+ * Trinh duyet chi cho cai qua HTTPS duoc tin. App khong tu lam HTTPS: Pi da
+ * co Tailscale, `tailscale serve` cap chung chi that cho <may>.<tailnet>.ts.net.
+ * Bo me mo trang nay qua link do mot lan la server nho lai (api
+ * routes/settings.ts) — may khac dang mo bang http://<ip> se co nut bam thang
+ * toi do. Den HTTPS roi thi chi con mot nut bam (Chrome) hoac nut Chia se
+ * (Safari).
+ */
+function InstallSection(): React.ReactElement {
+  // Goi ca khi dang o HTTPS: chinh lan goi do la luc server nho link.
+  const { data } = useLoad(() => adminApi.install())
+  const canPrompt = useInstallPrompt()
+  const platform = detectPlatform()
+
+  async function install(): Promise<void> {
+    const outcome = await promptInstall()
+    if (outcome === 'accepted') toast('ok', 'Đã cài. Mở KidTube từ icon trên màn hình chính.')
+  }
+
+  let body: React.ReactNode
+  if (isInstalled()) {
+    body = (
+      <Alert kind="ok">
+        Thiết bị này đang chạy KidTube dạng app — toàn màn hình, không có thanh địa chỉ. Muốn cài
+        cho máy khác thì mở trang này trên máy đó.
+      </Alert>
+    )
+  } else if (window.isSecureContext) {
+    body = canPrompt ? (
+      <div className="flex flex-col items-start gap-3">
+        <p className="text-sm" style={{ color: 'var(--text-dim)' }}>
+          Trang đang chạy HTTPS — cài được rồi.
+        </p>
+        <Btn variant="primary" onClick={() => void install()}>
+          📲 Cài KidTube lên máy này
+        </Btn>
+      </div>
+    ) : (
+      <InstallSteps platform={platform} />
+    )
+  } else {
+    body = (
+      <>
+        <Alert kind="warn">
+          Trang đang mở bằng <b>HTTP</b> nên trình duyệt <b>không cho cài app</b>: “Thêm vào màn
+          hình chính” chỉ tạo lối tắt, mở ra vẫn còn thanh địa chỉ. Cần mở bằng link{' '}
+          <b>HTTPS của Tailscale</b> trên Pi.
+        </Alert>
+        <TailscaleSteps appUrl={data?.appUrl ?? null} />
+      </>
+    )
+  }
+
+  return (
+    <Panel
+      icon="📲"
+      title="Cài app lên điện thoại / tablet"
+      subtitle="Chạy toàn màn hình, không còn thanh địa chỉ — con không thoát ra trình duyệt được"
+    >
+      {body}
+    </Panel>
+  )
+}
+
+/** Dang o HTTP: dua bo me sang link HTTPS cua `tailscale serve`. */
+function TailscaleSteps({ appUrl }: { appUrl: string | null }): React.ReactElement {
+  // Cung cong voi HTTP, nhu cac app khac tren Pi: Tailscale chi chiem cong do
+  // tren dia chi tailnet (100.x), http://<ip-LAN> cho TV van chay nhu cu.
+  const port = window.location.port || '8477'
+  const cmd = `tailscale serve --bg --https=${port} http://localhost:${port}`
+
+  const tailscaleStep = (n: number): React.ReactElement => (
+    <Step n={n} title="Bật Tailscale trên máy này">
+      <Bullets>
+        <li>
+          Cài app <b>Tailscale</b> (CH Play / App Store), đăng nhập <b>cùng tài khoản</b> với Pi
+          rồi bật lên
+        </li>
+        <li>
+          Máy của con (Android): bật <b>VPN luôn bật</b> cho Tailscale trong Cài đặt → Mạng → VPN
+          — Tailscale tắt là app không vào được KidTube
+        </li>
+      </Bullets>
+    </Step>
+  )
+
+  if (appUrl) {
+    return (
+      <ol className="flex flex-col gap-5">
+        {tailscaleStep(1)}
+        <Step n={2} title="Mở KidTube qua Tailscale rồi cài app">
+          <BtnLink href={appUrl} variant="primary" small>
+            🔒 Mở {appUrl}
+          </BtnLink>
+          <p className="mt-2">
+            Giữ ⚙ 3 giây, nhập PIN (mỗi địa chỉ đăng nhập riêng) → <b>Cài đặt</b> → mục này để
+            cài. Không mở được thì Tailscale trên máy này chưa bật, hoặc khác tài khoản với Pi.
+          </p>
+        </Step>
+      </ol>
+    )
+  }
+
+  return (
+    <ol className="flex flex-col gap-5">
+      <Step n={1} title="Bật HTTPS trên Pi (một lần)">
+        <p className="mb-2">SSH vào Pi rồi chạy:</p>
+        <CopyBox text={cmd} />
+        <p className="mt-2">
+          Lệnh in ra link dạng <code>https://&lt;tên-máy&gt;.&lt;tailnet&gt;.ts.net:{port}</code>{' '}
+          — chứng chỉ thật, chỉ máy trong tailnet mở được. Đã chạy rồi thì xem lại bằng{' '}
+          <code>tailscale serve status</code>. Đừng dùng <code>tailscale funnel</code>: nó mở app
+          ra Internet.
+        </p>
+      </Step>
+      {tailscaleStep(2)}
+      <Step n={3} title="Mở link HTTPS rồi cài app">
+        <p>
+          Mở link ở bước 1 → giữ ⚙ 3 giây, nhập PIN → <b>Cài đặt</b> → mục này để cài. Mở một lần
+          là trang này nhớ link — lần sau máy khác có nút bấm thẳng tới đó.
+        </p>
+      </Step>
+    </ol>
+  )
+}
+
+/** Da o HTTPS nhung Chrome chua (hoac khong bao gio) ban su kien cai. */
+function InstallSteps({ platform }: { platform: Platform }): React.ReactElement {
+  if (platform === 'ios') {
+    return (
+      <Bullets>
+        <li>
+          Bấm nút <b>Chia sẻ</b> (ô vuông có mũi tên ↑) trên thanh của Safari
+        </li>
+        <li>
+          Chọn <b>Thêm vào MH chính</b> → <b>Thêm</b>
+        </li>
+        <li>Mở KidTube từ icon mới trên màn hình chính</li>
+      </Bullets>
+    )
+  }
+  return (
+    <Bullets>
+      <li>
+        Mở menu <b>⋮</b> của Chrome → <b>Cài đặt ứng dụng</b> (hoặc <b>Thêm vào màn hình chính</b>)
+      </li>
+      <li>Mở KidTube từ icon mới trên màn hình chính</li>
+      <li>Không thấy mục đó? Có thể máy đã cài rồi — tìm icon KidTube trên màn hình chính.</li>
+    </Bullets>
+  )
+}
+
+function Step({
+  n,
+  title,
+  children,
+}: {
+  n: number
+  title: string
+  children: React.ReactNode
+}): React.ReactElement {
+  return (
+    <li className="flex gap-3">
+      <span
+        className="grid shrink-0 place-items-center rounded-full text-sm font-extrabold"
+        style={{ width: 28, height: 28, background: 'var(--card-hi)' }}
+        aria-hidden="true"
+      >
+        {n}
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="mb-2 font-extrabold" style={{ lineHeight: '28px' }}>
+          {title}
+        </p>
+        <div className="text-sm" style={{ color: 'var(--text-dim)', lineHeight: 1.6 }}>
+          {children}
+        </div>
+      </div>
+    </li>
+  )
+}
+
+function Bullets({ children }: { children: React.ReactNode }): React.ReactElement {
+  return (
+    <ul className="list-disc pl-5 text-sm" style={{ color: 'var(--text-dim)', lineHeight: 1.6 }}>
+      {children}
+    </ul>
   )
 }
 

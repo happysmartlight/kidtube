@@ -4,8 +4,8 @@
 
 ```
                     ┌─────────────── Raspberry Pi 5 ───────────────┐
-  Tablet ──┐        │                                               │
-           ├─ LAN ──┤  Caddy :443 (HTTPS nội bộ, reverse proxy)     │
+  Tablet ──┐        │  tailscale serve (HTTPS *.ts.net, để cài app) │
+           ├─ LAN ──┤  hoặc HTTP thẳng :8477 (TV LG)                │
   TV/Pi  ──┘        │         │                                     │
   (Chromium         │         ├──> Fastify :8080                    │
    kiosk)           │         │      ├─ /api/kid/*    (không auth)  │
@@ -27,6 +27,15 @@
 **Điểm then chốt:** giao diện của trẻ **không bao giờ** gọi trực tiếp ra YouTube API.
 Nó chỉ đọc SQLite local qua `/api/kid/*` → mở là hiện ngay (nguyên tắc P7).
 Chỉ có iframe player mới kết nối ra youtube-nocookie.com.
+
+**HTTPS để cài app (PWA):** trình duyệt chỉ cho cài PWA và chạy service worker
+trên HTTPS được tin. App không tự làm HTTPS — Pi đã có Tailscale, nên
+`tailscale serve --https=8477 http://localhost:8477` cấp chứng chỉ thật cho
+`<máy>.<tailnet>.ts.net` và chuyển vào cổng HTTP. Tailscale gắn
+`X-Forwarded-Proto: https` và giữ `Host` (Fastify bật `trustProxy`); khi bố mẹ
+mở trang quản trị qua đường đó, `GET /api/admin/install` lưu link vào setting
+`app_url` để mục *Cài app* chỉ đường cho máy đang mở bằng HTTP trong LAN. HTTP
+vẫn giữ nguyên cho TV LG.
 
 ## Cây thư mục
 
@@ -60,7 +69,7 @@ apps/
   web/                        Frontend React
     src/
       main.tsx  App.tsx
-      lib/      api.ts  mode.ts  sfx.ts  format.ts  store.ts
+      lib/      api.ts  mode.ts  sfx.ts  format.ts  store.ts  pwa.ts  tv.ts
       nav/      spatial.tsx          spatial navigation cho D-pad
       ui/       Button Card Shelf Dialog Spinner Toast ...
       kid/      ProfilePick Home Channels Watch TimeUp

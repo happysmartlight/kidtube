@@ -2,7 +2,7 @@ import cookie from '@fastify/cookie'
 import fastifyStatic from '@fastify/static'
 import Fastify from 'fastify'
 import { existsSync } from 'node:fs'
-import { dirname, resolve } from 'node:path'
+import { dirname, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { startCron, stopCron } from './cron.js'
 import { closeDb, openDb } from './db/index.js'
@@ -47,7 +47,7 @@ async function main(): Promise<void> {
     },
     // Tre bam nhanh va nhieu; body luon nho.
     bodyLimit: 1024 * 256,
-    trustProxy: true, // Caddy dung o truoc
+    trustProxy: true, // tailscale serve (hoac Caddy) dung o truoc
   })
 
   openDb()
@@ -158,6 +158,14 @@ async function main(): Promise<void> {
       decorateReply: true,
       index: ['index.html'],
       list: false,
+      // Vite gan hash vao ten file trong assets/ -> noi dung khong bao gio doi,
+      // cache vinh vien. TV (khong co service worker) do phai hoi lai moi lan.
+      // index.html, sw.js, manifest van max-age=0 de ban moi den ngay.
+      setHeaders: (reply, path) => {
+        if (path.includes(`${sep}assets${sep}`)) {
+          reply.header('cache-control', 'public, max-age=31536000, immutable')
+        }
+      },
     })
 
     // Fallback cho client-side routing: moi duong dan khong phai API tra ve index.html
