@@ -106,6 +106,24 @@ body,
   height: 100%;
 }
 
+/* iOS, APP DA CAI (display-mode: standalone) + thanh trang thai
+   black-translucent: WebKit ve trang tu DINH man hinh (duoi thanh trang thai)
+   nhung chieu cao 100% lai TRU thanh trang thai — giao dien ket thuc som dung
+   bang env(safe-area-inset-top), de lai mot dai den o day (~47px tren iPhone),
+   va thanh nut duoi van chua cho vach Home du khong con nam sat day. Cong bu
+   cho <html>; body / #root 100% theo no. Viewport khong cuon them duoc: html
+   de overflow mac dinh nen overflow: hidden cua body ap len viewport.
+   Chi WebKit iOS (-webkit-touch-callout): Android da ve du chieu cao, cong
+   them se tran. iOS 26.1+ tra inset-top = 0 khi thanh trang thai khong con
+   trong suot — luc do cong 0, khong sao. */
+@supports (-webkit-touch-callout: none) {
+  @media (display-mode: standalone) {
+    html {
+      height: calc(100% + env(safe-area-inset-top));
+    }
+  }
+}
+
 /* Vung an toan khi chay dang APP DA CAI: `viewport-fit=cover` + thanh trang
    thai `black-translucent` (iOS) cho noi dung ve tran xuong duoi thanh trang
    thai / tai tho — hang nut chu de bi gio va pin de len. Tab trinh duyet
@@ -613,6 +631,8 @@ body {
    Gop header cu (avatar, dong ho, ⚙) xuong day de dinh man hinh chi con
    hang nut chon chu de — lay lai ~72px chieu cao cho luoi video. */
 .kbar {
+  /* Phan chua cho vach Home (iPhone/iPad) duoi cac nut. */
+  --kbar-bottom: env(safe-area-inset-bottom);
   display: flex;
   align-items: stretch;
   gap: 12px;
@@ -620,8 +640,8 @@ body {
   /* Vung an toan duoi (thanh home iPad/iPhone) CONG THEM chieu cao, khong
      an vao no: voi box-sizing: border-box, `height` + `padding-bottom` se
      bop vung chua noi dung lai. */
-  height: calc(var(--nav-h) + env(safe-area-inset-bottom));
-  padding: 0 var(--safe-pad) env(safe-area-inset-bottom);
+  height: calc(var(--nav-h) + var(--kbar-bottom));
+  padding: 0 var(--safe-pad) var(--kbar-bottom);
   /* Dai mau rieng, lap lai tong cua dinh man hinh (do dam trai -> tim sam
      giua -> xanh duong dam phai): nen chuyen mau cua body da tan ve den o
      day, nen neu de trong suot thanh nay chi la mot mang den. Mau DAC —
@@ -778,6 +798,17 @@ body {
    -> Chuyen thoi gian sang AVATAR (cum trai dang thua cho): vong quanh avatar
    ngan dan theo thoi gian con lai + nhan so phut. Rong toi thieu ~290px. */
 @media (max-width: 520px) {
+  /* Thanh duoi mong lai: 72px + 34px vach Home (~106px) chiem gan 1/8 man
+     dien thoai. Con 60px + 22px ~ 82px, ngang thanh tab cua app iOS goc
+     (83px). Nut chinh van cao 44px — vung bam toi thieu Apple khuyen. Vach
+     Home chi cao ~5px, cach day ~8px: chua 22px (34 - 12) van khong cham. */
+  .kbar {
+    --nav-h: 60px;
+    --kbar-bottom: max(0px, calc(env(safe-area-inset-bottom) - 12px));
+  }
+  .kbar-tabs {
+    padding: 6px 0;
+  }
   .kbar-time {
     display: none;
   }
