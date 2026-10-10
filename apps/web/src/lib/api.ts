@@ -175,6 +175,8 @@ export interface PlaybackInfo {
   quota: Quota
   video: (KidVideo & { localUrl: string | null }) | null
   next: KidVideo | null
+  /** Hang "Video khác" tren thanh dieu khien — server da loc qua hai tang cua. */
+  related: KidVideo[]
   autoplay?: boolean
   autoplayMax?: number
 }

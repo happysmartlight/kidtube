@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ApiError, kidApi, type PlaybackInfo, type Quota } from '@/lib/api'
+import { ApiError, kidApi, type KidConfig, type KidVideo, type PlaybackInfo, type Quota } from '@/lib/api'
 import { useBackHandler } from '@/lib/back'
+import { currentMode } from '@/lib/mode'
 import { backOr, isKidListing, useNavigate } from '@/lib/router'
 import { sfx } from '@/lib/sfx'
 import { Controls } from '@/player/Controls'
@@ -11,19 +12,29 @@ import {
   type PlayerAdapter,
   type PlayerState,
 } from '@/player/PlayerAdapter'
+import { focusElement } from '@/nav/spatial'
 import { EmptyState, Spinner } from '@/ui/Spinner'
 import { FocusButton } from '@/ui/Focusable'
 
 const HEARTBEAT_SEC = 15
-const CONTROLS_HIDE_MS = 3500
+// Du lau de be kip nhin hang "Video khác" ben duoi; cham / cuon trong do thi
+// dem lai tu dau.
+const CONTROLS_HIDE_MS = 5000
 
 interface WatchProps {
   videoId: number
   profileId: number
+  config: KidConfig
   onQuotaBlocked: (quota: Quota) => void
 }
 
-export function Watch({ videoId, profileId, onQuotaBlocked }: WatchProps): React.ReactElement {
+/** Card dang duoc chon bang remote trong hang "Video khác" (neu co). */
+function focusedUpNext(): HTMLElement | null {
+  const el = document.activeElement
+  return el instanceof HTMLElement && el.closest('[data-upnext]') ? el : null
+}
+
+export function Watch({ videoId, profileId, config, onQuotaBlocked }: WatchProps): React.ReactElement {
   const navigate = useNavigate()
 
   const [info, setInfo] = useState<PlaybackInfo | null>(null)
@@ -218,6 +229,32 @@ export function Watch({ videoId, profileId, onQuotaBlocked }: WatchProps): React
       const adapter = adapterRef.current
       if (!adapter) return
 
+      // Dang chon trong hang "Video khác": mui ten ngang di giua cac video
+      // (spatial navigation lo), mui ten len la thoat ra — tua lai nhu cu.
+      const card = focusedUpNext()
+      if (card && e.key.startsWith('Arrow')) {
+        showControls()
+        if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+          e.preventDefault()
+          e.stopPropagation()
+          if (e.key === 'ArrowUp') card.blur()
+        }
+        return
+      }
+
+      // TV: mui ten xuong = vao hang "Video khác" (khong co thi giam am luong
+      // nhu cu). Am luong tren TV da co nut rieng cua remote.
+      if (e.key === 'ArrowDown' && currentMode() === 'tv') {
+        const first = document.querySelector<HTMLElement>('[data-upnext] [data-focusable]')
+        if (first) {
+          e.preventDefault()
+          e.stopPropagation()
+          showControls()
+          focusElement(first)
+          return
+        }
+      }
+
       switch (e.key) {
         case 'ArrowLeft':
           e.preventDefault()
@@ -380,6 +417,12 @@ export function Watch({ videoId, profileId, onQuotaBlocked }: WatchProps): React
           onNext={() => {
             if (info.next) navigate(`/watch/${info.next.id}`, { replace: true })
           }}
+          related={info.related ?? []}
+          showDuration={config.showDuration}
+          showDownloadBadge={config.showDownloadBadge}
+          // THAY tai cho nhu nut ⏭: Back ve thang luoi video.
+          onPick={(v: KidVideo) => navigate(`/watch/${v.id}`, { replace: true })}
+          onActivity={showControls}
         />
       ) : null}
     </div>

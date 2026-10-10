@@ -1,6 +1,8 @@
 import type { PlayerState } from './PlayerAdapter'
+import type { KidVideo } from '@/lib/api'
 import { formatDuration } from '@/lib/format'
 import { FocusButton } from '@/ui/Focusable'
+import { VideoCard } from '@/ui/VideoCard'
 
 interface ControlsProps {
   state: PlayerState
@@ -13,6 +15,13 @@ interface ControlsProps {
   onSeekTo: (seconds: number) => void
   onVolume: (v: number) => void
   onNext: () => void
+  /** Hang "Video khác" duoi cac nut. Rong thi khong ve. */
+  related: KidVideo[]
+  showDuration: boolean
+  showDownloadBadge: boolean
+  onPick: (video: KidVideo) => void
+  /** Be dang cham / cuon / chon trong thanh dieu khien — dung an no di. */
+  onActivity: () => void
 }
 
 /**
@@ -34,6 +43,11 @@ export function Controls({
   onSeekTo,
   onVolume,
   onNext,
+  related,
+  showDuration,
+  showDownloadBadge,
+  onPick,
+  onActivity,
 }: ControlsProps): React.ReactElement {
   const pct = state.duration > 0 ? (state.time / state.duration) * 100 : 0
 
@@ -51,6 +65,10 @@ export function Controls({
       }}
       // Khi an, khong cho remote focus vao — tranh bay focus vo hinh.
       aria-hidden={!visible}
+      // Be dang luot tim video trong hang "Video khác" thi dung an thanh
+      // dieu khien giua chung.
+      onPointerDown={onActivity}
+      onFocus={onActivity}
     >
       <h1
         className="mb-3 truncate font-extrabold"
@@ -135,6 +153,26 @@ export function Controls({
           </CtrlButton>
         </div>
       </div>
+
+      {/*
+        "Video khác" — nhu YouTube: cham man hinh hien nut dieu khien thi hien
+        luon hang video de be chon tiep tai cho, khong phai quay ra trang chu.
+        Cuon ngang tran mep man hinh. `data-upnext`: Watch.tsx dua vao day de
+        mui ten cua remote di giua cac video thay vi tua.
+      */}
+      {related.length > 0 ? (
+        <div className="kupnext" data-upnext onScroll={onActivity}>
+          {related.map((v) => (
+            <VideoCard
+              key={v.id}
+              video={v}
+              showDuration={showDuration}
+              showDownloadBadge={showDownloadBadge}
+              onSelect={onPick}
+            />
+          ))}
+        </div>
+      ) : null}
     </div>
   )
 }

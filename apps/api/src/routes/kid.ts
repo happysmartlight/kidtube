@@ -19,6 +19,10 @@ import { reverifyParent } from './auth.js'
 /** Cac muc "cho thêm" tren man het gio. 0 = "cho xem tiep" (gioi han so video). */
 const KID_GRANT_MINUTES = [0, 15, 30, 60]
 
+/** Hang "Video khác" khi dang xem: tong so video, va toi da bao nhieu cai cung kenh. */
+const RELATED_MAX = 12
+const RELATED_SAME_SOURCE = 6
+
 /**
  * HAI TANG CUA (nguyen tac P1):
  *   1. video.status = 'approved'  — bo me da duyet tung cai
@@ -449,11 +453,13 @@ export async function kidRoutes(app: FastifyInstance): Promise<void> {
 
       const quota = computeQuota(pid)
       if (!quota.allowed) {
-        return { blocked: true, quota, video: null, next: null }
+        return { blocked: true, quota, video: null, next: null, related: [] }
       }
 
       const full = db
-        .prepare<[number], VideoRow>('SELECT local_path FROM videos WHERE id = ?')
+        .prepare<[number], Pick<VideoRow, 'local_path' | 'source_id'>>(
+          'SELECT local_path, source_id FROM videos WHERE id = ?',
+        )
         .get(id)
       const profile = getProfile(pid)
 
@@ -501,6 +507,53 @@ export async function kidRoutes(app: FastifyInstance): Promise<void> {
         )
         .get({ pid, id })
 
+      /**
+       * Hang "Video khác" tren thanh dieu khien — be cham man hinh la chon
+       * duoc video tiep ngay tai cho, khong phai quay ra trang chu.
+       *
+       * Thu tu: video tiep theo trong ke (cung nut ⏭), roi video CUNG KENH,
+       * roi video khac cho du. Tron ngau nhien moi lan mo de be gap video moi.
+       * Moi truy van deu qua HAI TANG CUA (VISIBLE).
+       */
+      const related: KidVideo[] = []
+      const seen = new Set<number>([id])
+      const add = (rows: RawKidVideo[]): void => {
+        for (const r of rows) {
+          if (related.length >= RELATED_MAX) return
+          if (seen.has(r.id)) continue
+          seen.add(r.id)
+          related.push(toKidVideo(r))
+        }
+      }
+      if (next) add([next])
+      if (full?.source_id != null) {
+        add(
+          db
+            .prepare<{ pid: number; id: number; sid: number; lim: number }, RawKidVideo>(
+              `SELECT ${KID_VIDEO_COLUMNS}
+                 FROM videos v
+                WHERE ${VISIBLE} AND v.id != @id AND v.source_id = @sid
+                ORDER BY random()
+                LIMIT @lim`,
+            )
+            .all({ pid, id, sid: full.source_id, lim: RELATED_SAME_SOURCE }),
+        )
+      }
+      if (related.length < RELATED_MAX) {
+        add(
+          db
+            .prepare<{ pid: number; id: number; lim: number }, RawKidVideo>(
+              `SELECT ${KID_VIDEO_COLUMNS}
+                 FROM videos v
+                WHERE ${VISIBLE} AND v.id != @id
+                ORDER BY random()
+                LIMIT @lim`,
+            )
+            // Lay du de con du sau khi bo nhung video da co o tren.
+            .all({ pid, id, lim: RELATED_MAX * 2 }),
+        )
+      }
+
       return {
         blocked: false,
         quota,
@@ -511,6 +564,7 @@ export async function kidRoutes(app: FastifyInstance): Promise<void> {
           localUrl: full?.local_path ? `/media/${encodeURIComponent(full.local_path)}` : null,
         },
         next: next ? toKidVideo(next) : null,
+        related,
         autoplay: profile.autoplay === 1,
         autoplayMax: profile.autoplay_max,
       }

@@ -861,6 +861,45 @@ body {
   }
 }
 
+/* Hang "Video khác" duoi thanh dieu khien (player/Controls.tsx).
+   Card nho hon trang chu: day la lop phu tren video, khong phai trang chinh.
+   Cuon ngang TRAN MEP man hinh (margin am bang --safe-pad) nhu YouTube — be
+   thay card bi cat o mep la hieu con vuot duoc nua. Dem tren/duoi cho vong
+   focus va card phong to khi chon bang remote khong bi cat. */
+.kupnext {
+  --card-w: clamp(132px, 24vw, 210px);
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  margin: 10px calc(-1 * var(--safe-pad)) 0;
+  padding: 10px var(--safe-pad);
+  scroll-snap-type: x proximity;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+
+.kupnext::-webkit-scrollbar {
+  display: none;
+}
+
+.kupnext > .kcard {
+  scroll-snap-align: start;
+}
+
+/* Dien thoai xoay ngang: man thap, card nho lai de con thay video. */
+@media (max-height: 480px) {
+  .kupnext {
+    --card-w: 120px;
+    margin-top: 4px;
+  }
+}
+
+:root[data-mode='tv'] .kupnext {
+  --card-w: 240px;
+  gap: 20px;
+}
+
 .kbtn {
   min-width: var(--tap);
   min-height: var(--tap);

@@ -245,6 +245,7 @@ export function App(): React.ReactElement {
           <Watch
             videoId={videoId}
             profileId={profile.id}
+            config={config}
             onQuotaBlocked={handleQuotaBlocked}
           />
           {pinDialog}
