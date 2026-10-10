@@ -71,38 +71,6 @@ export function Panel({
 
 type BtnVariant = 'primary' | 'ghost' | 'danger' | 'ok'
 
-const BTN_VARIANTS: Record<BtnVariant, React.CSSProperties> = {
-  primary: { background: 'var(--focus)', color: 'var(--focus-ink)' },
-  ghost: {
-    background: 'var(--card)',
-    color: 'var(--text)',
-    border: '1px solid var(--card-hi)',
-  },
-  danger: {
-    background: 'var(--danger-bg)',
-    color: 'var(--danger)',
-    border: '1px solid var(--danger-border)',
-  },
-  ok: {
-    background: 'var(--ok-bg)',
-    color: 'var(--ok)',
-    border: '1px solid var(--ok-border)',
-  },
-}
-
-const BTN_CLASS =
-  'inline-flex shrink-0 items-center justify-center gap-1.5 rounded-xl font-bold transition-opacity disabled:cursor-not-allowed disabled:opacity-45'
-
-function btnStyle(variant: BtnVariant, small: boolean): React.CSSProperties {
-  return {
-    ...BTN_VARIANTS[variant],
-    padding: small ? '6px 12px' : '10px 18px',
-    fontSize: small ? 13 : 15,
-    cursor: 'pointer',
-    fontFamily: 'inherit',
-  }
-}
-
 export function Btn({
   children,
   variant = 'ghost',
@@ -112,27 +80,40 @@ export function Btn({
   variant?: BtnVariant
   small?: boolean
 }): React.ReactElement {
+  const styles: Record<BtnVariant, React.CSSProperties> = {
+    primary: { background: 'var(--focus)', color: 'var(--focus-ink)' },
+    ghost: {
+      background: 'var(--card)',
+      color: 'var(--text)',
+      border: '1px solid var(--card-hi)',
+    },
+    danger: {
+      background: 'var(--danger-bg)',
+      color: 'var(--danger)',
+      border: '1px solid var(--danger-border)',
+    },
+    ok: {
+      background: 'var(--ok-bg)',
+      color: 'var(--ok)',
+      border: '1px solid var(--ok-border)',
+    },
+  }
+
   return (
-    <button type="button" className={BTN_CLASS} style={btnStyle(variant, small)} {...rest}>
+    <button
+      type="button"
+      className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-xl font-bold transition-opacity disabled:cursor-not-allowed disabled:opacity-45"
+      style={{
+        ...styles[variant],
+        padding: small ? '6px 12px' : '10px 18px',
+        fontSize: small ? 13 : 15,
+        cursor: 'pointer',
+        fontFamily: 'inherit',
+      }}
+      {...rest}
+    >
       {children}
     </button>
-  )
-}
-
-/** Link trong giong het Btn — dung khi bam vao la DI toi trang / tai file khac. */
-export function BtnLink({
-  children,
-  variant = 'ghost',
-  small = false,
-  ...rest
-}: React.AnchorHTMLAttributes<HTMLAnchorElement> & {
-  variant?: BtnVariant
-  small?: boolean
-}): React.ReactElement {
-  return (
-    <a className={BTN_CLASS} style={{ ...btnStyle(variant, small), textDecoration: 'none' }} {...rest}>
-      {children}
-    </a>
   )
 }
 

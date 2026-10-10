@@ -30,9 +30,6 @@ services:
     # KHONG mo ra Internet: day la app cho tre, khong co ly do gi truy cap tu ngoai.
     ports:
       - '0.0.0.0:${KIDTUBE_PORT:-8477}:8080'
-      # HTTPS — bat buoc de CAI APP (PWA) len dien thoai / tablet: trinh duyet
-      # chi cho cai qua HTTPS. App tu ky chung chi, xem README muc "Cài app".
-      - '0.0.0.0:${KIDTUBE_HTTPS_PORT:-8478}:8443'
 
     volumes:
       # kid.db — sao luu thu muc nay la sao luu toan bo cau hinh.
@@ -48,10 +45,6 @@ services:
       PUID: ${PUID:-1000}
       PGID: ${PGID:-1000}
       PORT: 8080
-      HTTPS_PORT: 8443
-      # Cong HTTPS ma tablet THAY — server can de dua link dung. Phai khop
-      # dong ports ben tren, nen cung lay tu KIDTUBE_HTTPS_PORT.
-      HTTPS_PUBLIC_PORT: ${KIDTUBE_HTTPS_PORT:-8478}
       DATA_DIR: /data
       MEDIA_DIR: /media
       # Bo trong thi moi lan restart bo me phai nhap PIN lai.

@@ -11,7 +11,6 @@ import { useBackHandler, useBackKeys } from '@/lib/back'
 import { backOr, isKidListing, matchPath, useNavigate, usePath } from '@/lib/router'
 import { setSfxEnabled, sfx } from '@/lib/sfx'
 import { getStoredProfileId, setStoredProfileId } from '@/lib/store'
-import { useAutoFullscreen } from '@/lib/tv'
 import { useSpatialNavigation } from '@/nav/spatial'
 import { PinDialog } from '@/ui/ParentGate'
 import { Spinner } from '@/ui/Spinner'
@@ -85,10 +84,6 @@ export function App(): React.ReactElement {
   // ─── Dieu huong bang D-pad + nut Back (toan cuc, MOT lan duy nhat) ──
   useSpatialNavigation()
   useBackKeys()
-
-  // Giao dien cua be tren tablet chua cai app: an thanh dia chi moi khi cham.
-  // Trang bo me thi khong — bo me can thanh dia chi (vd mo link HTTPS).
-  useAutoFullscreen(!path.startsWith('/admin'))
 
   // Tang duoi cung cua nut Back. Trang xem video va cac hop thoai dang ky
   // tang rieng nam tren — toi duoc day la khong ai trong so do dang mo.

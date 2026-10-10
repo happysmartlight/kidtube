@@ -1,11 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { App } from './App'
-import { initPwa } from './lib/pwa'
 import './index.css'
-
-// Truoc khi render: Chrome co the ban `beforeinstallprompt` rat som.
-initPwa()
 
 const root = document.getElementById('root')
 if (!root) throw new Error('Không tìm thấy #root trong index.html')

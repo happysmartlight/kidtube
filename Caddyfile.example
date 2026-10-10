@@ -1,10 +1,5 @@
-# Caddy — TUY CHON. Chi can neu muon ten mien de nho trong LAN.
-# Khong co Caddy thi vao thang http://<ip-cua-pi>:8477 cung dung duoc.
-#
-# Cai app (PWA) len tablet KHONG can Caddy: app tu co HTTPS o cong 8478 voi
-# CA rieng cua nha — xem README muc "Cài app lên điện thoại / tablet".
-# `tls internal` ben duoi cung vay: thiet bi chua cai root CA cua Caddy thi
-# chung chi khong duoc tin, va trinh duyet KHONG cho cai PWA.
+# Caddy — TUY CHON. Chi can neu muon HTTPS va ten mien de nho trong LAN.
+# Khong co Caddy thi vao thang http://<ip-cua-pi>:8080 cung dung duoc.
 #
 # Dat file nay thanh /etc/caddy/Caddyfile roi: sudo systemctl reload caddy
 
