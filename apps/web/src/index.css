@@ -940,8 +940,21 @@ body {
   }
 }
 
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 .anim-pop {
   animation: pop-in 260ms var(--ease-pop) both;
+}
+
+.anim-fade {
+  animation: fade-in 180ms ease-out both;
 }
 
 .anim-wave {

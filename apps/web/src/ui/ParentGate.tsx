@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { adminApi, ApiError } from '@/lib/api'
 import { useBackHandler } from '@/lib/back'
 import { currentMode } from '@/lib/mode'
@@ -19,6 +20,12 @@ import { FocusButton } from './Focusable'
  */
 
 export const HOLD_MS = 3000
+
+/**
+ * Giu bao lau thi moi hien lop tien do giua man hinh. Be cham luot qua nut ⚙
+ * thi khong thay gi — chi nguoi co y giu moi thay.
+ */
+const OVERLAY_AFTER_MS = 250
 
 interface LongPressResult {
   progress: number
@@ -150,7 +157,73 @@ export function ParentGateButton({ onOpen }: { onOpen: () => void }): React.Reac
           />
         </svg>
       ) : null}
+
+      {progress * HOLD_MS >= OVERLAY_AFTER_MS ? <HoldOverlay progress={progress} /> : null}
     </button>
+  )
+}
+
+/**
+ * Tien do giu nut ⚙, hien to giua man hinh. Nut nho va nam duoi ngon tay
+ * nguoi lon — vong tron quanh nut bi che mat, bo me khong biet con bao lau.
+ *
+ * `pointer-events: none` la BAT BUOC: lop phu ma nhan chuot thi trinh duyet
+ * bao nut bi "pointerleave" ngay khi no hien ra, va viec giu bi huy.
+ * Portal ra body de khong bi thanh duoi (overflow, transform) cat mat.
+ */
+function HoldOverlay({ progress }: { progress: number }): React.ReactElement {
+  const pct = Math.floor(progress * 100)
+  const secondsLeft = Math.max(1, Math.ceil(((1 - progress) * HOLD_MS) / 1000))
+
+  return createPortal(
+    <div
+      className="anim-fade pointer-events-none fixed inset-0 grid place-items-center p-6"
+      style={{ zIndex: 60, background: 'rgba(0, 0, 0, 0.6)' }}
+      aria-hidden="true"
+    >
+      <div
+        className="anim-pop w-full max-w-sm rounded-3xl p-6 text-center"
+        style={{ background: 'var(--bg-elev)', boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)' }}
+      >
+        {/* Quay theo tien do (khong phai quay deu) — gan voi nut dang giu. */}
+        <div
+          className="mx-auto mb-3 grid place-items-center rounded-full"
+          style={{
+            width: 72,
+            height: 72,
+            fontSize: 40,
+            background: 'var(--focus-bg)',
+            transform: `rotate(${progress * 360}deg)`,
+          }}
+        >
+          ⚙
+        </div>
+        <p className="text-xl font-extrabold">Đang mở trang bố mẹ</p>
+        <p className="mt-1 text-sm" style={{ color: 'var(--text-dim)' }}>
+          Giữ nguyên… còn {secondsLeft} giây
+        </p>
+
+        <div
+          className="mt-5 overflow-hidden rounded-full"
+          style={{ height: 14, background: 'var(--card-hi)' }}
+        >
+          <div
+            className="h-full rounded-full"
+            style={{ width: `${progress * 100}%`, background: 'var(--focus)' }}
+          />
+        </div>
+        <p
+          className="mt-3 text-3xl font-extrabold"
+          style={{ fontVariantNumeric: 'tabular-nums' }}
+        >
+          {pct}%
+        </p>
+        <p className="mt-2 text-xs" style={{ color: 'var(--text-dim)' }}>
+          Thả tay ra để huỷ
+        </p>
+      </div>
+    </div>,
+    document.body,
   )
 }
 
