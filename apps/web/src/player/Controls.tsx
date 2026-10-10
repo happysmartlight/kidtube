@@ -3,6 +3,7 @@ import type { KidVideo } from '@/lib/api'
 import { formatDuration } from '@/lib/format'
 import { FocusButton } from '@/ui/Focusable'
 import { VideoCard } from '@/ui/VideoCard'
+import { IconHome, IconNext, IconPause, IconPlay, IconSeek10, IconVolume } from './icons'
 
 interface ControlsProps {
   state: PlayerState
@@ -80,45 +81,47 @@ export function Controls({
         {title}
       </h1>
 
-      {/* Thanh tien do. Vung bam cao 28px du de tre cham chinh xac. */}
-      <div
-        className="kplayer-seek flex cursor-pointer items-center"
-        onPointerDown={(e) => {
-          if (state.duration <= 0) return
-          const rect = e.currentTarget.getBoundingClientRect()
-          const ratio = (e.clientX - rect.left) / rect.width
-          onSeekTo(Math.max(0, Math.min(1, ratio)) * state.duration)
-        }}
-      >
+      {/*
+        Thoi gian kep hai dau thanh tua (kieu YouTube / Spotify): 0:44 ━━●── 1:23:07.
+        Truoc day thoi gian nam trong hang nut, nen man doc dien thoai khong du
+        cho va phai xep nut thanh HAI hang. Vung bam cua thanh tua cao 28px du
+        de tre cham chinh xac; vach hien thi thi mong cho gon.
+      */}
+      <div className="kplayer-seekrow">
+        <span className="kplayer-time">{formatDuration(state.time)}</span>
         <div
-          className="relative w-full overflow-hidden rounded-full"
-          style={{ height: 10, background: 'rgba(255,255,255,0.22)' }}
+          className="kplayer-seek"
+          onPointerDown={(e) => {
+            if (state.duration <= 0) return
+            const rect = e.currentTarget.getBoundingClientRect()
+            const ratio = (e.clientX - rect.left) / rect.width
+            onSeekTo(Math.max(0, Math.min(1, ratio)) * state.duration)
+          }}
         >
-          <div
-            className="absolute inset-y-0 left-0 rounded-full"
-            style={{ width: `${pct}%`, background: 'var(--focus)' }}
-          />
+          <div className="kplayer-track">
+            <div className="kplayer-fill" style={{ width: `${pct}%` }} />
+          </div>
+          <div className="kplayer-thumb" style={{ left: `${pct}%` }} />
         </div>
+        <span className="kplayer-time">{formatDuration(state.duration)}</span>
       </div>
 
       {/*
-        Bo cuc do CSS quyet (.kctrl trong index.css):
-          rong : [🏠] [⏪ ⏯ ⏩ ⏭] ............ 0:03 / 0:38 [🔊]   — mot hang
-          hep  : [🏠] ...... 0:03 / 0:38 ...... [🔊]             — hai hang
-                       [⏪] [ ⏯ ] [⏩] [⏭]
-        Mot hang can ~568px; man hinh doc dien thoai (~360-412px) thi cac nut
-        cuoi tran ra ngoai man hinh. Thu tu DOM giu nguyen cho D-pad.
+        MOT hang o moi kich thuoc man hinh (.kctrl trong index.css):
+          [🏠]           [⏪] [ ⏯ ] [⏩] [⏭]           [🔊]
+        Cum phat dung GIUA (luoi 3 cot 1fr auto 1fr), 🏠 sat trai, 🔊 sat phai.
+        Thu tu DOM giu nguyen cho D-pad.
       */}
       <div className="kctrl">
         <div className="kctrl-home">
           <CtrlButton label="Về trang chủ" onClick={onHome} sound="back">
-            🏠
+            <IconHome />
           </CtrlButton>
         </div>
 
         <div className="kctrl-transport">
           <CtrlButton label="Lùi 10 giây" onClick={() => onSeekBy(-10)} sound="none">
-            ⏪
+            <IconSeek10 back className="kicon-lg" />
           </CtrlButton>
           <CtrlButton
             label={state.playing ? 'Tạm dừng' : 'Phát'}
@@ -126,24 +129,17 @@ export function Controls({
             big
             sound="none"
           >
-            {state.playing ? '⏸' : '▶️'}
+            {state.playing ? <IconPause /> : <IconPlay />}
           </CtrlButton>
           <CtrlButton label="Tiến 10 giây" onClick={() => onSeekBy(10)} sound="none">
-            ⏩
+            <IconSeek10 className="kicon-lg" />
           </CtrlButton>
           {hasNext ? (
             <CtrlButton label="Video tiếp theo" onClick={onNext}>
-              ⏭
+              <IconNext />
             </CtrlButton>
           ) : null}
         </div>
-
-        <span
-          className="kctrl-time tabular-nums"
-          style={{ fontSize: 'calc(var(--font-title) * 0.95)', color: 'var(--text-dim)' }}
-        >
-          {formatDuration(state.time)} / {formatDuration(state.duration)}
-        </span>
 
         <div className="kctrl-vol">
           <CtrlButton
@@ -151,7 +147,7 @@ export function Controls({
             onClick={() => onVolume(state.muted || state.volume === 0 ? 1 : 0)}
             sound="none"
           >
-            {state.muted || state.volume === 0 ? '🔇' : '🔊'}
+            <IconVolume muted={state.muted || state.volume === 0} />
           </CtrlButton>
         </div>
       </div>
@@ -180,6 +176,10 @@ export function Controls({
   )
 }
 
+/**
+ * Nut tron cua trinh phat. Hinh dang do CSS quyet (.kpbtn trong index.css):
+ * nen kinh mo + icon trang; nut phat (`big`) nen do, to hon theo --ctrl-big.
+ */
 function CtrlButton({
   children,
   label,
@@ -193,28 +193,15 @@ function CtrlButton({
   big?: boolean
   sound?: 'pop' | 'back' | 'none'
 }): React.ReactElement {
-  // --ctrl-big: man thap (dien thoai xoay ngang) cho nut phat bot to.
-  const size = big ? 'calc(var(--ctrl-btn) * var(--ctrl-big, 1.4))' : 'var(--ctrl-btn)'
   return (
     <FocusButton
       onClick={onClick}
       aria-label={label}
       title={label}
       sound={sound}
-      // shrink-0: khong cho flex bop nut tron thanh hinh bau duc / nho lai
-      // (nut 🔊 tung bi ep tu 64 xuong 44px khi hang chat).
-      className="grid shrink-0 place-items-center rounded-full"
-      style={{
-        width: size,
-        height: size,
-        fontSize: `calc(${size} * 0.44)`,
-        background: big ? 'var(--focus)' : 'rgba(255,255,255,0.14)',
-        border: 'none',
-        cursor: 'pointer',
-        lineHeight: 1,
-      }}
+      className={big ? 'kpbtn kpbtn-primary' : 'kpbtn'}
     >
-      <span aria-hidden="true">{children}</span>
+      {children}
     </FocusButton>
   )
 }

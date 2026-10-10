@@ -78,7 +78,9 @@
   --tabs-pad-y: 12px;
   --safe-pad: 16px;
   --tap: 72px;
-  --ctrl-btn: 64px;
+  /* Nut cua trinh phat (player/Controls.tsx); nut phat = x --ctrl-big. */
+  --ctrl-btn: 56px;
+  --ctrl-big: 1.3;
 }
 
 /* TV: xem tu ~3m, dieu khien bang remote (phim mui tien HOAC con tro) */
@@ -91,7 +93,7 @@
   /* 5% chong overscan — nhieu TV van cat mep anh */
   --safe-pad: 5%;
   --tap: 88px;
-  --ctrl-btn: 88px;
+  --ctrl-btn: 76px;
 }
 
 * {
@@ -814,66 +816,184 @@ body {
 
 .kplayer-title {
   font-size: var(--font-title);
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
+/* Man doc: video len sat DINH (kieu app YouTube) thay vi nam giua — luoi
+   "Video khác" + nut ben duoi khong con che mat video. Chi khung player va
+   vong xoay dang tai; lop chan cham va man ket thuc van phu ca man hinh. */
+@media (orientation: portrait) {
+  .kplayer-video {
+    bottom: auto;
+    height: 56.25vw; /* 16:9 theo be ngang */
+    max-height: 100%;
+  }
+}
+
+/* Thoi gian kep hai dau thanh tua: 0:44 ━━●── 1:23:07 */
+.kplayer-seekrow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.kplayer-time {
+  flex: 0 0 auto;
+  min-width: 3.4em; /* khong cho thanh tua nhay khi 9:59 -> 10:00 */
+  text-align: center;
+  font-size: calc(var(--font-title) * 0.78);
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.86);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Vung bam cao 28px (tre cham chinh xac), vach hien thi chi 5px. */
 .kplayer-seek {
+  position: relative;
+  flex: 1 1 auto;
   height: 28px;
-  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
 }
 
-/* ═══ Thanh dieu khien trinh phat (player/Controls.tsx) ══════════════
-   Rong: MOT hang — [🏠] [⏪ ⏯ ⏩ ⏭] ...... thoi gian [🔊].
-   Mot hang can ~568px (do bang Edge), them cho cho thoi luong dai kieu
-   "1:04:30 / 1:04:30" -> nguong 640px. Ben duoi la HAI hang (xem @media). */
+.kplayer-track {
+  position: relative;
+  width: 100%;
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.25);
+  overflow: hidden;
+}
+
+.kplayer-fill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  border-radius: inherit;
+  background: var(--focus);
+}
+
+.kplayer-thumb {
+  position: absolute;
+  top: 50%;
+  width: 14px;
+  height: 14px;
+  margin: -7px 0 0 -7px;
+  border-radius: 50%;
+  background: var(--focus);
+  box-shadow: 0 0 0 4px rgba(255, 0, 51, 0.25);
+  pointer-events: none;
+}
+
+:root[data-mode='tv'] .kplayer-track {
+  height: 8px;
+}
+
+:root[data-mode='tv'] .kplayer-thumb {
+  width: 20px;
+  height: 20px;
+  margin: -10px 0 0 -10px;
+}
+
+/* ═══ Hang nut trinh phat ═════════════════════════════════════════════
+   MOT hang o moi kich thuoc: [🏠] .... [⏪ ⏯ ⏩ ⏭] .... [🔊]
+   Flex + margin auto hai ben cum phat (khong dung grid: trinh duyet webOS
+   cu khong co). 🏠 va 🔊 cung co nen cum phat nam dung giua. */
 .kctrl {
   display: flex;
   align-items: center;
-  gap: 10px;
 }
 
 .kctrl-transport {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 14px;
+  margin: 0 auto;
+  padding: 0 8px;
 }
 
-.kctrl-time {
-  margin-left: auto; /* day thoi gian + 🔊 sang phai */
-  white-space: nowrap;
+/* Nut tron kinh mo + icon SVG trang (player/icons.tsx). */
+.kpbtn {
+  flex: 0 0 auto;
+  width: var(--ctrl-btn);
+  height: var(--ctrl-btn);
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.12);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  color: #fff;
+  font-family: inherit;
+  cursor: pointer;
 }
 
-/* Dien thoai doc: hai hang. Hang CHINH (⏪ ⏯ ⏩ ⏭) o DUOI CUNG, can giua —
-   nut phat/tam dung la nut tre bam nhieu nhat, va ngon cai voi day man hinh
-   de nhat. Hang phu o tren: 🏠 trai, thoi gian giua, 🔊 phai.
-   Nut co gian theo be rong: 52px o 320px -> 64px (bang man hinh rong) tu
-   ~427px; hang chinh 3 nut + nut phat 1.4x + 3 khe vua 320px. Grid chi dung
-   o day (dien thoai doi moi); TV/man hinh rong van la flex nhu cu. */
+.kpbtn svg {
+  display: block;
+  width: 46%;
+  height: 46%;
+}
+
+/* Icon tua co chu "10" ben trong — to hon chut moi doc duoc so. */
+.kpbtn svg.kicon-lg {
+  width: 54%;
+  height: 54%;
+}
+
+/* Nut phat/tam dung: nut tre bam nhieu nhat — to hon, nen do, quang sang. */
+.kpbtn-primary {
+  width: calc(var(--ctrl-btn) * var(--ctrl-big));
+  height: calc(var(--ctrl-btn) * var(--ctrl-big));
+  border-color: transparent;
+  background: var(--focus);
+  box-shadow: 0 8px 22px -6px rgba(255, 0, 51, 0.7);
+}
+
+.kpbtn-primary svg {
+  width: 42%;
+  height: 42%;
+}
+
+/* Lun xuong khi bam — phan hoi ngay duoi ngon tay. */
+.kpbtn:active {
+  transform: scale(0.9);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .kpbtn:hover {
+    background: rgba(255, 255, 255, 0.22);
+  }
+  .kpbtn-primary:hover {
+    background: #ff1f4b;
+  }
+}
+
+/* TV: backdrop-filter nang voi GPU cua TV — nen dac hon thay vao. */
+:root[data-mode='tv'] .kpbtn {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  background: rgba(255, 255, 255, 0.16);
+}
+
+:root[data-mode='tv'] .kpbtn-primary {
+  background: var(--focus);
+}
+
+/* Dien thoai doc: nut co gian theo be ngang — 38px o man 320px, 45px o
+   iPhone 16 (393px), toi da 48px. Mot hang van vua o 320px:
+   38 x 2 (🏠 🔊) + 38 x 3 + 49 (nut phat) + 3 khe 10px = 269 <= 288px. */
 @media (max-width: 640px) {
   .kctrl {
-    --ctrl-btn: clamp(52px, 15vw, 64px);
-    display: grid;
-    grid-template-columns: auto 1fr auto;
-    grid-template-areas:
-      'home time vol'
-      'transport transport transport';
-    row-gap: 12px;
-    column-gap: 10px;
-  }
-  .kctrl-home {
-    grid-area: home;
-  }
-  .kctrl-time {
-    grid-area: time;
-    justify-self: center;
-    margin-left: 0;
-  }
-  .kctrl-vol {
-    grid-area: vol;
+    --ctrl-btn: clamp(38px, 11.5vw, 48px);
   }
   .kctrl-transport {
-    grid-area: transport;
-    justify-self: center;
+    gap: 10px;
   }
 }
 
@@ -909,43 +1029,40 @@ body {
   scroll-snap-align: start;
 }
 
-/* Man doc (dien thoai cam doc): video chi chiem phan tren, duoi con nhieu
-   cho — cho luoi cao hon. */
+/* Man doc: video nam sat dinh (.kplayer-video), luoi lap phan con lai ben
+   duoi — cao = man hinh - video 16:9 - ~230px cua dem tren, tieu de, thanh
+   tua va hang nut. Tieu de vi vay bat dau ngay duoi video, khong de len.
+   It nhat 150px (~1 hang) tren man rat thap. */
 @media (orientation: portrait) {
   .kupnext {
-    max-height: 50vh;
+    max-height: max(150px, calc(100vh - 56.25vw - 230px));
   }
 }
 
-/* Dien thoai xoay ngang (cao ~360-430px): tieu de + thanh tua + nut 64px
-   (nut phat 90px) + dem tren 72px da chiem gan 270px — che gan het video.
-   Thu gon moi thu va LUON mot hang nut (ke ca man hep nhu iPhone SE ngang
-   568px: nut 44px thi mot hang van vua). Dat SAU khoi @media (max-width:
-   640px) o tren de thang khi ca hai cung khop. 44px van la vung bam toi
-   thieu Apple khuyen nghi. Tablet, dien thoai doc va TV khong doi. */
+/* Dien thoai xoay ngang (cao ~360-430px): dem tren 72px + tieu de + thanh
+   tua + hang nut da chiem gan het chieu cao — che gan het video. Thu gon moi
+   thu. Dat SAU khoi @media (max-width: 640px) o tren de thang khi ca hai cung
+   khop (vd iPhone SE ngang 568px). Tablet, dien thoai doc va TV khong doi. */
 @media (max-height: 500px) {
   .kplayer {
     padding-top: 24px;
   }
   .kplayer-title {
     font-size: calc(var(--font-title) * 0.9);
+    margin-bottom: 0;
+  }
+  .kplayer-seekrow {
     margin-bottom: 2px;
   }
   .kplayer-seek {
     height: 24px;
-    margin-bottom: 6px;
   }
   .kctrl {
-    --ctrl-btn: 44px;
+    --ctrl-btn: 42px;
     --ctrl-big: 1.25;
-    display: flex;
-    gap: 8px;
   }
   .kctrl-transport {
     gap: 8px;
-  }
-  .kctrl-time {
-    margin-left: auto;
   }
   .kupnext {
     --card-w: 120px;

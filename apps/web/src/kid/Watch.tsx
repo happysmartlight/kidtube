@@ -34,10 +34,35 @@ function focusedUpNext(): HTMLElement | null {
   return el instanceof HTMLElement && el.closest('[data-upnext]') ? el : null
 }
 
-/** Card nam o hang dau cua luoi — bam len tu day la thoat ra khoi luoi. */
-function inFirstRow(card: HTMLElement): boolean {
-  const first = card.parentElement?.firstElementChild
-  return first instanceof HTMLElement && card.offsetTop <= first.offsetTop + 2
+/**
+ * O ke tiep trong luoi "Video khác" theo HANG / COT. `null` = ra ngoai luoi.
+ *
+ * Tu tinh thay vi de spatial navigation do khoang cach: luoi da cuon thi card
+ * hang tren bi khuat phia tren khung, va nut ⏪ nam ngay tren co the GAN hon
+ * — bam len tu hang 2 la nhay mat len hang nut.
+ */
+function gridTarget(card: HTMLElement, key: string): HTMLElement | null {
+  const cards = Array.from(card.parentElement?.children ?? []) as HTMLElement[]
+  const i = cards.indexOf(card)
+  const top = cards[0]?.offsetTop
+  const cols = Math.max(1, cards.filter((c) => c.offsetTop === top).length)
+  switch (key) {
+    case 'ArrowLeft':
+      return cards[i - 1] ?? card
+    case 'ArrowRight':
+      return cards[i + 1] ?? card
+    case 'ArrowUp':
+      return cards[i - cols] ?? null
+    case 'ArrowDown': {
+      const below = cards[i + cols]
+      if (below) return below
+      // Hang cuoi thieu card: xuong card cuoi neu no o hang duoi.
+      const last = cards[cards.length - 1]
+      if (last && last.offsetTop > card.offsetTop) return last
+      return card
+    }
+  }
+  return card
 }
 
 export function Watch({ videoId, profileId, config, onQuotaBlocked }: WatchProps): React.ReactElement {
@@ -235,16 +260,18 @@ export function Watch({ videoId, profileId, config, onQuotaBlocked }: WatchProps
       const adapter = adapterRef.current
       if (!adapter) return
 
-      // Dang chon trong luoi "Video khác": mui ten di giua cac video
-      // (spatial navigation lo). Len o hang dau la thoat ra — tua lai nhu cu;
-      // khong thi spatial se nhay len hang nut dieu khien.
+      // Dang chon trong luoi "Video khác": mui ten di giua cac video theo
+      // hang/cot. Len o hang dau la thoat ra — mui ten lai la tua nhu cu.
       const card = focusedUpNext()
       if (card && e.key.startsWith('Arrow')) {
+        e.preventDefault()
+        e.stopPropagation()
         showControls()
-        if (e.key === 'ArrowUp' && inFirstRow(card)) {
-          e.preventDefault()
-          e.stopPropagation()
-          card.blur()
+        const target = gridTarget(card, e.key)
+        if (target === null) card.blur()
+        else if (target !== card) {
+          focusElement(target)
+          sfx.tick()
         }
         return
       }
@@ -345,7 +372,7 @@ export function Watch({ videoId, profileId, config, onQuotaBlocked }: WatchProps
   return (
     <div className="relative h-full w-full overflow-hidden" style={{ background: '#000' }}>
       {/* Khung chua player (iframe hoac <video>) */}
-      <div ref={containerRef} className="absolute inset-0" />
+      <div ref={containerRef} className="kplayer-video absolute inset-0" />
 
       {/*
         OVERLAY CHAN 100% POINTER EVENT (nguyen tac P4).
@@ -374,7 +401,7 @@ export function Watch({ videoId, profileId, config, onQuotaBlocked }: WatchProps
 
       {/* Dang tai / dang buffer */}
       {(!playerState.ready || playerState.buffering) && !ended ? (
-        <div className="pointer-events-none absolute inset-0 z-[15] grid place-items-center">
+        <div className="kplayer-video pointer-events-none absolute inset-0 z-[15] grid place-items-center">
           <div
             className="anim-spin rounded-full"
             style={{
