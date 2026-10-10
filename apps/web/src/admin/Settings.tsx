@@ -3,7 +3,14 @@ import { adminApi, ApiError, type FilterRule, type UpdateSnapshot } from '@/lib/
 import { C, withAlpha } from '@/lib/color'
 import { filterTypeLabel, formatBytes, formatDate, formatMinutes, formatRelative } from '@/lib/format'
 import { getLocalOverride, setLocalOverride, type ModeSetting } from '@/lib/mode'
-import { detectPlatform, isInstalled, type Platform, promptInstall, useInstallPrompt } from '@/lib/pwa'
+import {
+  detectPlatform,
+  isInstalled,
+  type Platform,
+  promptInstall,
+  screenMetrics,
+  useInstallPrompt,
+} from '@/lib/pwa'
 import { Spinner } from '@/ui/Spinner'
 import {
   Alert,
@@ -258,10 +265,19 @@ function InstallSection(): React.ReactElement {
   let body: React.ReactNode
   if (isInstalled()) {
     body = (
-      <Alert kind="ok">
-        Thiết bị này đang chạy KidTube dạng app — toàn màn hình, không có thanh địa chỉ. Muốn cài
-        cho máy khác thì mở trang này trên máy đó.
-      </Alert>
+      <>
+        <Alert kind="ok">
+          Thiết bị này đang chạy KidTube dạng app — toàn màn hình, không có thanh địa chỉ. Muốn
+          cài cho máy khác thì mở trang này trên máy đó.
+        </Alert>
+        {/* Loi hut / du chieu cao chi tai hien tren may that — chup dong nay gui kem. */}
+        <p className="mt-3 text-xs" style={{ color: 'var(--text-dim)' }}>
+          Thông số màn hình (chụp gửi kèm nếu giao diện bị hụt / dư ở mép):
+        </p>
+        <code className="mt-1 block text-xs break-words" style={{ color: 'var(--text-dim)' }}>
+          {screenMetrics()}
+        </code>
+      </>
     )
   } else if (window.isSecureContext) {
     body = canPrompt ? (

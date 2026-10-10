@@ -106,22 +106,20 @@ body,
   height: 100%;
 }
 
-/* iOS, APP DA CAI (display-mode: standalone) + thanh trang thai
-   black-translucent: WebKit ve trang tu DINH man hinh (duoi thanh trang thai)
-   nhung chieu cao 100% lai TRU thanh trang thai — giao dien ket thuc som dung
-   bang env(safe-area-inset-top), de lai mot dai den o day (~47px tren iPhone),
-   va thanh nut duoi van chua cho vach Home du khong con nam sat day. Cong bu
-   cho <html>; body / #root 100% theo no. Viewport khong cuon them duoc: html
-   de overflow mac dinh nen overflow: hidden cua body ap len viewport.
-   Chi WebKit iOS (-webkit-touch-callout): Android da ve du chieu cao, cong
-   them se tran. iOS 26.1+ tra inset-top = 0 khi thanh trang thai khong con
-   trong suot — luc do cong 0, khong sao. */
-@supports (-webkit-touch-callout: none) {
-  @media (display-mode: standalone) {
-    html {
-      height: calc(100% + env(safe-area-inset-top));
-    }
-  }
+/* iOS, APP DA CAI + thanh trang thai black-translucent: WebKit ve trang tu
+   DINH man hinh (duoi thanh trang thai) nhung `100%` (va ca 100dvh luc moi
+   mo app) lai TRU thanh trang thai — giao dien ket thuc som dung bang
+   env(safe-area-inset-top), de lai mot dai den o day (~47px tren iPhone).
+   Trong che do app thi 100vh = ca man hinh — dung no cho html/body; #root
+   van 100% theo body.
+   Ban truoc cong `calc(100% + env(safe-area-inset-top))` sau @supports +
+   @media (display-mode: standalone): iPhone that van con dai den. Class
+   `ios-standalone` do lib/pwa.ts gan theo `navigator.standalone` (chi iOS co)
+   — chac chan hon hai dieu kien CSS kia. Thong so man hinh that xem o Cai
+   dat → "Cài app" khi dang chay dang app. */
+html.ios-standalone,
+html.ios-standalone body {
+  height: 100vh;
 }
 
 /* Vung an toan khi chay dang APP DA CAI: `viewport-fit=cover` + thanh trang
