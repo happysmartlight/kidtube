@@ -60,7 +60,12 @@ export function Controls({
         paddingLeft: 'var(--safe-pad)',
         paddingRight: 'var(--safe-pad)',
         paddingBottom: 'max(var(--safe-pad), env(safe-area-inset-bottom))',
-        background: 'linear-gradient(to top, rgba(0,0,0,0.92) 10%, rgba(0,0,0,0) 100%)',
+        // Co luoi "Video khác" thi toi sau hon: tieu de card mau trang phai doc
+        // duoc ca khi canh video phia sau sang.
+        background:
+          related.length > 0
+            ? 'linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.85) 55%, rgba(0,0,0,0) 100%)'
+            : 'linear-gradient(to top, rgba(0,0,0,0.92) 10%, rgba(0,0,0,0) 100%)',
         paddingTop: 72,
       }}
       // Khi an, khong cho remote focus vao — tranh bay focus vo hinh.
@@ -156,9 +161,10 @@ export function Controls({
 
       {/*
         "Video khác" — nhu YouTube: cham man hinh hien nut dieu khien thi hien
-        luon hang video de be chon tiep tai cho, khong phai quay ra trang chu.
-        Cuon ngang tran mep man hinh. `data-upnext`: Watch.tsx dua vao day de
-        mui ten cua remote di giua cac video thay vi tua.
+        luon luoi video de be chon tiep tai cho, khong phai quay ra trang chu.
+        Luoi tu xuong hang, vuot len/xuong (hoac lan chuot) de xem them.
+        `data-upnext`: Watch.tsx dua vao day de mui ten cua remote di giua cac
+        video thay vi tua.
       */}
       {related.length > 0 ? (
         <div className="kupnext" data-upnext onScroll={onActivity}>

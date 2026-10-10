@@ -861,42 +861,58 @@ body {
   }
 }
 
-/* Hang "Video khác" duoi thanh dieu khien (player/Controls.tsx).
+/* Luoi "Video khác" duoi thanh dieu khien (player/Controls.tsx).
+   LUOI TU XUONG HANG, cuon DOC trong mot khung cao co han — vuot len/xuong
+   la thao tac tre quen tay nhat (cung kieu luoi trang chu), va con lan chuot
+   tren may tinh cuon duoc luon (con lan khong cuon duoc hang ngang).
+   Khung chi cao vua ~1.5-2 hang: hang duoi bi cat ngang de be biet con nua.
    Card nho hon trang chu: day la lop phu tren video, khong phai trang chinh.
-   Cuon ngang TRAN MEP man hinh (margin am bang --safe-pad) nhu YouTube — be
-   thay card bi cat o mep la hieu con vuot duoc nua. Dem tren/duoi cho vong
-   focus va card phong to khi chon bang remote khong bi cat. */
+   Dem 12px quanh luoi cho card phong to + vong focus khi chon bang remote
+   khong bi cat; margin am bu lai de mep card thang hang voi hang nut. */
 .kupnext {
-  --card-w: clamp(132px, 24vw, 210px);
-  display: flex;
+  --card-w: clamp(132px, 22vw, 200px);
+  --upnext-pad: 12px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(var(--card-w), 1fr));
   gap: 12px;
-  overflow-x: auto;
-  overflow-y: hidden;
-  margin: 10px calc(-1 * var(--safe-pad)) 0;
-  padding: 10px var(--safe-pad);
-  scroll-snap-type: x proximity;
-  overscroll-behavior-x: contain;
-  scrollbar-width: none;
-}
-
-.kupnext::-webkit-scrollbar {
-  display: none;
+  max-height: 40vh;
+  overflow-x: hidden;
+  overflow-y: auto;
+  margin: 10px calc(-1 * var(--upnext-pad)) 0;
+  padding: var(--upnext-pad);
+  overscroll-behavior: contain;
+  scroll-snap-type: y proximity;
+  scroll-padding-top: var(--upnext-pad);
+  /* Thanh cuon manh: chuot tren may tinh can thay la cuon duoc. */
+  scrollbar-width: thin;
+  scrollbar-color: var(--card-hi) transparent;
 }
 
 .kupnext > .kcard {
+  width: 100%;
   scroll-snap-align: start;
+}
+
+/* Man doc (dien thoai cam doc): video chi chiem phan tren, duoi con nhieu
+   cho — cho luoi cao hon. */
+@media (orientation: portrait) {
+  .kupnext {
+    max-height: 50vh;
+  }
 }
 
 /* Dien thoai xoay ngang: man thap, card nho lai de con thay video. */
 @media (max-height: 480px) {
   .kupnext {
     --card-w: 120px;
+    max-height: 38vh;
     margin-top: 4px;
   }
 }
 
 :root[data-mode='tv'] .kupnext {
   --card-w: 240px;
+  --upnext-pad: 16px;
   gap: 20px;
 }
 

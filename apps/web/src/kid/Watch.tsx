@@ -28,10 +28,16 @@ interface WatchProps {
   onQuotaBlocked: (quota: Quota) => void
 }
 
-/** Card dang duoc chon bang remote trong hang "Video khác" (neu co). */
+/** Card dang duoc chon bang remote trong luoi "Video khác" (neu co). */
 function focusedUpNext(): HTMLElement | null {
   const el = document.activeElement
   return el instanceof HTMLElement && el.closest('[data-upnext]') ? el : null
+}
+
+/** Card nam o hang dau cua luoi — bam len tu day la thoat ra khoi luoi. */
+function inFirstRow(card: HTMLElement): boolean {
+  const first = card.parentElement?.firstElementChild
+  return first instanceof HTMLElement && card.offsetTop <= first.offsetTop + 2
 }
 
 export function Watch({ videoId, profileId, config, onQuotaBlocked }: WatchProps): React.ReactElement {
@@ -229,20 +235,21 @@ export function Watch({ videoId, profileId, config, onQuotaBlocked }: WatchProps
       const adapter = adapterRef.current
       if (!adapter) return
 
-      // Dang chon trong hang "Video khác": mui ten ngang di giua cac video
-      // (spatial navigation lo), mui ten len la thoat ra — tua lai nhu cu.
+      // Dang chon trong luoi "Video khác": mui ten di giua cac video
+      // (spatial navigation lo). Len o hang dau la thoat ra — tua lai nhu cu;
+      // khong thi spatial se nhay len hang nut dieu khien.
       const card = focusedUpNext()
       if (card && e.key.startsWith('Arrow')) {
         showControls()
-        if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+        if (e.key === 'ArrowUp' && inFirstRow(card)) {
           e.preventDefault()
           e.stopPropagation()
-          if (e.key === 'ArrowUp') card.blur()
+          card.blur()
         }
         return
       }
 
-      // TV: mui ten xuong = vao hang "Video khác" (khong co thi giam am luong
+      // TV: mui ten xuong = vao luoi "Video khác" (khong co thi giam am luong
       // nhu cu). Am luong tren TV da co nut rieng cua remote.
       if (e.key === 'ArrowDown' && currentMode() === 'tv') {
         const first = document.querySelector<HTMLElement>('[data-upnext] [data-focusable]')
@@ -360,6 +367,9 @@ export function Watch({ videoId, profileId, config, onQuotaBlocked }: WatchProps
         }}
         onDoubleClick={(e) => e.preventDefault()}
         onContextMenu={(e) => e.preventDefault()}
+        // May tinh: lan chuot tren video la hien thanh dieu khien + luoi
+        // "Video khác" (lan tiep tren luoi thi cuon luoi).
+        onWheel={showControls}
       />
 
       {/* Dang tai / dang buffer */}
