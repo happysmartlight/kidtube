@@ -806,6 +806,22 @@ body {
 }
 
 
+/* ═══ Lop dieu khien trinh phat (player/Controls.tsx) ════════════════
+   Dem tren la phan nen chuyen mau mo dan len video. */
+.kplayer {
+  padding-top: 72px;
+}
+
+.kplayer-title {
+  font-size: var(--font-title);
+  margin-bottom: 12px;
+}
+
+.kplayer-seek {
+  height: 28px;
+  margin-bottom: 16px;
+}
+
 /* ═══ Thanh dieu khien trinh phat (player/Controls.tsx) ══════════════
    Rong: MOT hang — [🏠] [⏪ ⏯ ⏩ ⏭] ...... thoi gian [🔊].
    Mot hang can ~568px (do bang Edge), them cho cho thoi luong dai kieu
@@ -901,8 +917,36 @@ body {
   }
 }
 
-/* Dien thoai xoay ngang: man thap, card nho lai de con thay video. */
-@media (max-height: 480px) {
+/* Dien thoai xoay ngang (cao ~360-430px): tieu de + thanh tua + nut 64px
+   (nut phat 90px) + dem tren 72px da chiem gan 270px — che gan het video.
+   Thu gon moi thu va LUON mot hang nut (ke ca man hep nhu iPhone SE ngang
+   568px: nut 44px thi mot hang van vua). Dat SAU khoi @media (max-width:
+   640px) o tren de thang khi ca hai cung khop. 44px van la vung bam toi
+   thieu Apple khuyen nghi. Tablet, dien thoai doc va TV khong doi. */
+@media (max-height: 500px) {
+  .kplayer {
+    padding-top: 24px;
+  }
+  .kplayer-title {
+    font-size: calc(var(--font-title) * 0.9);
+    margin-bottom: 2px;
+  }
+  .kplayer-seek {
+    height: 24px;
+    margin-bottom: 6px;
+  }
+  .kctrl {
+    --ctrl-btn: 44px;
+    --ctrl-big: 1.25;
+    display: flex;
+    gap: 8px;
+  }
+  .kctrl-transport {
+    gap: 8px;
+  }
+  .kctrl-time {
+    margin-left: auto;
+  }
   .kupnext {
     --card-w: 120px;
     max-height: 38vh;

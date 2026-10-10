@@ -53,7 +53,9 @@ export function Controls({
 
   return (
     <div
-      className="absolute inset-x-0 bottom-0 z-20 transition-opacity duration-300"
+      // Khoang cach (dem tren, tieu de, thanh tua) nam trong .kplayer o
+      // index.css — dien thoai xoay ngang thu gon lai bang @media.
+      className="kplayer absolute inset-x-0 bottom-0 z-20 transition-opacity duration-300"
       style={{
         opacity: visible ? 1 : 0,
         pointerEvents: visible ? 'auto' : 'none',
@@ -66,7 +68,6 @@ export function Controls({
           related.length > 0
             ? 'linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.85) 55%, rgba(0,0,0,0) 100%)'
             : 'linear-gradient(to top, rgba(0,0,0,0.92) 10%, rgba(0,0,0,0) 100%)',
-        paddingTop: 72,
       }}
       // Khi an, khong cho remote focus vao — tranh bay focus vo hinh.
       aria-hidden={!visible}
@@ -75,17 +76,13 @@ export function Controls({
       onPointerDown={onActivity}
       onFocus={onActivity}
     >
-      <h1
-        className="mb-3 truncate font-extrabold"
-        style={{ fontSize: 'var(--font-title)', color: 'var(--text)' }}
-      >
+      <h1 className="kplayer-title truncate font-extrabold" style={{ color: 'var(--text)' }}>
         {title}
       </h1>
 
       {/* Thanh tien do. Vung bam cao 28px du de tre cham chinh xac. */}
       <div
-        className="mb-4 flex cursor-pointer items-center"
-        style={{ height: 28 }}
+        className="kplayer-seek flex cursor-pointer items-center"
         onPointerDown={(e) => {
           if (state.duration <= 0) return
           const rect = e.currentTarget.getBoundingClientRect()
@@ -196,7 +193,8 @@ function CtrlButton({
   big?: boolean
   sound?: 'pop' | 'back' | 'none'
 }): React.ReactElement {
-  const size = big ? 'calc(var(--ctrl-btn) * 1.4)' : 'var(--ctrl-btn)'
+  // --ctrl-big: man thap (dien thoai xoay ngang) cho nut phat bot to.
+  const size = big ? 'calc(var(--ctrl-btn) * var(--ctrl-big, 1.4))' : 'var(--ctrl-btn)'
   return (
     <FocusButton
       onClick={onClick}
