@@ -21,17 +21,337 @@
     <link rel="icon" href="/icon.svg" type="image/svg+xml" />
 
     <!-- Font tron, than thien, ho tro day du dau tieng Viet.
-         Neu Pi offline thi fallback ve system-ui — app van dung duoc binh thuong. -->
+         Neu Pi offline thi fallback ve system-ui — app van dung duoc binh thuong.
+         Tai KHONG chan ve trang (media=print roi doi sang all): stylesheet o
+         may chu ngoai ma chan thi man khoi dong ben duoi phai doi Google Fonts
+         moi hien — mang cham la man hinh den. Chu doi dang trong luc ngoi sao
+         con chay nen khong ai thay. -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@400;600;700;800&display=swap"
       rel="stylesheet"
+      media="print"
+      onload="this.media='all'"
     />
+
+    <!-- Man khoi dong kieu YouTube Kids: ngoi sao chay doc thanh cau vong.
+         Viet thang trong HTML (khong qua React) de hien NGAY khi mo app,
+         truoc ca khi bundle JS tai xong. Chi dung CSS ma Chromium 79 (LG
+         webOS 6) hieu: khong `inset`, khong flex `gap`. -->
+    <style>
+      #splash {
+        position: fixed;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        z-index: 2147483647;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        /* Cung nen voi body (index.css) -> luc mo dan, app hien ra lien mach */
+        background-color: #050507;
+        background-image:
+          radial-gradient(120% 100% at 0% 0%, rgba(176, 0, 32, 0.5), rgba(176, 0, 32, 0) 70%),
+          radial-gradient(120% 100% at 100% 0%, rgba(18, 52, 170, 0.55), rgba(18, 52, 170, 0) 70%),
+          linear-gradient(180deg, #0c0a14 0%, #050507 80%);
+        /* Moi kich thuoc ben duoi tinh bang em: thanh = 30em */
+        font-size: 9.5px;
+        font-size: clamp(9.5px, 1.4vw, 20px);
+        transition: opacity 350ms ease;
+      }
+      #splash.sp-out {
+        opacity: 0;
+        pointer-events: none;
+      }
+      .sp-row {
+        display: flex;
+        align-items: center;
+      }
+      .sp-play {
+        width: 2.7em;
+        height: 2.7em;
+        margin-right: 1.6em;
+        animation: sp-wobble 0.7s ease-in-out infinite alternate;
+      }
+      .sp-bar {
+        position: relative;
+        width: 30em;
+        height: 0.55em;
+      }
+      .sp-track,
+      .sp-fill {
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+      }
+      .sp-track {
+        background: #9a9aa3;
+      }
+      /* scaleX thay vi width: re cho GPU, va dai cau vong co lai theo do dai
+         phan da chay -> phan dau luon co du 6 mau ngay sau ngoi sao */
+      .sp-fill {
+        transform-origin: 0 50%;
+        transform: scaleX(0);
+        background: linear-gradient(
+          90deg,
+          #ff1a3c 0%,
+          #ff1a3c 40%,
+          #ff2a8c 56%,
+          #c400ff 66%,
+          #4d7dff 76%,
+          #4fe04a 88%,
+          #ffd23f 100%
+        );
+      }
+      /* Lop rong bang thanh: dich translateX(p*100%) = p * be rong thanh */
+      .sp-head,
+      .sp-fx {
+        position: absolute;
+        top: 50%;
+        left: 0;
+        width: 100%;
+        height: 0;
+      }
+      .sp-head {
+        will-change: transform;
+      }
+      .sp-star {
+        position: absolute;
+        left: -3em;
+        top: -2.7em;
+        width: 5.4em;
+        height: 5.4em;
+        animation: sp-bob 0.32s ease-in-out infinite alternate;
+      }
+      .sp-star svg,
+      .sp-play {
+        display: block;
+      }
+      .sp-star svg {
+        width: 100%;
+        height: 100%;
+      }
+      #splash.sp-done .sp-star {
+        animation: sp-cheer 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+      }
+      .sp-spark {
+        position: absolute;
+        background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 0C13 9 15 11 24 12C15 13 13 15 12 24C11 15 9 13 0 12C9 11 11 9 12 0Z' fill='%23ffc93c'/%3E%3C/svg%3E")
+          center / contain no-repeat;
+        animation: sp-twinkle 1s ease-out forwards;
+      }
+      @keyframes sp-bob {
+        from {
+          transform: translateY(0.15em) rotate(-9deg);
+        }
+        to {
+          transform: translateY(-0.3em) rotate(5deg);
+        }
+      }
+      @keyframes sp-wobble {
+        from {
+          transform: rotate(-7deg) scale(1);
+        }
+        to {
+          transform: rotate(5deg) scale(1.06);
+        }
+      }
+      @keyframes sp-cheer {
+        from {
+          transform: rotate(0deg) scale(1);
+        }
+        to {
+          transform: rotate(18deg) scale(1.3);
+        }
+      }
+      @keyframes sp-twinkle {
+        0% {
+          transform: scale(0) rotate(0deg);
+          opacity: 1;
+        }
+        35% {
+          transform: scale(1) rotate(40deg);
+          opacity: 1;
+        }
+        100% {
+          transform: scale(0.2) rotate(110deg);
+          opacity: 0;
+        }
+      }
+    </style>
 
     <title>KidTube — Video của con</title>
   </head>
   <body>
+    <div id="splash" role="status" aria-label="Đang mở KidTube">
+      <div class="sp-row" aria-hidden="true">
+        <svg class="sp-play" viewBox="0 0 64 64">
+          <path
+            d="M15 11 L54 31 L17 53 Z"
+            fill="#ff0033"
+            stroke="#ff0033"
+            stroke-width="12"
+            stroke-linejoin="round"
+          />
+        </svg>
+        <div class="sp-bar">
+          <div class="sp-track"></div>
+          <div class="sp-fill" id="sp-fill"></div>
+          <div class="sp-fx" id="sp-fx"></div>
+          <div class="sp-head" id="sp-head">
+            <div class="sp-star">
+              <svg viewBox="-8 -8 116 116">
+                <defs>
+                  <clipPath id="sp-mouth">
+                    <path d="M36 56 Q50 60 65 55 Q63 70 50 70 Q38 70 36 56 Z" />
+                  </clipPath>
+                </defs>
+                <!-- Ve sao 2 lan, net bo tron: lan duoi la vien, lan tren la than -->
+                <path
+                  d="M50 6 L64.1 32.6 L93.8 37.8 L72.8 59.4 L77 89.2 L50 76 L23 89.2 L27.2 59.4 L6.2 37.8 L35.9 32.6 Z"
+                  fill="#f2b100"
+                  stroke="#f2b100"
+                  stroke-width="15"
+                  stroke-linejoin="round"
+                />
+                <path
+                  d="M50 6 L64.1 32.6 L93.8 37.8 L72.8 59.4 L77 89.2 L50 76 L23 89.2 L27.2 59.4 L6.2 37.8 L35.9 32.6 Z"
+                  fill="#ffec7d"
+                  stroke="#ffec7d"
+                  stroke-width="9"
+                  stroke-linejoin="round"
+                />
+                <!-- Mat (nhin ve phia truoc = ben phai) -->
+                <circle cx="41" cy="46" r="6.5" fill="#fff" stroke="#2b2100" stroke-width="1.8" />
+                <circle cx="58" cy="45" r="6.5" fill="#fff" stroke="#2b2100" stroke-width="1.8" />
+                <circle cx="43.2" cy="46" r="3" fill="#1a1400" />
+                <circle cx="60.2" cy="45" r="3" fill="#1a1400" />
+                <!-- Mieng cuoi toe, lo rang -->
+                <path
+                  d="M36 56 Q50 60 65 55 Q63 70 50 70 Q38 70 36 56 Z"
+                  fill="#fff"
+                />
+                <g clip-path="url(#sp-mouth)" stroke="#2b2100" stroke-width="1.4" fill="none">
+                  <path d="M35 62.6 Q50 65.5 66 62" />
+                  <path d="M43 50 V72 M50 50 V72 M57.5 50 V72" />
+                </g>
+                <path
+                  d="M36 56 Q50 60 65 55 Q63 70 50 70 Q38 70 36 56 Z"
+                  fill="none"
+                  stroke="#2b2100"
+                  stroke-width="1.8"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script>
+      /*
+       * Dieu khien man khoi dong. React goi window.__kidtubeSplashDone() khi
+       * khoi dong xong (lib/splash.ts):
+       *   - Chua xong: sao chay deu toi 70% roi cham dan ve ~94%, khong bao
+       *     gio cham dich khi app chua san sang.
+       *   - Xong som: van chay het thanh dung luc MIN_MS — be phai KIP thay
+       *     ngoi sao chay (mo app nhanh qua thi chi loe len mot cai).
+       *   - Xong muon: phong nhanh not phan con lai.
+       * Toi dich: sao nhay len mot cai, man mo dan roi bi go khoi trang.
+       * Viet ES5 tran (khong =>, ?.): chay truoc bundle, tren trinh duyet TV.
+       */
+      ;(function () {
+        var el = document.getElementById('splash')
+        if (!el) return
+        var fill = document.getElementById('sp-fill')
+        var head = document.getElementById('sp-head')
+        var fx = document.getElementById('sp-fx')
+
+        var MIN_MS = 1600
+        // Khong bao gio ket o day: bundle loi / API treo thi van go man nay
+        // sau 15s de lo spinner "Đang mở…" cua App ben duoi.
+        var GIVE_UP_MS = 15000
+        var calm =
+          !!window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+        var start = performance.now()
+        var last = start
+        var p = 0
+        var ready = false
+        var finished = false
+        var nextSpark = 0
+
+        function spark() {
+          var s = document.createElement('i')
+          // Hat to nam sat ngoi sao, hat nho rot lai xa hon
+          var near = Math.random()
+          var size = 0.5 + near * 1.3
+          s.className = 'sp-spark'
+          s.style.width = size + 'em'
+          s.style.height = size + 'em'
+          // Rai phia SAU ngoi sao, ca tren lan duoi thanh
+          s.style.left = 'calc(' + p * 100 + '% - ' + (1.4 + (1 - near) * 3 + size / 2) + 'em)'
+          s.style.top = Math.random() * 4.6 - 2.5 - size / 2 + 'em'
+          fx.appendChild(s)
+          setTimeout(function () {
+            if (s.parentNode) s.parentNode.removeChild(s)
+          }, 1050)
+        }
+
+        function finish() {
+          if (finished) return
+          finished = true
+          el.className += ' sp-done'
+          setTimeout(function () {
+            el.className += ' sp-out'
+            setTimeout(function () {
+              if (el.parentNode) el.parentNode.removeChild(el)
+            }, 400)
+          }, 380)
+        }
+
+        function frame(now) {
+          if (finished) return
+          // Tab bi an thi rAF dung — quay lai khong duoc nhay coc mot phat
+          var dt = Math.min(now - last, 64)
+          last = now
+          var t = now - start
+          var before = p
+
+          if (ready) {
+            var remain = MIN_MS - t
+            p += remain > 0 ? ((1 - p) / remain) * dt : dt / 400
+          } else if (p < 0.7) {
+            p = Math.min(0.7, p + dt / MIN_MS)
+          } else {
+            p += (0.94 - p) * Math.min(1, dt / 2500)
+          }
+          if (p > 1) p = 1
+
+          fill.style.transform = 'scaleX(' + p + ')'
+          head.style.transform = 'translateX(' + p * 100 + '%)'
+
+          // p < 0.08: sao con o dau thanh, hat se rot de len nut phat
+          if (!calm && p > before && p > 0.08 && now >= nextSpark) {
+            spark()
+            nextSpark = now + 40 + Math.random() * 40
+          }
+
+          if (p >= 1) finish()
+          else requestAnimationFrame(frame)
+        }
+
+        window.__kidtubeSplashDone = function () {
+          ready = true
+        }
+        setTimeout(finish, GIVE_UP_MS)
+        requestAnimationFrame(frame)
+      })()
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

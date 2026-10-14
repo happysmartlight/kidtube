@@ -226,6 +226,18 @@ Sinh bằng WebAudio (không cần file mp3, không tốn băng thông):
 
 Có thể tắt hết trong cài đặt (`sfx_enabled`).
 
+## Màn khởi động
+
+Giống YouTube Kids: nút phát đỏ + ngôi sao mặt cười chạy dọc thanh tiến độ,
+phần đã chạy là dải cầu vồng, lấp lánh rơi phía sau. Viết thẳng trong
+`apps/web/index.html` (CSS + script ES5) để hiện **ngay** khi mở app, trước cả
+bundle JS. `App` gọi `hideSplash()` (`lib/splash.ts`) khi khởi động xong.
+
+- Luôn chạy tối thiểu **1,6 giây** dù app sẵn sàng sớm — bé phải kịp thấy sao chạy.
+- App chưa sẵn sàng thì sao chậm dần quanh ~94%, không bao giờ chạm đích.
+- Quá 15 giây vẫn tự gỡ màn, lộ spinner "Đang mở…" của `App` bên dưới.
+- `prefers-reduced-motion`: không có lấp lánh, sao vẫn chạy (đó là thanh tiến độ).
+
 ## Khả năng tiếp cận
 
 - Vùng bấm tối thiểu **72×72px** (vượt chuẩn WCAG 44px — tay trẻ nhỏ kém chính xác).

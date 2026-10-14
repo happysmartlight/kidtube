@@ -10,6 +10,7 @@ import { initMode } from '@/lib/mode'
 import { useBackHandler, useBackKeys } from '@/lib/back'
 import { backOr, isKidListing, matchPath, useNavigate, usePath } from '@/lib/router'
 import { setSfxEnabled, sfx } from '@/lib/sfx'
+import { hideSplash } from '@/lib/splash'
 import { getStoredProfileId, setStoredProfileId } from '@/lib/store'
 import { useAutoFullscreen } from '@/lib/tv'
 import { useSpatialNavigation } from '@/nav/spatial'
@@ -81,6 +82,12 @@ export function App(): React.ReactElement {
       cancelled = true
     }
   }, [])
+
+  // Ngoi sao chay not phan con lai roi man khoi dong mo dan. No con chay
+  // them mot chut nen Trang chu kip tai danh sach video o ben duoi.
+  useEffect(() => {
+    if (!booting) hideSplash()
+  }, [booting])
 
   // ─── Dieu huong bang D-pad + nut Back (toan cuc, MOT lan duy nhat) ──
   useSpatialNavigation()
