@@ -62,6 +62,13 @@ export const env = {
    */
   commit: str('KIDTUBE_COMMIT', ''),
   builtAt: str('KIDTUBE_BUILT_AT', ''),
+
+  /**
+   * Khoa chung de Family Organizer (cung may chu) xem + bam cap nhat app nay
+   * thay cho PIN — CHI voi /api/admin/update*. setup.sh cua liu-homelab tu dat.
+   * Rong = tat.
+   */
+  hubToken: str('HUB_TOKEN', '').trim(),
 } as const
 
 export type Env = typeof env

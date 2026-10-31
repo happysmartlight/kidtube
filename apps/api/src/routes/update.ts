@@ -10,7 +10,7 @@ import {
   requestAction,
   runningBuild,
 } from '../services/updater.js'
-import { requireParent } from './auth.js'
+import { requireParentOrHub } from './auth.js'
 
 /**
  * Cap nhat app tu trang Cai dat.
@@ -63,7 +63,8 @@ function snapshot(): Record<string, unknown> {
 }
 
 export async function updateRoutes(app: FastifyInstance): Promise<void> {
-  app.addHook('preHandler', requireParent)
+  // Bo me (PIN) hoac Family Organizer cung may chu (khoa HUB_TOKEN) — xem auth.ts.
+  app.addHook('preHandler', requireParentOrHub)
 
   app.get('/api/admin/update', async () => snapshot())
 

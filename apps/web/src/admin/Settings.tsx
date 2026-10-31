@@ -318,10 +318,16 @@ function InstallSection(): React.ReactElement {
 
 /** Dang o HTTP: dua bo me sang link HTTPS cua `tailscale serve`. */
 function TailscaleSteps({ appUrl }: { appUrl: string | null }): React.ReactElement {
-  // Cung cong voi HTTP, nhu cac app khac tren Pi: Tailscale chi chiem cong do
-  // tren dia chi tailnet (100.x), http://<ip-LAN> cho TV van chay nhu cu.
+  // Cung cong voi HTTP, nhu cac app khac tren Pi. KidTube phai nghe RIENG IP LAN
+  // (KIDTUBE_BIND): de 0.0.0.0 thi Docker chiem luon cong do tren IP Tailscale ->
+  // tailscale serve va KidTube gianh nhau, ai len truoc thi ben kia hong.
+  // Dang mo bang http://<ip-LAN> nen lay luon IP do; mo bang ten may thi de cho trong.
   const port = window.location.port || '8477'
-  const cmd = `tailscale serve --bg --https=${port} http://localhost:${port}`
+  const host = window.location.hostname
+  const lan = /^\d{1,3}(\.\d{1,3}){3}$/.test(host) ? host : '<IP-LAN-của-Pi>'
+  const cmd =
+    `cd ~/kidtube && echo "KIDTUBE_BIND=${lan}" >> .env && docker compose up -d && ` +
+    `tailscale serve --bg --https=${port} http://${lan}:${port}`
 
   const tailscaleStep = (n: number): React.ReactElement => (
     <Step n={n} title="Bật Tailscale trên máy này">
@@ -358,7 +364,10 @@ function TailscaleSteps({ appUrl }: { appUrl: string | null }): React.ReactEleme
   return (
     <ol className="flex flex-col gap-5">
       <Step n={1} title="Bật HTTPS trên Pi (một lần)">
-        <p className="mb-2">SSH vào Pi rồi chạy:</p>
+        <p className="mb-2">
+          SSH vào Pi rồi chạy (thư mục cài KidTube khác <code>~/kidtube</code> thì sửa lại). Lệnh
+          cho KidTube chỉ nghe trên IP LAN để không giành cổng với Tailscale:
+        </p>
         <CopyBox text={cmd} />
         <p className="mt-2">
           Lệnh in ra link dạng <code>https://&lt;tên-máy&gt;.&lt;tailnet&gt;.ts.net:{port}</code>{' '}

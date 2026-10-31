@@ -26,10 +26,14 @@ services:
     # Cong tren MAY CHU (Pi). Doi bang KIDTUBE_PORT trong .env neu bi trung.
     # 8080 rat hay bi chiem san (Portainer, qBittorrent, Home Assistant...).
     #
-    # Ghi ro 0.0.0.0 de chac chan mo ra LAN — tablet va TV phai vao duoc.
+    # Mac dinh 0.0.0.0 de chac chan mo ra LAN — tablet va TV phai vao duoc.
     # KHONG mo ra Internet: day la app cho tre, khong co ly do gi truy cap tu ngoai.
+    #
+    # Co dung `tailscale serve --https=8477` tren cung may? Dat KIDTUBE_BIND=<IP LAN>
+    # trong .env: 0.0.0.0 chiem luon cong 8477 tren IP Tailscale -> tailscaled khong
+    # nghe duoc, link HTTPS hong. Khi do serve tro toi http://<IP LAN>:8477.
     ports:
-      - '0.0.0.0:${KIDTUBE_PORT:-8477}:8080'
+      - '${KIDTUBE_BIND:-0.0.0.0}:${KIDTUBE_PORT:-8477}:8080'
 
     volumes:
       # kid.db — sao luu thu muc nay la sao luu toan bo cau hinh.
@@ -60,6 +64,9 @@ services:
       # "The page needs to be reloaded":
       #   YTDLP_EXTRACTOR_ARGS=youtube:player_client=default,-tv_downgraded
       YTDLP_EXTRACTOR_ARGS: ${YTDLP_EXTRACTOR_ARGS:-}
+      # Tuy chon: khoa chung de Family Organizer (cung may chu) xem + bam cap
+      # nhat app nay. setup.sh cua liu-homelab tu dat; bo trong = tat.
+      HUB_TOKEN: ${HUB_TOKEN:-}
 
     # Pi 5 con phai chay viec khac trong homelab — gioi han de yt-dlp
     # khong an het CPU khi dang tai video.

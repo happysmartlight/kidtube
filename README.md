@@ -200,16 +200,25 @@ nó cấp HTTPS bằng chứng chỉ Let's Encrypt thật cho tên
 1. **Trên Pi, một lần:**
 
    ```bash
-   tailscale serve --bg --https=8477 http://localhost:8477
+   cd ~/kidtube
+   LAN_IP=$(hostname -I | awk '{print $1}')        # IP LAN của Pi, vd 192.168.0.159
+   echo "KIDTUBE_BIND=$LAN_IP" >> .env             # KidTube chỉ nghe trên IP LAN
+   docker compose up -d
+   tailscale serve --bg --https=8477 http://$LAN_IP:8477
    tailscale serve status   # in ra https://<tên-máy>.<tailnet>.ts.net:8477
    ```
 
-   Đổi `8477` nếu bạn đặt `KIDTUBE_PORT` khác. Cùng số cổng là tiện nhất:
-   Tailscale chỉ chiếm cổng đó trên địa chỉ tailnet (100.x), còn
-   `http://<ip-của-pi>:8477` trong LAN — cho TV LG — vẫn chạy như cũ. `--bg`
-   lưu cấu hình lại, Pi khởi động lại không phải chạy lệnh nữa. (Cần bật
-   *MagicDNS* và *HTTPS Certificates* trong trang quản trị Tailscale — đã dùng
-   `tailscale serve` cho app khác thì đã bật rồi.)
+   Vì sao phải có `KIDTUBE_BIND`: mặc định KidTube nghe trên `0.0.0.0`, tức là
+   chiếm cổng 8477 trên **mọi** địa chỉ của Pi — kể cả địa chỉ Tailscale (100.x)
+   mà `tailscale serve` cũng cần. Hai bên giành nhau, ai lên trước thì bên kia
+   hỏng (sau mỗi lần mất điện có thể khác nhau). Nghe riêng IP LAN thì không đụng
+   nhau, và `http://<ip-của-pi>:8477` trong LAN — cho TV LG — vẫn chạy như cũ.
+   Nên đặt IP cố định cho Pi trong router. Đổi `8477` nếu bạn đặt `KIDTUBE_PORT`
+   khác. `--bg` lưu cấu hình lại, Pi khởi động lại không phải chạy lệnh nữa. (Cần
+   bật *MagicDNS* và *HTTPS Certificates* trong trang quản trị Tailscale — đã dùng
+   `tailscale serve` cho app khác thì đã bật rồi.) Dùng
+   [liu-homelab](https://github.com/happysmartlight/liu-homelab) thì `setup.sh`
+   của nó làm sẵn bước này.
 2. **Trên máy cần cài:** cài app **Tailscale**, đăng nhập cùng tailnet với Pi,
    bật lên.
 3. Mở `https://<tên-máy>.<tailnet>.ts.net:8477` → giữ ⚙ 3 giây, nhập PIN →
@@ -344,6 +353,14 @@ Vài điều nên biết:
   credential helper); repo công khai thì không cần gì.
 - Dữ liệu (`data/`) và video (`media/`) không bị động tới.
 
+**Điều khiển từ Family Organizer:** Pi chạy cả
+[Family Organizer](https://github.com/happysmartlight/Family-Organizer) thì có
+thể xem trạng thái, bấm cập nhật và khởi động lại KidTube ngay trong
+*Quản lý Server → Ứng dụng trong nhà* của nó. Family Organizer gọi đúng các API
+cập nhật ở trên bằng khóa chung `HUB_TOKEN` (đặt trong `.env` của cả hai — `setup.sh`
+của liu-homelab tự sinh). Khóa này chỉ mở `/api/admin/update*`, không thay PIN cho
+phần nào khác.
+
 ---
 
 ## Chế độ tải offline
@@ -477,7 +494,7 @@ docs/        Yêu cầu, kế hoạch, kiến trúc, thiết kế
 | `port is already allocated` | Cổng đã bị dịch vụ khác chiếm. Đổi `KIDTUBE_PORT` trong `.env` rồi `docker compose up -d`. |
 | Tablet/TV không vào được nhưng Pi thì được | Kiểm tra firewall trên Pi: `sudo ufw allow 8477/tcp`. |
 | "Thêm vào màn hình chính" mở ra vẫn còn thanh địa chỉ | Đang mở bằng HTTP. Mở bằng link Tailscale — xem [Cài app lên điện thoại / tablet](#cài-app-lên-điện-thoại--tablet-android--iphone--ipad). |
-| Link `https://….ts.net:8477` không mở được | Tailscale trên máy đó chưa bật hoặc khác tailnet. Trên Pi: `tailscale serve status` phải có dòng `proxy http://localhost:8477`. |
+| Link `https://….ts.net:8477` không mở được | Tailscale trên máy đó chưa bật hoặc khác tailnet. Trên Pi: `tailscale serve status` phải có dòng `proxy http://<IP LAN>:8477`, và `.env` phải có `KIDTUBE_BIND=<IP LAN>` (để `0.0.0.0` thì Docker giành mất cổng 8477 của tailscale serve). |
 | Đã mở HTTPS mà không có nút *Cài KidTube* | Chrome chưa sẵn sàng hoặc máy đã cài rồi. Dùng menu ⋮ → *Cài đặt ứng dụng*, hoặc tìm icon KidTube trên màn hình chính. |
 | Quên PIN | Xoá hai dòng `pin_salt` và `pin_hash` trong bảng `settings` của `data/kid.db` rồi `docker compose restart kidtube` — PIN quay về `DEFAULT_PIN` (mặc định `000000`). |
 | Restart là phải nhập PIN lại | Chưa đặt `SESSION_SECRET` trong `.env`. |

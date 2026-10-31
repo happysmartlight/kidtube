@@ -1,6 +1,7 @@
 import { randomBytes, timingSafeEqual } from 'node:crypto'
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import { getSetting, setSetting } from '../db/index.js'
+import { env } from '../env.js'
 import { hashPin } from '../db/seed.js'
 import { badRequest, HttpError, unauthorized } from '../lib/errors.js'
 
@@ -69,6 +70,23 @@ export function isParent(req: FastifyRequest): boolean {
 /** Hook chan moi route /api/admin/*. */
 export async function requireParent(req: FastifyRequest): Promise<void> {
   if (!isParent(req)) throw unauthorized('Cần nhập PIN của bố mẹ')
+}
+
+/**
+ * Family Organizer goi bang khoa HUB_TOKEN (header Authorization: Bearer ...).
+ * Khoa ngan qua (< 32 ky tu) coi nhu chua dat — tranh ai do dat "123" cho nhanh.
+ */
+export function isHub(req: FastifyRequest): boolean {
+  const token = env.hubToken
+  if (token.length < 32) return false
+  const header = req.headers.authorization ?? ''
+  if (!header.startsWith('Bearer ')) return false
+  return safeEqual(header.slice(7).trim(), token)
+}
+
+/** Chi dung cho route cap nhat (routes/update.ts) — khoa khong mo duoc route admin khac. */
+export async function requireParentOrHub(req: FastifyRequest): Promise<void> {
+  if (!isHub(req) && !isParent(req)) throw unauthorized('Cần nhập PIN của bố mẹ')
 }
 
 function issue(reply: FastifyReply): void {
